@@ -12,7 +12,7 @@
             v-model="email"
             type="email"
             required
-            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none"
+            class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 shadow-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
             placeholder="teacher1@example.com"
           />
         </div>
@@ -24,14 +24,14 @@
             v-model="password"
             type="password"
             required
-            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none"
+            class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 shadow-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
             placeholder="Enter password"
           />
         </div>
 
         <button
           type="submit"
-          class="w-full rounded-2xl bg-sky-600 px-4 py-3 text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+          class="w-full rounded-lg bg-sky-600 px-4 py-3 text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="loading"
         >
           <span v-if="loading">Signing in...</span>
@@ -46,14 +46,41 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
 
+const validate = () => {
+  if (!email.value.trim() || !password.value.trim()) {
+    error.value = 'Email and password are required.'
+    return false
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailPattern.test(email.value)) {
+    error.value = 'Please enter a valid email address.'
+    return false
+  }
+
+  if (password.value.length < 6) {
+    error.value = 'Password must be at least 6 characters.'
+    return false
+  }
+
+  return true
+}
+
 const login = async () => {
   error.value = ''
+
+  if (!validate()) {
+    return
+  }
+
   loading.value = true
 
   try {
@@ -70,7 +97,7 @@ const login = async () => {
     }
 
     window.localStorage.setItem('sms_token', data.token)
-    window.location.reload()
+    router.push('/')
   } catch (err) {
     error.value = 'Unable to reach backend. Is the server running?'
   } finally {

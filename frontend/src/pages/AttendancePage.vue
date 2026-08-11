@@ -3,12 +3,12 @@
     <div class="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-xl">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-3xl font-semibold">Dashboard</h1>
-          <p class="text-slate-600">You are signed in. Use this page as the start of your attendance portal.</p>
+          <h1 class="text-3xl font-semibold">Attendance</h1>
+          <p class="text-slate-600">Manage attendance records and view protected attendance data.</p>
         </div>
         <button
           @click="logout"
-          class="rounded-2xl bg-rose-600 px-4 py-3 text-white transition hover:bg-rose-700"
+          class="rounded-lg bg-rose-600 px-4 py-3 text-white transition hover:bg-rose-700"
         >
           Sign out
         </button>
@@ -20,29 +20,27 @@
           <p class="text-slate-700 text-sm">A JWT is stored locally so you can call protected API endpoints.</p>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold mb-2">Attendance</h3>
-            <p class="text-slate-600 mb-4">Load your protected attendance records from the backend.</p>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="text-lg font-semibold">Reload records</h3>
+              <p class="text-slate-600 text-sm">Fetch the latest attendance records for your role.</p>
+            </div>
             <button
               @click="fetchAttendance"
-              class="rounded-lg bg-sky-600 px-4 py-3 text-white transition hover:bg-sky-700"
               :disabled="loadingAttendance"
+              class="rounded-lg bg-sky-600 px-4 py-3 text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span v-if="loadingAttendance">Loading...</span>
-              <span v-else>Load attendance</span>
+              <span v-else>Refresh</span>
             </button>
-          </div>
-
-          <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold mb-2">Welcome</h3>
-            <p class="text-slate-600 text-sm">Access your attendance portal and protected data after sign in.</p>
           </div>
         </div>
 
         <div v-if="attendanceError" class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">{{ attendanceError }}</div>
+
         <div v-if="attendance && attendance.length" class="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-          <h3 class="text-lg font-semibold mb-4">Attendance result</h3>
+          <h3 class="text-lg font-semibold mb-4">Attendance records</h3>
           <div class="space-y-4">
             <div
               v-for="record in attendance"
@@ -56,6 +54,10 @@
             </div>
           </div>
         </div>
+
+        <div v-if="attendance && !attendance.length" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-slate-700">
+          No attendance records found.
+        </div>
       </div>
     </div>
   </div>
@@ -65,24 +67,19 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-const router = useRouter()
-const attendance = ref(null)
+const attendance = ref([])
 const attendanceError = ref('')
 const loadingAttendance = ref(false)
+const router = useRouter()
 
 const logout = () => {
   window.localStorage.removeItem('sms_token')
   router.push('/login')
 }
 
-const goToAttendance = () => {
-  router.push('/attendance')
-}
-
 const fetchAttendance = async () => {
   attendanceError.value = ''
   loadingAttendance.value = true
-  attendance.value = null
 
   const token = window.localStorage.getItem('sms_token')
   if (!token) {
@@ -98,17 +95,17 @@ const fetchAttendance = async () => {
     const json = await res.json()
     if (!res.ok) {
       attendanceError.value = json.error || 'Failed to load attendance'
+      attendance.value = []
       return
     }
-
     attendance.value = Array.isArray(json.data) ? json.data : []
-    if (attendance.value.length === 0) {
-      attendanceError.value = 'No attendance records found.'
-    }
   } catch (err) {
     attendanceError.value = 'Unable to reach backend. Is it running?'
+    attendance.value = []
   } finally {
     loadingAttendance.value = false
   }
 }
+
+fetchAttendance()
 </script>
