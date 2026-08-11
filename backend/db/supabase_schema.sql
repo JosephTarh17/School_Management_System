@@ -1,0 +1,156 @@
+-- Supabase/PostgreSQL schema generated from the SMS Mermaid ERD
+-- Paste this into Supabase SQL Editor to create the tables.
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TYPE user_role AS ENUM ('student', 'teacher', 'guardian', 'administrator');
+CREATE TYPE attendance_status AS ENUM ('Present', 'Absent', 'Late', 'Excused');
+CREATE TYPE assessment_type AS ENUM ('Quiz', 'Assignment', 'Midterm', 'Final');
+CREATE TYPE participation_rating AS ENUM ('Active', 'Moderate', 'Passive', 'Disruptive');
+CREATE TYPE payment_status AS ENUM ('Pending', 'Paid', 'Overdue', 'Cancelled');
+
+CREATE TABLE user_account (
+  user_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  password_hash text,
+  role user_role NOT NULL,
+  mfa_enabled boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_login timestamptz
+);
+
+CREATE TABLE student (
+  student_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE REFERENCES user_account(user_id) ON DELETE CASCADE,
+  full_name text NOT NULL,
+  dob date,
+  phone text,
+  address text
+);
+
+CREATE TABLE guardian (
+  guardian_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE REFERENCES user_account(user_id) ON DELETE CASCADE,
+  full_name text NOT NULL,
+  email text NOT NULL,
+  phone text,
+  relationship text
+);
+
+CREATE TABLE administrator (
+  administrator_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE REFERENCES user_account(user_id) ON DELETE CASCADE,
+  full_name text NOT NULL,
+  department text
+);
+
+CREATE TABLE teacher (
+  teacher_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE REFERENCES user_account(user_id) ON DELETE CASCADE,
+  full_name text NOT NULL,
+  email text NOT NULL,
+  department text
+);
+
+CREATE TABLE student_guardian (
+  student_guardian_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+  guardian_id uuid NOT NULL REFERENCES guardian(guardian_id) ON DELETE CASCADE,
+  primary_contact boolean NOT NULL DEFAULT false,
+  UNIQUE(student_id, guardian_id)
+);
+
+CREATE TABLE course (
+  course_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_name text NOT NULL,
+  course_code text NOT NULL UNIQUE,
+  term text,
+  credit_units integer
+);
+
+CREATE TABLE room (
+  room_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_name text NOT NULL UNIQUE,
+  location text,
+  capacity integer
+);
+
+CREATE TABLE class_session (
+  session_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+  teacher_id uuid NOT NULL REFERENCES teacher(teacher_id) ON DELETE SET NULL,
+  room_id uuid NOT NULL REFERENCES room(room_id) ON DELETE SET NULL,
+  substitute_teacher_id uuid REFERENCES teacher(teacher_id) ON DELETE SET NULL,
+  start_time timestamptz NOT NULL,
+  end_time timestamptz NOT NULL,
+  recurrence_pattern text,
+  CHECK (start_time < end_time)
+);
+
+CREATE TABLE assessment (
+  assessment_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+  title text NOT NULL,
+  assessment_type assessment_type NOT NULL,
+  max_score numeric(6,2) NOT NULL DEFAULT 100.00,
+  weight numeric(5,2) NOT NULL,
+  due_date date,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE academic_record (
+  record_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+  assessment_id uuid NOT NULL REFERENCES assessment(assessment_id) ON DELETE CASCADE,
+  score numeric(6,2),
+  grade text,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(student_id, assessment_id)
+);
+
+CREATE TABLE final_grade (
+  final_grade_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+  course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+  computed_score numeric(6,2),
+  letter_grade text,
+  gpa numeric(3,2),
+  UNIQUE(student_id, course_id)
+);
+
+CREATE TABLE participation_log (
+  participation_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+  session_id uuid NOT NULL REFERENCES class_session(session_id) ON DELETE CASCADE,
+  rating participation_rating NOT NULL,
+  notes text,
+  recorded_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE attendance (
+  attendance_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+  session_id uuid NOT NULL REFERENCES class_session(session_id) ON DELETE CASCADE,
+  session_date date NOT NULL,
+  status attendance_status NOT NULL,
+  UNIQUE(student_id, session_id, session_date)
+);
+
+CREATE TABLE financial_record (
+  invoice_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+  amount_due numeric(12,2) NOT NULL DEFAULT 0.00,
+  amount_paid numeric(12,2) NOT NULL DEFAULT 0.00,
+  payment_status payment_status NOT NULL DEFAULT 'Pending',
+  due_date date,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Optional indexes for common join queries
+CREATE INDEX idx_attendance_student_id ON attendance(student_id);
+CREATE INDEX idx_attendance_session_id ON attendance(session_id);
+CREATE INDEX idx_academic_record_student_id ON academic_record(student_id);
+CREATE INDEX idx_participation_log_student_id ON participation_log(student_id);
+CREATE INDEX idx_participation_log_session_id ON participation_log(session_id);
+CREATE INDEX idx_class_session_course_id ON class_session(course_id);
+CREATE INDEX idx_class_session_teacher_id ON class_session(teacher_id);
