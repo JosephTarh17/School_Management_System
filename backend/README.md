@@ -27,6 +27,20 @@ Node.js + Express backend scaffold for the School Management System.
 - `POST /auth/login` — authenticate a user and receive a JWT
 - `GET /attendance` — list attendance for the authenticated user
 - `POST /attendance` — create a new attendance record
+- `GET /users/me` — fetch the authenticated user's profile
+- `POST /users/register` — create a new user account (admin-only)
+- `GET /students` — list student profiles
+- `POST /students` — create a student profile (admin-only)
+- `GET /courses` — list courses
+- `POST /courses` — create a course (teacher/admin)
+- `GET /class-sessions` — list class sessions
+- `POST /class-sessions` — create a class session (teacher/admin)
+- `GET /assessments` — list assessments
+- `POST /assessments` — create an assessment (teacher/admin)
+- `GET /participation-logs` — list participation entries
+- `POST /participation-logs` — create participation logs (teacher/admin)
+- `GET /financial-records` — list financial records
+- `POST /financial-records` — create financial records (admin/guardian/student)
 
 ## Notes
 
