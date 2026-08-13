@@ -7,6 +7,12 @@ import { enrolledStudentIdsForTeacher, studentIdForUser } from '../lib/enrollmen
 const router = express.Router()
 router.use(requireAuth)
 
+function clampPercent(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return 0
+  return Math.min(100, Math.max(0, numeric))
+}
+
 async function guardianStudentIds(userId) {
   const { data: guardian, error: guardianError } = await supabase.from('guardian').select('guardian_id').eq('user_id', userId).maybeSingle()
   if (guardianError) throw guardianError
@@ -71,13 +77,14 @@ router.get('/reports', asyncRoute(async (req, res) => {
     grouped.set(record.student_id, entry)
   }
   const reports = [...grouped.values()].map((entry) => {
-    const absencePercent = entry.total ? Math.round((entry.absent / entry.total) * 10000) / 100 : 0
-    const latePercent = entry.total ? Math.round((entry.late / entry.total) * 10000) / 100 : 0
-    return { ...entry, attendance_percent: entry.total ? Math.round((entry.present / entry.total) * 10000) / 100 : 0, absence_percent: absencePercent, late_percent: latePercent, at_risk: absencePercent >= Number(threshold.absence_threshold_percent) || latePercent >= Number(threshold.late_threshold_percent) }
+    const absencePercent = clampPercent(entry.total ? Math.round((entry.absent / entry.total) * 10000) / 100 : 0)
+    const latePercent = clampPercent(entry.total ? Math.round((entry.late / entry.total) * 10000) / 100 : 0)
+    const attendancePercent = clampPercent(entry.total ? Math.round((entry.present / entry.total) * 10000) / 100 : 0)
+    return { ...entry, attendance_percent: attendancePercent, absence_percent: absencePercent, late_percent: latePercent, at_risk: absencePercent >= Number(threshold.absence_threshold_percent) || latePercent >= Number(threshold.late_threshold_percent) }
   })
   for (const report of reports.filter((entry) => entry.at_risk)) {
     const alertType = report.absence_percent >= Number(threshold.absence_threshold_percent) ? 'absence_threshold' : 'late_threshold'
-    const percent = alertType === 'absence_threshold' ? report.absence_percent : report.late_percent
+    const percent = clampPercent(alertType === 'absence_threshold' ? report.absence_percent : report.late_percent)
     const message = `${report.student_name} has reached the ${alertType === 'absence_threshold' ? 'absence' : 'late'} attendance threshold (${percent}%).`
     const { data: existing, error: existingError } = await supabase.from('attendance_alert').select('alert_id').eq('student_id', report.student_id).eq('alert_type', alertType).is('acknowledged_at', null).limit(1)
     if (existingError) throw existingError

@@ -155,6 +155,7 @@ import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
 import { authStore } from '../store/auth'
 import { fetchAcademicRecords, fetchAssessments, fetchAttendance, fetchEnrollments, fetchFinalGrades } from '../api.js'
+import { clampPercent, formatPercent } from '../lib/formatters.js'
 
 const activeTab = ref('Overview & Courses')
 
@@ -196,7 +197,7 @@ onMounted(async () => {
   if (assessmentResult.ok) gradeItems.value = (assessmentResult.data || []).map((item) => ({
     title: item.title,
     code: item.course?.course_code || item.course_id,
-    weight: `${item.weight}%`,
+    weight: formatPercent(clampPercent(item.weight)),
     date: item.due_date || 'Not scheduled',
     score: academicRecords.value.find((record) => record.assessment_id === item.assessment_id)?.score != null
       ? `${academicRecords.value.find((record) => record.assessment_id === item.assessment_id).score}/${item.max_score}`
@@ -212,7 +213,7 @@ onMounted(async () => {
 })
 
 const downloadTranscript = () => {
-  const lines = finalGrades.value.map((grade) => `${grade.course?.course_code || grade.course_id}: ${grade.computed_score ?? '—'}% (${grade.letter_grade || 'Pending'})`)
+  const lines = finalGrades.value.map((grade) => `${grade.course?.course_code || grade.course_id}: ${formatPercent(clampPercent(grade.computed_score ?? 0))} (${grade.letter_grade || 'Pending'})`)
   if (!lines.length) return alert('No published final grades are available yet.')
   const blob = new Blob([`Academic results\n\n${lines.join('\n')}`], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)

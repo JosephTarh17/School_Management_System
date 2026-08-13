@@ -24,6 +24,7 @@ function gpaForScore(score) {
   return 0
 }
 function round2(value) { return Math.round((value + Number.EPSILON) * 100) / 100 }
+function clampPercent(value) { return Math.min(100, Math.max(0, Number(value) || 0)) }
 
 async function recalculateFinalGrade(studentId, courseId) {
   const [{ data: assessments, error: assessmentError }, { data: records, error: recordError }] = await Promise.all([
@@ -35,7 +36,7 @@ async function recalculateFinalGrade(studentId, courseId) {
   const byAssessment = new Map((records || []).map((record) => [record.assessment_id, record]))
   const graded = (assessments || []).filter((assessment) => byAssessment.get(assessment.assessment_id)?.score != null)
   const totalWeight = graded.reduce((sum, assessment) => sum + Number(assessment.weight || 0), 0)
-  const computedScore = totalWeight ? round2(graded.reduce((sum, assessment) => sum + ((Number(byAssessment.get(assessment.assessment_id).score) / Number(assessment.max_score)) * 100 * Number(assessment.weight)), 0) / totalWeight) : null
+  const computedScore = totalWeight ? clampPercent(round2(graded.reduce((sum, assessment) => sum + ((Number(byAssessment.get(assessment.assessment_id).score) / Number(assessment.max_score)) * 100 * Number(assessment.weight)), 0) / totalWeight)) : null
   const payload = { student_id: studentId, course_id: courseId, computed_score: computedScore, letter_grade: computedScore == null ? null : letterGrade(computedScore), gpa: computedScore == null ? null : gpaForScore(computedScore) }
   const { error } = await supabase.from('final_grade').upsert(payload, { onConflict: 'student_id,course_id' })
   if (error) throw error
@@ -109,7 +110,7 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
     if (!studentIds.includes(student_id)) throw new ApiError(403, 'You do not have permission to grade this student')
   }
   await assertStudentInCourse(student_id, assessment.course_id)
-  const grade = letterGrade(round2((score / Number(assessment.max_score)) * 100))
+  const grade = letterGrade(clampPercent(round2((score / Number(assessment.max_score)) * 100)))
   const { data, error } = await supabase.from('academic_record').upsert({ student_id, assessment_id, score, grade, evaluation_date, published }, { onConflict: 'student_id,assessment_id' }).select(select).single()
   if (error) throw error
   await recalculateFinalGrade(student_id, assessment.course_id)
@@ -126,7 +127,7 @@ router.patch('/:recordId', requireRole('teacher', 'administrator'), asyncRoute(a
   if (req.body?.score !== undefined) {
     updates.score = asNumber(req.body.score, 'score', { min: 0 })
     if (updates.score > Number(current.assessment.max_score)) throw new ApiError(400, 'score cannot exceed the assessment maximum')
-    updates.grade = letterGrade(round2((updates.score / Number(current.assessment.max_score)) * 100))
+    updates.grade = letterGrade(clampPercent(round2((updates.score / Number(current.assessment.max_score)) * 100)))
   }
   if (req.body?.evaluation_date !== undefined) updates.evaluation_date = asDate(req.body.evaluation_date, 'evaluation_date', { optional: true })
   if (req.body?.published !== undefined) updates.published = req.body.published === true

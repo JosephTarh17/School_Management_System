@@ -72,6 +72,7 @@ import Badge from '../components/Badge.vue'
 import { authStore } from '../store/auth.js'
 import { deleteFinancialRecord, fetchFinancialRecords, updateFinancialRecord } from '../api.js'
 import { numberRange } from '../lib/validation.js'
+import { formatXaf } from '../lib/formatters.js'
 
 const paymentStatuses = ['Pending', 'Partial', 'Paid', 'Overdue', 'Waived']
 const transactions = ref([])
@@ -91,7 +92,7 @@ const outstanding = computed(() => transactions.value.reduce((sum, record) => su
 const processedPayments = computed(() => transactions.value.filter((record) => Number(record.amount_paid || 0) > 0).length)
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(value) || 0)
+  return formatXaf(value)
 }
 
 async function loadRecords() {

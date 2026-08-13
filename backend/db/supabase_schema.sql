@@ -93,7 +93,7 @@ CREATE TABLE assessment (
   title text NOT NULL,
   assessment_type assessment_type NOT NULL,
   max_score numeric(6,2) NOT NULL DEFAULT 100.00,
-  weight numeric(5,2) NOT NULL,
+  weight numeric(5,2) NOT NULL CHECK (weight BETWEEN 0 AND 100),
   due_date date,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -112,7 +112,7 @@ CREATE TABLE final_grade (
   final_grade_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
   course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
-  computed_score numeric(6,2),
+  computed_score numeric(6,2) CHECK (computed_score IS NULL OR computed_score BETWEEN 0 AND 100),
   letter_grade text,
   gpa numeric(3,2),
   UNIQUE(student_id, course_id)
