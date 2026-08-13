@@ -10,12 +10,13 @@ import classSessionsRoutes from './routes/classSessions.js'
 import assessmentsRoutes from './routes/assessments.js'
 import participationRoutes from './routes/participationLogs.js'
 import financialRoutes from './routes/financialRecords.js'
+import { ApiError, errorHandler } from './lib/api.js'
 
 dotenv.config()
 
 const app = express()
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '1mb' }))
 
 app.use('/auth', authRoutes)
 app.use('/attendance', attendanceRoutes)
@@ -27,8 +28,8 @@ app.use('/assessments', assessmentsRoutes)
 app.use('/participation-logs', participationRoutes)
 app.use('/financial-records', financialRoutes)
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' })
-})
+app.get('/health', (req, res) => res.json({ status: 'ok' }))
+app.use((req, res, next) => next(new ApiError(404, 'Route not found')))
+app.use(errorHandler)
 
 export default app

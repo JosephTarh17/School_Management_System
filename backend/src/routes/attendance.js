@@ -1,63 +1,70 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, requireRole } from '../middleware/auth.js'
+import { ENUMS, ApiError, asDate, asEnum, asUuid, asyncRoute, sendData } from '../lib/api.js'
 
 const router = express.Router()
-
-// Protect attendance routes: only authenticated users can use them.
 router.use(requireAuth)
+const select = '*, student(*), class_session(*)'
 
-// GET /attendance
-// Returns attendance records for the authenticated user. In a real app,
-// this would use the user's role to determine what data is allowed.
-router.get('/', async (req, res) => {
-  const { user } = req
-  const { role, user_id } = user
+async function studentIdForUser(userId) {
+  const { data, error } = await supabase.from('student').select('student_id').eq('user_id', userId).maybeSingle()
+  if (error) throw error
+  return data?.student_id
+}
 
-  let query = supabase.from('attendance').select('*')
-
-  if (role === 'student') {
-    // Students should only see their own attendance.
-    const { data, error } = await query.eq('student_id', user_id)
-    if (error) return res.status(500).json({ error: 'Database error' })
-    return res.json({ data })
+router.get('/', asyncRoute(async (req, res) => {
+  let query = supabase.from('attendance').select(select).order('session_date', { ascending: false })
+  if (req.user.role === 'student') {
+    const studentId = await studentIdForUser(req.user.user_id)
+    if (!studentId) return sendData(res, [])
+    query = query.eq('student_id', studentId)
   }
-
-  if (role === 'teacher') {
-    // For teachers, return all attendance records for sessions they teach.
-    const { data, error } = await supabase
-      .from('attendance')
-      .select('*, class_session(*)')
-      .eq('class_session.teacher_id', user_id)
-
-    if (error) return res.status(500).json({ error: 'Database error' })
-    return res.json({ data })
-  }
-
-  // Administrators and guardians can see all attendance for now.
+  if (req.query.student_id) query = query.eq('student_id', asUuid(req.query.student_id, 'student_id'))
+  if (req.query.session_id) query = query.eq('session_id', asUuid(req.query.session_id, 'session_id'))
+  if (req.query.status) query = query.eq('status', asEnum(req.query.status, 'status', ENUMS.attendanceStatus))
   const { data, error } = await query
-  if (error) return res.status(500).json({ error: 'Database error' })
-  res.json({ data })
-})
+  if (error) throw error
+  return sendData(res, data)
+}))
 
-// POST /attendance
-// Create a new attendance record.
-router.post('/', async (req, res) => {
-  const { student_id, session_id, session_date, status } = req.body
+router.get('/:attendanceId', asyncRoute(async (req, res) => {
+  const attendanceId = asUuid(req.params.attendanceId, 'attendanceId')
+  const { data, error } = await supabase.from('attendance').select(select).eq('attendance_id', attendanceId).maybeSingle()
+  if (error) throw error
+  if (!data) throw new ApiError(404, 'Attendance record not found')
+  if (req.user.role === 'student' && data.student?.user_id !== req.user.user_id) throw new ApiError(403, 'You do not have permission to view this attendance record')
+  return sendData(res, data)
+}))
 
-  if (!student_id || !session_id || !session_date || !status) {
-    return res.status(400).json({ error: 'All fields are required' })
-  }
+router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
+  const student_id = asUuid(req.body?.student_id, 'student_id')
+  const session_id = asUuid(req.body?.session_id, 'session_id')
+  const session_date = asDate(req.body?.session_date, 'session_date')
+  const status = asEnum(req.body?.status, 'status', ENUMS.attendanceStatus)
+  const { data, error } = await supabase.from('attendance').insert({ student_id, session_id, session_date, status }).select(select).single()
+  if (error) throw error
+  return sendData(res, data, 201)
+}))
 
-  const { data, error } = await supabase.from('attendance').insert([
-    { student_id, session_id, session_date, status },
-  ])
+router.patch('/:attendanceId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
+  const attendanceId = asUuid(req.params.attendanceId, 'attendanceId')
+  const updates = {}
+  if (req.body?.student_id !== undefined) updates.student_id = asUuid(req.body.student_id, 'student_id')
+  if (req.body?.session_id !== undefined) updates.session_id = asUuid(req.body.session_id, 'session_id')
+  if (req.body?.session_date !== undefined) updates.session_date = asDate(req.body.session_date, 'session_date')
+  if (req.body?.status !== undefined) updates.status = asEnum(req.body.status, 'status', ENUMS.attendanceStatus)
+  if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
+  const { data, error } = await supabase.from('attendance').update(updates).eq('attendance_id', attendanceId).select(select).single()
+  if (error) throw error
+  return sendData(res, data)
+}))
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
-  }
-
-  return res.status(201).json({ data })
-})
+router.delete('/:attendanceId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
+  const attendanceId = asUuid(req.params.attendanceId, 'attendanceId')
+  const { error } = await supabase.from('attendance').delete().eq('attendance_id', attendanceId)
+  if (error) throw error
+  return res.status(204).send()
+}))
 
 export default router

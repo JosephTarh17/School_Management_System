@@ -1,22 +1,28 @@
 import jwt from 'jsonwebtoken'
+import { ApiError } from '../lib/api.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key'
 
-// Middleware to require authentication. It reads the Authorization header and
-// verifies the JWT token that was issued during login.
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authorization header missing or malformed' })
-  }
+  if (!authHeader?.startsWith('Bearer ')) return next(new ApiError(401, 'Authentication required'))
 
-  const token = authHeader.split(' ')[1]
+  const token = authHeader.slice('Bearer '.length).trim()
+  if (!token) return next(new ApiError(401, 'Authentication required'))
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    req.user = payload
-    next()
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' })
+    req.user = jwt.verify(token, JWT_SECRET)
+    return next()
+  } catch {
+    return next(new ApiError(401, 'Invalid or expired token'))
   }
 }
+
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) return next(new ApiError(403, 'You do not have permission to perform this action'))
+    return next()
+  }
+}
+
+export { JWT_SECRET }

@@ -2,55 +2,31 @@ import express from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { supabase } from '../supabaseClient.js'
+import { ApiError, asText, asyncRoute, sendData } from '../lib/api.js'
+import { JWT_SECRET } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// This secret is used to sign JWT tokens. In production, keep this secret safe
-// and store it in environment variables.
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key'
+router.post('/login', asyncRoute(async (req, res) => {
+  const email = asText(req.body?.email, 'email', { max: 320 }).toLowerCase()
+  const password = asText(req.body?.password, 'password', { max: 128 })
+  if (!/^\S+@\S+\.\S+$/.test(email)) throw new ApiError(400, 'email must be a valid email address')
 
-// POST /auth/login
-// This route validates credentials and returns a JWT if successful.
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' })
-  }
-
-  // Look up the user in the user_account table.
   const { data: users, error } = await supabase
     .from('user_account')
-    .select('*')
+    .select('user_id,email,password_hash,role')
     .eq('email', email)
     .limit(1)
-
-  if (error) {
-    return res.status(500).json({ error: 'Database error' })
-  }
+  if (error) throw error
 
   const user = users?.[0]
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid email or password' })
+  if (!user?.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
+    throw new ApiError(401, 'Invalid email or password')
   }
 
-  // Compare the provided password with the hashed password from the DB.
-  const passwordMatches = await bcrypt.compare(password, user.password_hash)
-  if (!passwordMatches) {
-    return res.status(401).json({ error: 'Invalid email or password' })
-  }
-
-  const token = jwt.sign(
-    {
-      user_id: user.user_id,
-      email: user.email,
-      role: user.role,
-    },
-    JWT_SECRET,
-    { expiresIn: '8h' }
-  )
-
-  return res.json({ token })
-})
+  await supabase.from('user_account').update({ last_login: new Date().toISOString() }).eq('user_id', user.user_id)
+  const token = jwt.sign({ user_id: user.user_id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '8h' })
+  return res.json({ token, data: { token } })
+}))
 
 export default router
