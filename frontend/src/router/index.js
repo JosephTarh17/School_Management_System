@@ -66,6 +66,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['teacher'] }
   },
   {
+    path: '/attendance-reports',
+    name: 'AttendanceReports',
+    component: () => import('../pages/AttendanceReports.vue'),
+    meta: { requiresAuth: true, roles: ['teacher', 'administrator'] }
+  },
+  {
     path: '/attendance-management',
     name: 'AttendanceManagement',
     component: () => import('../pages/AttendanceManagement.vue'),

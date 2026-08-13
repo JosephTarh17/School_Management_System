@@ -113,6 +113,7 @@ const administratorMenuGroups = [
     title: 'Administration',
     items: [
       { label: 'Financial Records', path: '/financial-records', icon: 'payments' },
+      { label: 'Attendance Reports & Alerts', path: '/attendance-reports', icon: 'monitoring' },
       { label: 'User Profile', path: '/profile', icon: 'account_circle' },
     ]
   }
@@ -139,6 +140,7 @@ const teacherMenuGroups = [
     items: [
       { label: 'Teacher Dashboard', path: '/dashboard', icon: 'space_dashboard' },
       { label: 'Teacher Attendance', path: '/teacher-attendance', icon: 'co_present' },
+      { label: 'Attendance Reports', path: '/attendance-reports', icon: 'monitoring' },
     ]
   },
   {

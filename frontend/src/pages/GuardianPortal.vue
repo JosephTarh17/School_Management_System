@@ -8,6 +8,7 @@
     <div v-if="loading" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Loading linked children…</div>
     <div v-else-if="!children.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">No linked children are available for this account. Contact an administrator to establish the relationship.</div>
     <template v-else-if="summary">
+      <div v-if="alerts.length" class="rounded-xl border border-amber-200 bg-amber-50 p-4"><div class="mb-2 flex items-center justify-between"><h2 class="font-bold text-amber-900">Attendance alerts</h2><span class="text-xs text-amber-700">Review with the school</span></div><div v-for="alert in alerts" :key="alert.alert_id" class="flex flex-col gap-2 border-t border-amber-200 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span class="text-amber-900">{{ alert.message }}</span><button @click="acknowledge(alert.alert_id)" class="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white">Acknowledge</button></div></div>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Child</p><p class="mt-1 font-bold text-slate-900">{{ summary.student.full_name }}</p></div><div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Active courses</p><p class="mt-1 text-2xl font-bold text-indigo-700">{{ activeEnrollments.length }}</p></div><div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Published grades</p><p class="mt-1 text-2xl font-bold text-emerald-700">{{ summary.final_grades.length }}</p></div><div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Attendance records</p><p class="mt-1 text-2xl font-bold text-amber-700">{{ summary.attendance.length }}</p></div></div>
       <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="mb-4 font-bold text-slate-900">Enrollment and final grades</h2><div v-if="!activeEnrollments.length" class="text-sm text-slate-500">No enrollment records available.</div><div v-for="entry in activeEnrollments" :key="entry.enrollment_id" class="flex items-center justify-between border-b py-3 last:border-0"><div><p class="font-semibold text-slate-900">{{ entry.course?.course_code }} — {{ entry.course?.course_name }}</p><p class="text-xs text-slate-500">{{ entry.status }}</p></div><span class="font-bold text-indigo-700">{{ gradeFor(entry.course_id) }}</span></div></div>
@@ -21,16 +22,19 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
-import { fetchGuardianChildSummary, fetchGuardianChildren } from '../api.js'
+import { acknowledgeAttendanceAlert, fetchAttendanceAlerts, fetchGuardianChildSummary, fetchGuardianChildren } from '../api.js'
 const children = ref([])
 const selectedStudentId = ref('')
 const summary = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
+const alerts = ref([])
 const token = () => authStore.token.value
 const activeEnrollments = computed(() => (summary.value?.enrollments || []).filter((entry) => entry.status === 'active'))
 function gradeFor(courseId) { return summary.value?.final_grades?.find((grade) => grade.course_id === courseId)?.letter_grade || 'Pending' }
 async function loadSummary() { if (!selectedStudentId.value) return; const result = await fetchGuardianChildSummary(token(), selectedStudentId.value); if (!result.ok) errorMessage.value = result.error; else summary.value = result.data }
+async function loadAlerts() { const result = await fetchAttendanceAlerts(token()); if (result.ok) alerts.value = result.data || [] }
+async function acknowledge(alertId) { const result = await acknowledgeAttendanceAlert(token(), alertId); if (!result.ok) errorMessage.value = result.error; else alerts.value = alerts.value.filter((alert) => alert.alert_id !== alertId) }
 watch(selectedStudentId, loadSummary)
-onMounted(async () => { const result = await fetchGuardianChildren(token()); if (!result.ok) errorMessage.value = result.error; else { children.value = result.data || []; selectedStudentId.value = children.value[0]?.student_id || '' } loading.value = false })
+onMounted(async () => { const [result] = await Promise.all([fetchGuardianChildren(token()), loadAlerts()]); if (!result.ok) errorMessage.value = result.error; else { children.value = result.data || []; selectedStudentId.value = children.value[0]?.student_id || '' } loading.value = false })
 </script>

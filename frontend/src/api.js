@@ -137,6 +137,27 @@ export async function fetchGuardianChildSummary(token, studentId) {
   return requestJson(`/guardian-portal/children/${studentId}`, { token })
 }
 
+export async function fetchAttendanceReports(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/attendance-reports/reports${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function fetchAttendanceSettings(token) {
+  return requestJson('/attendance-reports/settings', { token })
+}
+
+export async function updateAttendanceSettings(token, body) {
+  return requestJson('/attendance-reports/settings', { method: 'PATCH', token, body })
+}
+
+export async function fetchAttendanceAlerts(token) {
+  return requestJson('/attendance-reports/alerts', { token })
+}
+
+export async function acknowledgeAttendanceAlert(token, alertId) {
+  return requestJson(`/attendance-reports/alerts/${alertId}/acknowledge`, { method: 'PATCH', token })
+}
+
 export async function createCourse(token, body) {
   return requestJson('/courses', { method: 'POST', token, body })
 }
