@@ -100,6 +100,14 @@ export async function fetchFinancialRecords(token) {
   return requestJson('/financial-records', { token })
 }
 
+export async function updateFinancialRecord(token, invoiceId, body) {
+  return requestJson(`/financial-records/${invoiceId}`, { method: 'PATCH', token, body })
+}
+
+export async function deleteFinancialRecord(token, invoiceId) {
+  return requestJson(`/financial-records/${invoiceId}`, { method: 'DELETE', token })
+}
+
 export async function fetchParticipationLogs(token) {
   return requestJson('/participation-logs', { token })
 }
