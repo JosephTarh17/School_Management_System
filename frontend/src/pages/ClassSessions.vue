@@ -1,43 +1,72 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Class Sessions & Scheduling</h1>
-        <p class="text-xs text-slate-500 font-geist mt-1">Timetable allocation, room occupancy management, and lab bookings.</p>
+        <p class="text-xs text-slate-500 font-geist mt-1">Schedules loaded from the institutional database.</p>
       </div>
-      <button class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-eight shadow-xs font-geist">
-        + Schedule New Session
-      </button>
+      <button v-if="canManage" @click="showForm = !showForm" class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-eight shadow-xs font-geist">{{ showForm ? 'Close Form' : '+ Schedule Session' }}</button>
     </div>
 
-    <!-- Sessions Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <div v-for="session in sessions" :key="session.id" class="bg-white rounded-xl border border-border-subtle p-5 shadow-xs hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 font-geist">{{ session.code }}</span>
-          <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-geist">{{ session.status }}</span>
-        </div>
-        <h3 class="text-base font-bold text-slate-900 font-sans mb-1">{{ session.title }}</h3>
-        <p class="text-xs text-slate-500 font-geist mb-3">Instructor: {{ session.instructor }}</p>
-        <div class="space-y-1.5 text-xs text-slate-600 font-geist border-t border-slate-100 pt-3">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-base text-slate-400">schedule</span>
-            <span>{{ session.time }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-base text-slate-400">room</span>
-            <span>{{ session.room }}</span>
-          </div>
-        </div>
+    <form v-if="showForm" @submit.prevent="createNewSession" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-3">
+      <select v-model="form.course_id" required class="px-3 py-2 border rounded-lg text-sm"><option value="">Select course</option><option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }}</option></select>
+      <input v-model="form.teacher_id" required placeholder="Teacher UUID" class="px-3 py-2 border rounded-lg text-sm" />
+      <input v-model="form.room_id" required placeholder="Room UUID" class="px-3 py-2 border rounded-lg text-sm" />
+      <input v-model="form.start_time" type="datetime-local" required class="px-3 py-2 border rounded-lg text-sm" />
+      <input v-model="form.end_time" type="datetime-local" required class="px-3 py-2 border rounded-lg text-sm" />
+      <input v-model="form.recurrence_pattern" placeholder="Recurrence (optional)" class="px-3 py-2 border rounded-lg text-sm" />
+      <button :disabled="saving" class="md:col-span-3 justify-self-start px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Session' }}</button>
+    </form>
+
+    <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
+    <div v-if="loading" class="p-8 text-center text-slate-500">Loading class sessions…</div>
+    <div v-else-if="!sessions.length" class="bg-white rounded-xl border border-border-subtle p-8 text-center text-slate-500">No class sessions are available.</div>
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div v-for="session in sessions" :key="session.session_id" class="bg-white rounded-xl border border-border-subtle p-5 shadow-xs hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 font-geist">{{ session.course?.course_code || session.course_id }}</span><button v-if="canManage" @click="removeSession(session.session_id)" class="text-xs text-red-700 font-semibold">Delete</button></div>
+        <h3 class="text-base font-bold text-slate-900 font-sans mb-1">{{ session.course?.course_name || 'Scheduled session' }}</h3>
+        <p class="text-xs text-slate-500 font-geist mb-3">Instructor: {{ session.teacher?.full_name || session.teacher_id }}</p>
+        <div class="space-y-1.5 text-xs text-slate-600 font-geist border-t border-slate-100 pt-3"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-base text-slate-400">schedule</span><span>{{ formatTime(session.start_time) }} — {{ formatTime(session.end_time) }}</span></div><div class="flex items-center gap-2"><span class="material-symbols-outlined text-base text-slate-400">room</span><span>{{ session.room?.room_name || session.room_id }}</span></div></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-const sessions = [
-  { id: 1, code: 'CS-301', title: 'Database Systems Lecture', instructor: 'Dr. Eleanor Vance', time: 'Mon, Wed 09:00 - 10:30 AM', room: 'Building A • Auditorium 101', status: 'Scheduled' },
-  { id: 2, code: 'CS-304', title: 'Software Architecture Lab', instructor: 'Prof. Marcus Brody', time: 'Tue, Thu 11:00 - 01:00 PM', room: 'Computer Lab 3', status: 'Scheduled' },
-  { id: 3, code: 'MATH-202', title: 'Discrete Math Seminar', instructor: 'Dr. Sarah Connor', time: 'Fri 02:00 - 04:00 PM', room: 'Building B • Room 204', status: 'In Progress' }
-]
+import { computed, onMounted, reactive, ref } from 'vue'
+import { authStore } from '../store/auth'
+import { createClassSession, deleteClassSession, fetchClassSessions, fetchCourses } from '../api.js'
+
+const sessions = ref([])
+const courses = ref([])
+const loading = ref(true)
+const saving = ref(false)
+const showForm = ref(false)
+const errorMessage = ref('')
+const form = reactive({ course_id: '', teacher_id: '', room_id: '', start_time: '', end_time: '', recurrence_pattern: '' })
+const canManage = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
+const formatTime = (value) => value ? new Date(value).toLocaleString() : 'Not scheduled'
+
+async function load() {
+  loading.value = true
+  const [sessionResult, courseResult] = await Promise.all([fetchClassSessions(authStore.token.value), fetchCourses(authStore.token.value)])
+  if (!sessionResult.ok) errorMessage.value = sessionResult.error || 'Unable to load sessions.'
+  else sessions.value = sessionResult.data || []
+  if (courseResult.ok) courses.value = courseResult.data || []
+  loading.value = false
+}
+async function createNewSession() {
+  saving.value = true
+  const result = await createClassSession(authStore.token.value, form)
+  if (!result.ok) errorMessage.value = result.error || 'Unable to create session.'
+  else { sessions.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', teacher_id: '', room_id: '', start_time: '', end_time: '', recurrence_pattern: '' }) }
+  saving.value = false
+}
+async function removeSession(id) {
+  if (!window.confirm('Delete this class session?')) return
+  const result = await deleteClassSession(authStore.token.value, id)
+  if (!result.ok) errorMessage.value = result.error || 'Unable to delete session.'
+  else sessions.value = sessions.value.filter((session) => session.session_id !== id)
+}
+onMounted(load)
 </script>

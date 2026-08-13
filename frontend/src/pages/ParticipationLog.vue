@@ -5,6 +5,7 @@
       <p class="text-xs text-slate-500 font-geist mt-1">Classroom engagement metrics, active contributions, and behavioral incident logs.</p>
     </div>
 
+    <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
     <div class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs">
       <h2 class="text-base font-bold text-slate-900 mb-4 font-sans">Recent Classroom Engagements</h2>
       <div class="overflow-x-auto">
@@ -40,7 +41,23 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue'
 import Badge from '../components/Badge.vue'
+import { authStore } from '../store/auth'
+import { fetchParticipationLogs } from '../api.js'
 
-const logs = []
+const logs = ref([])
+const errorMessage = ref('')
+onMounted(async () => {
+  const result = await fetchParticipationLogs(authStore.token.value)
+  if (!result.ok) errorMessage.value = result.error || 'Unable to load participation records.'
+  else logs.value = (result.data || []).map((record) => ({
+    id: record.participation_id,
+    student: record.student?.full_name || record.student_id,
+    course: record.session?.course?.course_name || record.session_id,
+    level: record.rating,
+    comment: record.notes || 'No note recorded',
+    date: record.recorded_at ? new Date(record.recorded_at).toLocaleDateString() : 'Not recorded',
+  }))
+})
 </script>

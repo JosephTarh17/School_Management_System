@@ -12,6 +12,7 @@
       <StatCard title="Financial Aid Issued" value="$0" change="Awaiting database records" :changeIsPositive="true" icon="card_membership" variant="tertiary" />
     </div>
 
+    <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
     <div class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs">
       <h2 class="text-base font-bold text-slate-900 mb-4 font-sans">Recent Billing Transactions</h2>
       <div class="overflow-x-auto">
@@ -46,8 +47,24 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue'
 import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
+import { authStore } from '../store/auth'
+import { fetchFinancialRecords } from '../api.js'
 
-const transactions = []
+const transactions = ref([])
+const errorMessage = ref('')
+onMounted(async () => {
+  const result = await fetchFinancialRecords(authStore.token.value)
+  if (!result.ok) errorMessage.value = result.error || 'Unable to load financial records.'
+  else transactions.value = (result.data || []).map((record) => ({
+    id: record.invoice_id,
+    student: record.student?.full_name || record.student_id,
+    desc: 'Student financial record',
+    amount: Number(record.amount_due || 0).toFixed(2),
+    date: record.due_date || 'Not scheduled',
+    status: record.payment_status,
+  }))
+})
 </script>

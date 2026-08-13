@@ -51,8 +51,21 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue'
 import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
+import { authStore } from '../store/auth'
+import { fetchAttendance } from '../api.js'
 
-const logs = []
+const logs = ref([])
+onMounted(async () => {
+  const result = await fetchAttendance(authStore.token.value)
+  if (result.ok) logs.value = (result.data || []).map((record) => ({
+    id: record.attendance_id,
+    student: record.student?.full_name || record.student_id,
+    course: record.session?.course?.course_name || record.session_id,
+    date: record.session_date,
+    status: record.status,
+  }))
+})
 </script>
