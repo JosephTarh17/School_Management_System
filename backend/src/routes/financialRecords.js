@@ -1,7 +1,7 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ENUMS, ApiError, asDate, asEnum, asNumber, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ENUMS, ApiError, asDate, asEnum, asNumber, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -13,6 +13,29 @@ async function studentIdForUser(userId) {
   const { data, error } = await supabase.from('student').select('student_id').eq('user_id', userId).maybeSingle()
   if (error) throw error
   return data?.student_id
+}
+
+async function guardianIdForUser(userId) {
+  const { data, error } = await supabase.from('guardian').select('guardian_id').eq('user_id', userId).maybeSingle()
+  if (error) throw error
+  return data?.guardian_id
+}
+
+async function assertInvoiceAccess(invoice, req) {
+  if (req.user.role === 'administrator') return
+  if (req.user.role === 'student') {
+    const studentId = await studentIdForUser(req.user.user_id)
+    if (invoice.student_id !== studentId) throw new ApiError(403, 'You do not have permission to view this financial record')
+    return
+  }
+  if (req.user.role === 'guardian') {
+    const guardianId = await guardianIdForUser(req.user.user_id)
+    const { data: link, error } = await supabase.from('student_guardian').select('student_guardian_id').eq('guardian_id', guardianId).eq('student_id', invoice.student_id).maybeSingle()
+    if (error) throw error
+    if (!link) throw new ApiError(403, 'You do not have permission to view this financial record')
+    return
+  }
+  throw new ApiError(403, 'You do not have permission to view this financial record')
 }
 
 function statusForBalance(amountDue, amountPaid) {
@@ -49,6 +72,63 @@ router.get('/', asyncRoute(async (req, res) => {
   const { data, error } = await query
   if (error) throw error
   return sendData(res, data)
+}))
+
+router.get('/:invoiceId/installments', asyncRoute(async (req, res) => {
+  const invoiceId = asUuid(req.params.invoiceId, 'invoiceId')
+  const { data: invoice, error: invoiceError } = await supabase.from('financial_record').select('invoice_id,student_id').eq('invoice_id', invoiceId).maybeSingle()
+  if (invoiceError) throw invoiceError
+  if (!invoice) throw new ApiError(404, 'Financial record not found')
+  await assertInvoiceAccess(invoice, req)
+  let query = supabase.from('fee_installment').select('installment_id,invoice_id,installment_number,guardian_id,amount_due,amount_paid,balance_due,due_date,status,created_at,updated_at,guardian(guardian_id,full_name,email)').eq('invoice_id', invoiceId).order('installment_number')
+  if (req.user.role === 'guardian') query = query.eq('guardian_id', await guardianIdForUser(req.user.user_id))
+  const { data, error } = await query
+  if (error) throw error
+  return sendData(res, data || [])
+}))
+
+router.post('/:invoiceId/installments', requireRole('administrator'), asyncRoute(async (req, res) => {
+  const invoiceId = asUuid(req.params.invoiceId, 'invoiceId')
+  const installments = req.body?.installments
+  if (!Array.isArray(installments) || installments.length === 0 || installments.length > 24) throw new ApiError(400, 'installments must contain between 1 and 24 items')
+  const { data: invoice, error: invoiceError } = await supabase.from('financial_record').select('invoice_id,student_id,amount_due').eq('invoice_id', invoiceId).maybeSingle()
+  if (invoiceError) throw invoiceError
+  if (!invoice) throw new ApiError(404, 'Financial record not found')
+  const rows = installments.map((item, index) => ({
+    invoice_id: invoiceId,
+    installment_number: index + 1,
+    guardian_id: asUuid(item?.guardian_id, 'guardian_id'),
+    amount_due: asNumber(item?.amount_due, 'amount_due', { min: 0.01, max: 999999999 }),
+    amount_paid: 0,
+    balance_due: asNumber(item?.amount_due, 'amount_due', { min: 0.01, max: 999999999 }),
+    due_date: asDate(item?.due_date, 'due_date'),
+  }))
+  const total = rows.reduce((sum, row) => sum + Number(row.amount_due), 0)
+  if (Math.abs(total - Number(invoice.amount_due || 0)) > 0.01) throw new ApiError(400, 'Installment amounts must equal the invoice amount due')
+  const guardianIds = [...new Set(rows.map((row) => row.guardian_id))]
+  const { data: links, error: linkError } = await supabase.from('student_guardian').select('guardian_id').eq('student_id', invoice.student_id).in('guardian_id', guardianIds)
+  if (linkError) throw linkError
+  if ((links || []).length !== guardianIds.length) throw new ApiError(400, 'Every installment guardian must be linked to the invoice student')
+  const { data, error } = await supabase.from('fee_installment').insert(rows).select('*, guardian(guardian_id,full_name,email)').order('installment_number')
+  if (error?.code === '23505') throw new ApiError(409, 'An installment schedule already exists for this invoice')
+  if (error) throw error
+  return sendData(res, data || [], 201)
+}))
+
+router.post('/:invoiceId/installments/:installmentId/payments', requireRole('administrator'), asyncRoute(async (req, res) => {
+  const invoiceId = asUuid(req.params.invoiceId, 'invoiceId')
+  const installmentId = asUuid(req.params.installmentId, 'installmentId')
+  const amount = asNumber(req.body?.amount, 'amount', { min: 0.01, max: 999999999 })
+  const payment_method = asEnum(req.body?.payment_method, 'payment_method', paymentMethods)
+  const receipt_number = asText(req.body?.receipt_number, 'receipt_number', { max: 80 })
+  const payment_reference = req.body?.payment_reference ? asText(req.body.payment_reference, 'payment_reference', { max: 120, optional: true }) : null
+  const notes = req.body?.notes ? asText(req.body.notes, 'notes', { max: 500, optional: true }) : null
+  const paid_at = req.body?.paid_at ? new Date(req.body.paid_at).toISOString() : new Date().toISOString()
+  const payer_guardian_id = asUuid(req.body?.payer_guardian_id || req.body?.guardian_id, 'payer_guardian_id')
+  if (Number.isNaN(new Date(paid_at).getTime())) throw new ApiError(400, 'paid_at must be a valid date')
+  const { data, error } = await supabase.rpc('record_installment_payment', { p_invoice_id: invoiceId, p_installment_id: installmentId, p_amount: amount, p_payment_method: payment_method, p_receipt_number: receipt_number, p_payment_reference: payment_reference, p_notes: notes, p_paid_at: paid_at, p_recorded_by: req.user.user_id, p_payer_guardian_id: payer_guardian_id })
+  if (error) throw new ApiError(400, String(error.message || 'Unable to record installment payment').replace(/^ERROR:\s*/i, ''))
+  return sendData(res, data, 201)
 }))
 
 router.get('/:invoiceId/payments', asyncRoute(async (req, res) => {

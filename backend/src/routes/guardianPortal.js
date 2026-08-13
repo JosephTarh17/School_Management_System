@@ -41,7 +41,29 @@ router.get('/children/:studentId', asyncRoute(async (req, res) => {
   ])
   const failed = [studentResult, enrollmentResult, attendanceResult, recordsResult, gradesResult, financeResult].find((item) => item.error)
   if (failed) throw failed.error
-  return sendData(res, { student: studentResult.data, enrollments: enrollmentResult.data || [], attendance: attendanceResult.data || [], academic_records: recordsResult.data || [], final_grades: gradesResult.data || [], financial_records: financeResult.data || [] })
+
+  const financialRecords = financeResult.data || []
+  const invoiceIds = financialRecords.map((invoice) => invoice.invoice_id)
+  let installments = []
+  let payments = []
+  if (invoiceIds.length) {
+    const guardianId = await guardianIdForUser(req.user.user_id)
+    const [installmentResult, paymentResult] = await Promise.all([
+      supabase.from('fee_installment').select('installment_id,invoice_id,installment_number,guardian_id,amount_due,amount_paid,balance_due,due_date,status,guardian(guardian_id,full_name,email)').in('invoice_id', invoiceIds).eq('guardian_id', guardianId).order('installment_number'),
+      supabase.from('payment_record').select('payment_id,invoice_id,installment_id,payer_guardian_id,amount,payment_method,receipt_number,payment_reference,notes,paid_at,created_at').in('invoice_id', invoiceIds).eq('payer_guardian_id', guardianId).order('paid_at', { ascending: false }),
+    ])
+    if (installmentResult.error) throw installmentResult.error
+    if (paymentResult.error) throw paymentResult.error
+    installments = installmentResult.data || []
+    payments = paymentResult.data || []
+  }
+
+  const financialWithInstallments = financialRecords.map((invoice) => ({
+    ...invoice,
+    installments: installments.filter((item) => item.invoice_id === invoice.invoice_id),
+    payments: payments.filter((payment) => payment.invoice_id === invoice.invoice_id),
+  }))
+  return sendData(res, { student: studentResult.data, enrollments: enrollmentResult.data || [], attendance: attendanceResult.data || [], academic_records: recordsResult.data || [], final_grades: gradesResult.data || [], financial_records: financialWithInstallments })
 }))
 
 export default router
