@@ -6,10 +6,10 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      <StatCard title="Total Revenue (Term)" value="$1,420,500" change="94.2% Collected" :changeIsPositive="true" icon="attach_money" variant="primary" />
-      <StatCard title="Outstanding Balances" value="$82,400" change="24 Students" :changeIsPositive="false" icon="account_balance_wallet" variant="amber" />
-      <StatCard title="Processed Payments" value="1,842" change="Automated Gateway" :changeIsPositive="true" icon="credit_card" variant="emerald" />
-      <StatCard title="Financial Aid Issued" value="$240,000" change="Scholarship Fund" :changeIsPositive="true" icon="card_membership" variant="tertiary" />
+      <StatCard title="Total Revenue (Term)" value="$0" change="Awaiting database records" :changeIsPositive="true" icon="attach_money" variant="primary" />
+      <StatCard title="Outstanding Balances" value="$0" change="Awaiting database records" :changeIsPositive="true" icon="account_balance_wallet" variant="amber" />
+      <StatCard title="Processed Payments" value="0" change="Awaiting database records" :changeIsPositive="true" icon="credit_card" variant="emerald" />
+      <StatCard title="Financial Aid Issued" value="$0" change="Awaiting database records" :changeIsPositive="true" icon="card_membership" variant="tertiary" />
     </div>
 
     <div class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs">
@@ -27,6 +27,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr v-if="!transactions.length"><td colspan="6" class="py-8 px-4 text-center text-slate-500">No financial records are available.</td></tr>
             <tr v-for="t in transactions" :key="t.id" class="hover:bg-slate-50/80">
               <td class="py-3.5 px-4 font-bold text-slate-900">{{ t.id }}</td>
               <td class="py-3.5 px-4 font-medium">{{ t.student }}</td>
@@ -48,9 +49,5 @@
 import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
 
-const transactions = [
-  { id: '#TX-8801', student: 'Julian Dabney', desc: 'Semester 4 Tuition Payment', amount: '3,800.00', date: 'Aug 01, 2026', status: 'Completed' },
-  { id: '#TX-8802', student: 'Alice Montgomery', desc: 'Lab & Facilities Fee', amount: '450.00', date: 'Aug 03, 2026', status: 'Completed' },
-  { id: '#TX-8803', student: 'Bob Sterling', desc: 'Library Fine Settlement', amount: '25.00', date: 'Aug 08, 2026', status: 'Pending' }
-]
+const transactions = []
 </script>

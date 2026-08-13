@@ -9,67 +9,67 @@ const routes = [
     path: '/student-portal',
     name: 'StudentPortal',
     component: () => import('../pages/StudentPortal.vue'),
-    meta: { requiresAuth: true, roles: ['Student', 'Admin'] }
+    meta: { requiresAuth: true, roles: ['student', 'administrator'] }
   },
   {
     path: '/course-catalog',
     name: 'CourseCatalog',
     component: () => import('../pages/CourseCatalog.vue'),
-    meta: { requiresAuth: true, roles: ['Student', 'Teacher', 'Admin'] }
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator'] }
   },
   {
     path: '/assessments',
     name: 'Assessments',
     component: () => import('../pages/Assessments.vue'),
-    meta: { requiresAuth: true, roles: ['Student', 'Teacher', 'Admin'] }
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator'] }
   },
   {
     path: '/profile',
     name: 'UserProfile',
     component: () => import('../pages/UserProfile.vue'),
-    meta: { requiresAuth: true, roles: ['Student', 'Teacher', 'Admin'] }
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator'] }
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('../pages/Dashboard.vue'),
-    meta: { requiresAuth: true, roles: ['Admin', 'Teacher'] }
+    meta: { requiresAuth: true, roles: ['administrator', 'teacher'] }
   },
   {
     path: '/admin-dashboard',
     name: 'AdminDashboard',
     component: () => import('../pages/AdminDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['Admin'] }
+    meta: { requiresAuth: true, roles: ['administrator'] }
   },
   {
     path: '/teacher-attendance',
     name: 'TeacherAttendance',
     component: () => import('../pages/TeacherAttendance.vue'),
-    meta: { requiresAuth: true, roles: ['Teacher', 'Admin'] }
+    meta: { requiresAuth: true, roles: ['teacher', 'administrator'] }
   },
   {
     path: '/attendance-management',
     name: 'AttendanceManagement',
     component: () => import('../pages/AttendanceManagement.vue'),
-    meta: { requiresAuth: true, roles: ['Admin', 'Teacher'] }
+    meta: { requiresAuth: true, roles: ['administrator', 'teacher'] }
   },
   {
     path: '/class-sessions',
     name: 'ClassSessions',
     component: () => import('../pages/ClassSessions.vue'),
-    meta: { requiresAuth: true, roles: ['Admin', 'Teacher', 'Student'] }
+    meta: { requiresAuth: true, roles: ['administrator', 'teacher', 'student'] }
   },
   {
     path: '/financial-records',
     name: 'FinancialRecords',
     component: () => import('../pages/FinancialRecords.vue'),
-    meta: { requiresAuth: true, roles: ['Admin'] }
+    meta: { requiresAuth: true, roles: ['administrator'] }
   },
   {
     path: '/participation-log',
     name: 'ParticipationLog',
     component: () => import('../pages/ParticipationLog.vue'),
-    meta: { requiresAuth: true, roles: ['Admin', 'Teacher'] }
+    meta: { requiresAuth: true, roles: ['administrator', 'teacher'] }
   },
 ]
 
@@ -88,7 +88,8 @@ router.beforeEach((to, from, next) => {
 
   // If user is logged in and visits login/signup, redirect to their home portal
   if ((to.name === 'Login' || to.name === 'SignUp') && isAuth) {
-    if (role === 'Student') return next({ name: 'StudentPortal' })
+    if (role === 'student') return next({ name: 'StudentPortal' })
+    if (role === 'administrator') return next({ name: 'AdminDashboard' })
     return next({ name: 'Dashboard' })
   }
 
@@ -99,7 +100,8 @@ router.beforeEach((to, from, next) => {
 
   // Role check: If student tries to access restricted admin/teacher routes
   if (to.meta.roles && role && !to.meta.roles.includes(role)) {
-    if (role === 'Student') return next({ name: 'StudentPortal' })
+    if (role === 'student') return next({ name: 'StudentPortal' })
+    if (role === 'administrator') return next({ name: 'AdminDashboard' })
     return next({ name: 'Dashboard' })
   }
 

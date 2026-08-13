@@ -63,8 +63,14 @@ import { computed } from 'vue'
 import { authStore } from '../store/auth'
 
 const currentUser = computed(() => authStore.user.value)
-const isStudent = computed(() => authStore.userRole.value === 'Student')
-const homeRoute = computed(() => isStudent.value ? '/student-portal' : '/dashboard')
+const isStudent = computed(() => authStore.userRole.value === 'student')
+const isAdministrator = computed(() => authStore.userRole.value === 'administrator')
+const isTeacher = computed(() => authStore.userRole.value === 'teacher')
+const homeRoute = computed(() => {
+  if (isStudent.value) return '/student-portal'
+  if (isAdministrator.value) return '/admin-dashboard'
+  return '/dashboard'
+})
 
 const studentMenuGroups = [
   {
@@ -115,6 +121,10 @@ const adminMenuGroups = [
 
 const activeMenuGroups = computed(() => {
   if (isStudent.value) return studentMenuGroups
+  if (isTeacher.value) return adminMenuGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.path !== '/admin-dashboard' && item.path !== '/financial-records'),
+  }))
   return adminMenuGroups
 })
 </script>

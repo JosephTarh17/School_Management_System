@@ -6,10 +6,10 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      <StatCard title="Overall Attendance" value="96.4%" change="Institutional Target 95%" :changeIsPositive="true" icon="fact_check" variant="emerald" />
-      <StatCard title="Total Excused" value="142" change="Medical/Official" :changeIsPositive="true" icon="verified" variant="primary" />
-      <StatCard title="Unexcused Absences" value="38" change="Alerts Sent to Parents" :changeIsPositive="false" icon="warning" variant="amber" />
-      <StatCard title="Pending Excuses" value="7" change="Needs Admin Approval" :changeIsPositive="true" icon="assignment_late" variant="secondary" />
+      <StatCard title="Overall Attendance" value="—" change="Awaiting database records" :changeIsPositive="true" icon="fact_check" variant="emerald" />
+      <StatCard title="Total Excused" value="0" change="Awaiting database records" :changeIsPositive="true" icon="verified" variant="primary" />
+      <StatCard title="Unexcused Absences" value="0" change="Awaiting database records" :changeIsPositive="true" icon="warning" variant="amber" />
+      <StatCard title="Pending Excuses" value="0" change="Awaiting database records" :changeIsPositive="true" icon="assignment_late" variant="secondary" />
     </div>
 
     <!-- Attendance Audit Table -->
@@ -28,6 +28,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr v-if="!logs.length"><td colspan="6" class="py-8 px-4 text-center text-slate-500">No attendance exception records are available.</td></tr>
             <tr v-for="log in logs" :key="log.id" class="hover:bg-slate-50/80">
               <td class="py-3.5 px-4 font-bold text-slate-900">{{ log.id }}</td>
               <td class="py-3.5 px-4 font-medium">{{ log.student }}</td>
@@ -53,9 +54,5 @@
 import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
 
-const logs = [
-  { id: '#LOG-901', student: 'David Miller', course: 'CS-301 Database Systems', date: 'Aug 11, 2026', status: 'Excused' },
-  { id: '#LOG-902', student: 'Bob Sterling', course: 'CS-304 Software Arch', date: 'Aug 11, 2026', status: 'Late' },
-  { id: '#LOG-903', student: 'Catherine Bell', course: 'MATH-202 Logic', date: 'Aug 10, 2026', status: 'Absent' }
-]
+const logs = []
 </script>

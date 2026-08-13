@@ -16,7 +16,8 @@ dotenv.config()
 
 const app = express()
 app.set('trust proxy', process.env.TRUST_PROXY === 'false' ? false : 1)
-app.use(cors())
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',').map((origin) => origin.trim()).filter(Boolean)
+app.use(cors({ origin: allowedOrigins, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
 
 app.use('/auth', authRoutes)

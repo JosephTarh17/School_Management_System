@@ -19,8 +19,10 @@
               <th class="py-3 px-4 font-semibold">Date</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 text-slate-700">
+                      <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr v-if="!logs.length"><td colspan="6" class="py-8 px-4 text-center text-slate-500">No participation records are available.</td></tr>
             <tr v-for="p in logs" :key="p.id" class="hover:bg-slate-50/80">
+
               <td class="py-3.5 px-4 font-bold text-slate-900">{{ p.id }}</td>
               <td class="py-3.5 px-4 font-medium">{{ p.student }}</td>
               <td class="py-3.5 px-4">{{ p.course }}</td>
@@ -40,9 +42,5 @@
 <script setup>
 import Badge from '../components/Badge.vue'
 
-const logs = [
-  { id: '#PR-401', student: 'Julian Dabney', course: 'CS-301 Database Systems', level: 'Active', comment: 'Led database indexing breakout discussion', date: 'Aug 12, 2026' },
-  { id: '#PR-402', student: 'Alice Montgomery', course: 'CS-304 Software Arch', level: 'Active', comment: 'Presented microservices design project', date: 'Aug 11, 2026' },
-  { id: '#PR-403', student: 'Bob Sterling', course: 'MATH-202 Logic', level: 'Passive', comment: 'Completed exercise with minor assistance', date: 'Aug 10, 2026' }
-]
+const logs = []
 </script>

@@ -1,6 +1,9 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import { authStore } from './store/auth'
 import './index.css'
 
-createApp(App).use(router).mount('#app')
+authStore.restoreSession().finally(() => {
+  createApp(App).use(router).mount('#app')
+})

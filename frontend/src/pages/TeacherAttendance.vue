@@ -39,8 +39,10 @@
               <th class="py-3 px-4 font-semibold">Notes / Reason</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 text-slate-700">
+                      <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr v-if="!roster.length"><td colspan="5" class="py-8 px-4 text-center text-slate-500">No student roster is available for this session.</td></tr>
             <tr v-for="student in roster" :key="student.id" class="hover:bg-slate-50/80">
+
               <td class="py-3.5 px-4 font-bold text-slate-900">{{ student.id }}</td>
               <td class="py-3.5 px-4 font-medium text-slate-900">{{ student.name }}</td>
               <td class="py-3.5 px-4">
@@ -82,13 +84,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const roster = ref([
-  { id: '#ST-884920', name: 'Julian Dabney', status: 'Present', participation: 'High (Active)', notes: '' },
-  { id: '#ST-884921', name: 'Alice Montgomery', status: 'Present', participation: 'Normal', notes: '' },
-  { id: '#ST-884922', name: 'Bob Sterling', status: 'Late', participation: 'Normal', notes: 'Arrived at 09:12 AM' },
-  { id: '#ST-884923', name: 'Catherine Bell', status: 'Absent', participation: 'Low', notes: 'Unexcused' },
-  { id: '#ST-884924', name: 'David Miller', status: 'Excused', participation: 'Normal', notes: 'Medical certificate submitted' }
-])
+const roster = ref([])
 
 const countStatus = (st) => roster.value.filter(s => s.status === st).length
 
