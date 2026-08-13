@@ -190,8 +190,24 @@ export async function fetchFinancialRecords(token) {
   return requestJson('/financial-records', { token })
 }
 
+export async function fetchClassFeeSettings(token) {
+  return requestJson('/financial-records/class-fees', { token })
+}
+
+export async function updateClassFeeSetting(token, classLevel, body) {
+  return requestJson(`/financial-records/class-fees/${encodeURIComponent(classLevel)}`, { method: 'PATCH', token, body })
+}
+
 export async function updateFinancialRecord(token, invoiceId, body) {
   return requestJson(`/financial-records/${invoiceId}`, { method: 'PATCH', token, body })
+}
+
+export async function fetchPaymentRecords(token, invoiceId) {
+  return requestJson(`/financial-records/${invoiceId}/payments`, { token })
+}
+
+export async function recordManualPayment(token, invoiceId, body) {
+  return requestJson(`/financial-records/${invoiceId}/payments`, { method: 'POST', token, body })
 }
 
 export async function deleteFinancialRecord(token, invoiceId) {

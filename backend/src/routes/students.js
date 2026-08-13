@@ -1,12 +1,12 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ApiError, asDate, asDateTime, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ENUMS, ApiError, asDate, asDateTime, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { enrolledStudentIdsForTeacher } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
 router.use(requireAuth)
-const select = 'student_id,user_id,full_name,dob,phone,address,emergency_contact_name,emergency_contact_phone,medical_information,disability_accommodations,archived_at,user_account(user_id,email,role)'
+const select = 'student_id,user_id,full_name,class_level,dob,phone,address,emergency_contact_name,emergency_contact_phone,medical_information,disability_accommodations,archived_at,user_account(user_id,email,role)'
 const guardianSelect = 'student_guardian_id,student_id,guardian_id,primary_contact,guardian(guardian_id,user_id,full_name,email,phone,relationship)'
 
 router.get('/', asyncRoute(async (req, res) => {
@@ -56,6 +56,7 @@ router.get('/:studentId/guardians', asyncRoute(async (req, res) => {
 router.post('/', requireRole('administrator'), asyncRoute(async (req, res) => {
   const user_id = asUuid(req.body?.user_id, 'user_id')
   const full_name = asText(req.body?.full_name, 'full_name', { max: 160 })
+  const class_level = asEnum(req.body?.class_level, 'class_level', ENUMS.classLevel)
   const dob = asDate(req.body?.dob, 'dob', { optional: true })
   const phone = asText(req.body?.phone, 'phone', { max: 40, optional: true })
   const address = asText(req.body?.address, 'address', { max: 500, optional: true })
@@ -67,10 +68,18 @@ router.post('/', requireRole('administrator'), asyncRoute(async (req, res) => {
   if (accountError) throw accountError
   if (!account) throw new ApiError(400, 'Linked user account does not exist')
   if (account.role !== 'student') throw new ApiError(400, 'Linked user account must have the student role')
-  const { data, error } = await supabase.from('student').insert({ user_id, full_name, dob, phone, address, emergency_contact_name, emergency_contact_phone, medical_information, disability_accommodations }).select(select).single()
+  const { data: feeSetting, error: feeError } = await supabase.from('class_fee_setting').select('class_level,fee_xaf,max_credits').eq('class_level', class_level).maybeSingle()
+  if (feeError) throw feeError
+  if (!feeSetting || Number(feeSetting.fee_xaf) <= 0) throw new ApiError(400, `Configure a positive XAF fee for ${class_level} before registering a student`)
+  const { data, error } = await supabase.from('student').insert({ user_id, full_name, class_level, dob, phone, address, emergency_contact_name, emergency_contact_phone, medical_information, disability_accommodations }).select(select).single()
   if (error?.code === '23505') throw new ApiError(409, 'This user account already has a student profile')
   if (error) throw error
-  return sendData(res, data, 201)
+  const { data: invoice, error: invoiceError } = await supabase.from('financial_record').insert({ student_id: data.student_id, amount_due: feeSetting.fee_xaf, amount_paid: 0, balance_due: feeSetting.fee_xaf, payment_status: 'Pending' }).select('invoice_id,amount_due,balance_due,payment_status').single()
+  if (invoiceError) {
+    await supabase.from('student').delete().eq('student_id', data.student_id)
+    throw invoiceError
+  }
+  return sendData(res, { ...data, initial_invoice: invoice, max_credits: feeSetting.max_credits }, 201)
 }))
 
 router.patch('/:studentId', asyncRoute(async (req, res) => {
@@ -85,6 +94,7 @@ router.patch('/:studentId', asyncRoute(async (req, res) => {
   if (req.body?.phone !== undefined) updates.phone = asText(req.body.phone, 'phone', { max: 40, optional: true })
   if (req.body?.address !== undefined) updates.address = asText(req.body.address, 'address', { max: 500, optional: true })
   if (req.user.role === 'administrator') {
+    if (req.body?.class_level !== undefined) updates.class_level = asEnum(req.body.class_level, 'class_level', ENUMS.classLevel)
     if (req.body?.emergency_contact_name !== undefined) updates.emergency_contact_name = asText(req.body.emergency_contact_name, 'emergency_contact_name', { max: 160, optional: true })
     if (req.body?.emergency_contact_phone !== undefined) updates.emergency_contact_phone = asText(req.body.emergency_contact_phone, 'emergency_contact_phone', { max: 40, optional: true })
     if (req.body?.medical_information !== undefined) updates.medical_information = asText(req.body.medical_information, 'medical_information', { max: 2000, optional: true })
