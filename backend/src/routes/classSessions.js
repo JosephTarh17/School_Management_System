@@ -5,7 +5,7 @@ import { ApiError, asDateTime, asText, asUuid, asyncRoute, sendData } from '../l
 
 const router = express.Router()
 router.use(requireAuth)
-const select = '*, course(*), teacher(*), room(*), substitute_teacher:substitute_teacher_id(*)'
+const select = '*, course(*), teacher:teacher!class_session_teacher_id_fkey(*), room(*), substitute_teacher:teacher!class_session_substitute_teacher_id_fkey(*)'
 
 function validateTimes(start_time, end_time) {
   const start = asDateTime(start_time, 'start_time')

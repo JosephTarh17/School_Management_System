@@ -38,7 +38,7 @@ router.post('/batch', requireRole('teacher', 'administrator'), asyncRoute(async 
 
   const { data: session, error: sessionError } = await supabase
     .from('class_session')
-    .select('session_id,teacher_id,teacher(user_id)')
+    .select('session_id,teacher_id,teacher:teacher!class_session_teacher_id_fkey(user_id)')
     .eq('session_id', session_id)
     .maybeSingle()
   if (sessionError) throw sessionError
