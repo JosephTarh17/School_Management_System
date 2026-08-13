@@ -7,6 +7,8 @@ const JWT_ISSUER = process.env.JWT_ISSUER || 'school-management-system'
 const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'school-management-client'
 const ACCESS_TOKEN_COOKIE = process.env.ACCESS_TOKEN_COOKIE || 'sms_access_token'
 const DEFAULT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h'
+// A fresh process identifier invalidates all access tokens after a backend restart.
+const SESSION_INSTANCE_ID = randomUUID()
 
 export function getJwtSecret() {
   const secret = process.env.JWT_SECRET
@@ -17,7 +19,7 @@ export function getJwtSecret() {
 export function signAccessToken(user) {
   if (!user?.user_id || !user?.email || !user?.role) throw new ApiError(500, 'Cannot create a session for an incomplete user')
   return jwt.sign(
-    { user_id: user.user_id, email: user.email, role: user.role, token_type: 'access' },
+    { user_id: user.user_id, email: user.email, role: user.role, token_type: 'access', instance_id: SESSION_INSTANCE_ID },
     getJwtSecret(),
     { algorithm: JWT_ALGORITHM, expiresIn: DEFAULT_EXPIRES_IN, issuer: JWT_ISSUER, audience: JWT_AUDIENCE, jwtid: randomUUID() }
   )
@@ -51,7 +53,7 @@ export function requireAuth(req, res, next) {
     const token = extractToken(req)
     if (token.length > 4096) throw new ApiError(401, 'Invalid or expired token')
     const payload = verifyAccessToken(token)
-    if (payload.token_type !== 'access' || !payload.user_id || !payload.email || !payload.role) throw new ApiError(401, 'Invalid or expired token')
+    if (payload.token_type !== 'access' || payload.instance_id !== SESSION_INSTANCE_ID || !payload.user_id || !payload.email || !payload.role) throw new ApiError(401, 'Invalid or expired token')
     req.auth = { token, payload }
     req.user = payload
     return next()
@@ -71,7 +73,8 @@ export function requireRole(...roles) {
 
 export function setAuthCookie(res, token) {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
-  res.setHeader('Set-Cookie', `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${secure}`)
+  // No Max-Age/Expires: this is a browser-session cookie and is not persistent across browser close.
+  res.setHeader('Set-Cookie', `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`)
 }
 
 export function clearAuthCookie(res) {

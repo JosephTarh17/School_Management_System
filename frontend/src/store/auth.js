@@ -2,8 +2,8 @@ import { reactive, computed } from 'vue'
 import { fetchCurrentUser, login as loginRequest, logout as logoutRequest } from '../api.js'
 
 const state = reactive({
-  user: JSON.parse(localStorage.getItem('sms_user') || 'null'),
-  token: localStorage.getItem('sms_token') || null,
+  user: JSON.parse(sessionStorage.getItem('sms_user') || 'null'),
+  token: sessionStorage.getItem('sms_token') || null,
 })
 
 function profileRecord(profile) {
@@ -21,10 +21,14 @@ function profileRecord(profile) {
 }
 
 function persist() {
-  if (state.user) localStorage.setItem('sms_user', JSON.stringify(state.user))
-  else localStorage.removeItem('sms_user')
-  if (state.token) localStorage.setItem('sms_token', state.token)
-  else localStorage.removeItem('sms_token')
+  // Session storage survives reloads in the same tab but is cleared when the tab closes.
+  if (state.user) sessionStorage.setItem('sms_user', JSON.stringify(state.user))
+  else sessionStorage.removeItem('sms_user')
+  if (state.token) sessionStorage.setItem('sms_token', state.token)
+  else sessionStorage.removeItem('sms_token')
+  // Remove tokens created by older builds that used persistent localStorage.
+  localStorage.removeItem('sms_user')
+  localStorage.removeItem('sms_token')
 }
 
 export const authStore = {
