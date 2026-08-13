@@ -16,7 +16,7 @@ export function password(value, { minLength = 8 } = {}) {
 
 export function uuid(value, label = 'ID') {
   const normalized = String(value ?? '').trim()
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized)
     ? ''
     : `${label} must be a valid identifier.`
 }
