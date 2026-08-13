@@ -103,7 +103,6 @@ const adminMenuGroups = [
   {
     title: 'Core Portals',
     items: [
-      { label: 'General Dashboard', path: '/dashboard', icon: 'space_dashboard' },
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
       { label: 'Student Portal', path: '/student-portal', icon: 'person' },
       { label: 'Teacher Attendance', path: '/teacher-attendance', icon: 'co_present' },

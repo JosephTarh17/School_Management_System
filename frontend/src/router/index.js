@@ -98,6 +98,10 @@ router.beforeEach((to, from, next) => {
     return next({ name: 'Login', query: { redirect: to.fullPath } })
   }
 
+  if (to.name === 'Dashboard' && role === 'administrator') {
+    return next({ name: 'AdminDashboard' })
+  }
+
   // Role check: If student tries to access restricted admin/teacher routes
   if (to.meta.roles && role && !to.meta.roles.includes(role)) {
     if (role === 'student') return next({ name: 'StudentPortal' })
