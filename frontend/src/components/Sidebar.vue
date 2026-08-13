@@ -133,6 +133,10 @@ const activeMenuGroups = computed(() => {
     ...group,
     items: group.items.filter((item) => !['/admin-dashboard', '/financial-records', '/student-portal'].includes(item.path)),
   }))
+  if (isAdministrator.value) return adminMenuGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !['/student-portal', '/teacher-attendance'].includes(item.path)),
+  }))
   return adminMenuGroups
 })
 </script>
