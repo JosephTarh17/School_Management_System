@@ -75,9 +75,11 @@ const currentUser = computed(() => authStore.user.value)
 const isStudent = computed(() => authStore.userRole.value === 'student')
 const isAdministrator = computed(() => authStore.userRole.value === 'administrator')
 const isTeacher = computed(() => authStore.userRole.value === 'teacher')
+const isGuardian = computed(() => authStore.userRole.value === 'guardian')
 const homeRoute = computed(() => {
   if (isStudent.value) return '/student-portal'
   if (isAdministrator.value) return '/admin-dashboard'
+  if (isGuardian.value) return '/guardian-portal'
   return '/dashboard'
 })
 
@@ -116,6 +118,21 @@ const administratorMenuGroups = [
   }
 ]
 
+const guardianMenuGroups = [
+  {
+    title: 'Guardian Portal',
+    items: [
+      { label: 'Children Overview', path: '/guardian-portal', icon: 'family_restroom' },
+    ]
+  },
+  {
+    title: 'Account',
+    items: [
+      { label: 'User Profile', path: '/profile', icon: 'account_circle' },
+    ]
+  }
+]
+
 const teacherMenuGroups = [
   {
     title: 'Teaching Workspace',
@@ -146,6 +163,7 @@ const activeMenuGroups = computed(() => {
   if (isStudent.value) return studentMenuGroups
   if (isTeacher.value) return teacherMenuGroups
   if (isAdministrator.value) return administratorMenuGroups
+  if (isGuardian.value) return guardianMenuGroups
   return []
 })
 </script>

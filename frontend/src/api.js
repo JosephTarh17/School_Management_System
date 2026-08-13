@@ -129,6 +129,14 @@ export async function updateAcademicRecord(token, recordId, body) {
   return requestJson(`/academic-records/${recordId}`, { method: 'PATCH', token, body })
 }
 
+export async function fetchGuardianChildren(token) {
+  return requestJson('/guardian-portal/children', { token })
+}
+
+export async function fetchGuardianChildSummary(token, studentId) {
+  return requestJson(`/guardian-portal/children/${studentId}`, { token })
+}
+
 export async function createCourse(token, body) {
   return requestJson('/courses', { method: 'POST', token, body })
 }

@@ -33,7 +33,13 @@ const routes = [
     path: '/profile',
     name: 'UserProfile',
     component: () => import('../pages/UserProfile.vue'),
-    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator'] }
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator', 'guardian'] }
+  },
+  {
+    path: '/guardian-portal',
+    name: 'GuardianPortal',
+    component: () => import('../pages/GuardianPortal.vue'),
+    meta: { requiresAuth: true, roles: ['guardian'] }
   },
   {
     path: '/dashboard',
@@ -102,6 +108,7 @@ router.beforeEach((to, from, next) => {
   if ((to.name === 'Login' || to.name === 'SignUp') && isAuth) {
     if (role === 'student') return next({ name: 'StudentPortal' })
     if (role === 'administrator') return next({ name: 'AdminDashboard' })
+    if (role === 'guardian') return next({ name: 'GuardianPortal' })
     return next({ name: 'Dashboard' })
   }
 
@@ -113,11 +120,15 @@ router.beforeEach((to, from, next) => {
   if (to.name === 'Dashboard' && role === 'administrator') {
     return next({ name: 'AdminDashboard' })
   }
+  if (to.name === 'Dashboard' && role === 'guardian') {
+    return next({ name: 'GuardianPortal' })
+  }
 
   // Role check: redirect every authenticated user away from routes outside their role scope
   if (to.meta.roles && role && !to.meta.roles.includes(role)) {
     if (role === 'student') return next({ name: 'StudentPortal' })
     if (role === 'administrator') return next({ name: 'AdminDashboard' })
+    if (role === 'guardian') return next({ name: 'GuardianPortal' })
     return next({ name: 'Dashboard' })
   }
 
