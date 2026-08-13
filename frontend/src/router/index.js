@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { authStore } from '../store/auth'
 
 const routes = [
-  { path: '/', name: 'Landing', component: () => import('../pages/LandingPage.vue') },
+  { path: '/', name: 'Landing', component: () => import('../pages/LandingPage.vue'), meta: { layout: 'clean' } },
   { path: '/login', name: 'Login', component: () => import('../pages/LoginPage.vue'), meta: { layout: 'clean' } },
   { path: '/signup', name: 'SignUp', component: () => import('../pages/SignUpPage.vue'), meta: { layout: 'clean' } },
   {
