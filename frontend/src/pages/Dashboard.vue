@@ -53,7 +53,7 @@
         Academic modules
       </h2>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <router-link v-for="mod in modules" :key="mod.path" :to="mod.path" class="group flex min-w-0 items-start gap-4 rounded-eight border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-white hover:shadow-sm">
+        <router-link v-for="mod in visibleModules" :key="mod.path" :to="mod.path" class="group flex min-w-0 items-start gap-4 rounded-eight border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-400 hover:bg-white hover:shadow-sm">
           <div :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', mod.bgClass]"><span class="material-symbols-outlined text-xl" :class="mod.iconClass">{{ mod.icon }}</span></div>
           <div class="min-w-0 flex-1"><h3 class="text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-container">{{ mod.title }}</h3><p class="mt-0.5 line-clamp-2 text-xs text-slate-500 font-geist">{{ mod.desc }}</p></div>
           <span class="material-symbols-outlined text-lg text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-primary-container">chevron_right</span>
@@ -81,6 +81,8 @@ const modules = [
   { title: 'Assessments', path: '/assessments', icon: 'assignment', bgClass: 'bg-sky-50', iconClass: 'text-sky-700', desc: 'Manage assessments for your courses.' },
   { title: 'Participation Log', path: '/participation-log', icon: 'how_to_reg', bgClass: 'bg-emerald-50', iconClass: 'text-emerald-700', desc: 'Record student engagement and participation.' },
 ]
+
+const visibleModules = modules.filter((module) => module.path !== '/student-portal')
 
 function formatNumber(value) {
   return new Intl.NumberFormat().format(Number(value) || 0)
