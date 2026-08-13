@@ -1,5 +1,8 @@
 <template>
-  <aside class="w-64 bg-slate-900 text-white min-h-screen flex flex-col shadow-xl z-20 shrink-0">
+  <aside :class="[
+    'fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col bg-slate-900 text-white shadow-xl transition-transform duration-200 lg:static lg:z-20 lg:min-h-screen lg:w-64 lg:max-w-none lg:translate-x-0 lg:shrink-0',
+    mobileOpen ? 'translate-x-0' : '-translate-x-full'
+  ]">
     <!-- Brand Header -->
     <div class="h-16 px-6 flex items-center justify-between border-b border-slate-800 bg-slate-950">
       <router-link :to="homeRoute" class="flex items-center gap-3">
@@ -27,6 +30,7 @@
             v-slot="{ isActive }"
           >
             <span
+              @click="closeMobile"
               :class="[
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                 isActive
@@ -61,6 +65,11 @@
 <script setup>
 import { computed } from 'vue'
 import { authStore } from '../store/auth'
+
+const props = defineProps({ mobileOpen: { type: Boolean, default: false } })
+const emit = defineEmits(['close'])
+const mobileOpen = computed(() => props.mobileOpen)
+const closeMobile = () => emit('close')
 
 const currentUser = computed(() => authStore.user.value)
 const isStudent = computed(() => authStore.userRole.value === 'student')

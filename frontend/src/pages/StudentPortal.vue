@@ -33,13 +33,13 @@
 
     <!-- Interactive Section Tabs -->
     <div class="bg-white rounded-xl border border-border-subtle shadow-xs">
-      <div class="border-b border-slate-200 px-6 pt-4 flex gap-6">
+      <div class="flex gap-4 overflow-x-auto border-b border-slate-200 px-4 pt-4 sm:gap-6 sm:px-6">
         <button
           v-for="tab in ['Overview & Courses', 'Gradebook Breakdown', 'Attendance History', 'Announcements']"
           :key="tab"
           @click="activeTab = tab"
           :class="[
-            'pb-3 text-xs font-bold font-geist transition-all border-b-2',
+            'shrink-0 whitespace-nowrap pb-3 text-xs font-bold font-geist transition-all border-b-2',
             activeTab === tab
               ? 'border-indigo-600 text-indigo-700'
               : 'border-transparent text-slate-500 hover:text-slate-800'

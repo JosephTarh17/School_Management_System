@@ -1,8 +1,17 @@
 <template>
-  <header class="h-16 bg-white border-b border-border-subtle px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs">
+  <header class="sticky top-0 z-10 flex min-h-16 items-center justify-between gap-2 border-b border-border-subtle bg-white px-3 shadow-xs sm:px-6">
+    <button
+      class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+      type="button"
+      aria-label="Open navigation"
+      @click="emit('toggle-menu')"
+    >
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+
     <!-- Search / Title -->
-    <div class="flex items-center gap-4 flex-1 max-w-xl">
-      <div class="relative w-full max-w-md">
+    <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-4 lg:max-w-xl">
+      <div class="relative hidden w-full max-w-md sm:block">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
         <input
           type="text"
@@ -13,7 +22,7 @@
     </div>
 
     <!-- Actions & User Profile -->
-    <div class="flex items-center gap-4">
+    <div class="flex shrink-0 items-center gap-2 sm:gap-4">
       <!-- Role Badge -->
       <span v-if="currentUser" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200 font-geist">
         <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
@@ -58,10 +67,11 @@ import { useRouter } from 'vue-router'
 import { authStore } from '../store/auth'
 
 const router = useRouter()
+const emit = defineEmits(['toggle-menu'])
 const currentUser = computed(() => authStore.user.value)
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
+const handleLogout = async () => {
+  await authStore.logout()
+  await router.replace('/')
 }
 </script>

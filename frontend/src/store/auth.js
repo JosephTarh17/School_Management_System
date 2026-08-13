@@ -53,7 +53,11 @@ async function refresh() {
   if (!state.token) return null
   if (refreshInFlight) return refreshInFlight
   refreshInFlight = refreshSessionRequest(state.token).then(async (result) => {
-    if (!result.ok || !result.token) throw new Error(result.error || 'Session expired')
+    if (!result.ok || !result.token) {
+      const error = new Error(result.error || 'Session expired')
+      error.status = result.status
+      throw error
+    }
     state.token = result.token
     const current = await fetchCurrentUser(state.token)
     if (!current.ok || !current.data) throw new Error('Session expired')
@@ -62,7 +66,7 @@ async function refresh() {
     scheduleRefresh()
     return state.user
   }).catch((error) => {
-    clearState()
+    if (error.status === 401 || error.status === 403) clearState()
     throw error
   }).finally(() => { refreshInFlight = null })
   return refreshInFlight
@@ -102,12 +106,20 @@ export const authStore = {
 
   async restoreSession() {
     if (!state.token) return null
+    const current = await fetchCurrentUser(state.token)
+    if (current.ok && current.data) {
+      state.user = profileRecord(current.data)
+      persist()
+      scheduleRefresh()
+      return state.user
+    }
+    if (current.status !== 401 && current.status !== 403) return state.user
     try {
       await refresh()
       return state.user
-    } catch {
-      this.clear()
-      return null
+    } catch (error) {
+      if (error.status === 401 || error.status === 403) this.clear()
+      return state.user
     }
   },
 
