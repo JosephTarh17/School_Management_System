@@ -42,6 +42,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['administrator'] }
   },
   {
+    path: '/student-enrollment',
+    name: 'StudentEnrollment',
+    component: () => import('../pages/StudentEnrollment.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
     path: '/teacher-attendance',
     name: 'TeacherAttendance',
     component: () => import('../pages/TeacherAttendance.vue'),

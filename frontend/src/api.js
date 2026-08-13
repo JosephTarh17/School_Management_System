@@ -44,8 +44,33 @@ export async function saveAttendanceBatch(token, body) {
   return requestJson('/attendance/batch', { method: 'POST', token, body })
 }
 
-export async function fetchStudents(token) {
-  return requestJson('/students', { token })
+export async function fetchStudents(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/students${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function createUser(token, body) {
+  return requestJson('/users/register', { method: 'POST', token, body })
+}
+
+export async function fetchUsers(token) {
+  return requestJson('/users', { token })
+}
+
+export async function createStudent(token, body) {
+  return requestJson('/students', { method: 'POST', token, body })
+}
+
+export async function updateStudent(token, studentId, body) {
+  return requestJson(`/students/${studentId}`, { method: 'PATCH', token, body })
+}
+
+export async function linkStudentGuardian(token, studentId, body) {
+  return requestJson(`/students/${studentId}/guardians`, { method: 'POST', token, body })
+}
+
+export async function unlinkStudentGuardian(token, studentId, guardianId) {
+  return requestJson(`/students/${studentId}/guardians/${guardianId}`, { method: 'DELETE', token })
 }
 
 export async function fetchDashboardMetrics(token) {
@@ -67,6 +92,18 @@ export async function fetchCourses(token) {
 export async function fetchEnrollments(token, params = {}) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
   return requestJson(`/enrollments${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function createEnrollment(token, body) {
+  return requestJson('/enrollments', { method: 'POST', token, body })
+}
+
+export async function updateEnrollment(token, enrollmentId, body) {
+  return requestJson(`/enrollments/${enrollmentId}`, { method: 'PATCH', token, body })
+}
+
+export async function deleteEnrollment(token, enrollmentId) {
+  return requestJson(`/enrollments/${enrollmentId}`, { method: 'DELETE', token })
 }
 
 export async function fetchAssessments(token) {

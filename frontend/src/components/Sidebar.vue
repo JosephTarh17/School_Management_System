@@ -104,6 +104,7 @@ const administratorMenuGroups = [
     title: 'Core Portals',
     items: [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
+      { label: 'Student Enrollment', path: '/student-enrollment', icon: 'how_to_reg' },
     ]
   },
   {

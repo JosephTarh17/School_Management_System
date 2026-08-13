@@ -9,7 +9,7 @@ router.use(requireAuth)
 const publicFields = 'user_id,email,role,created_at,last_login'
 
 router.get('/', requireRole('administrator'), asyncRoute(async (req, res) => {
-  const { data, error } = await supabase.from('user_account').select(publicFields).order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('user_account').select(`${publicFields}, guardian(guardian_id,full_name,email,phone,relationship)`).order('created_at', { ascending: false })
   if (error) throw error
   return sendData(res, data)
 }))
