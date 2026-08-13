@@ -48,6 +48,10 @@ export async function fetchStudents(token) {
   return requestJson('/students', { token })
 }
 
+export async function fetchDashboardMetrics(token) {
+  return requestJson('/dashboard/metrics', { token })
+}
+
 export async function fetchCurrentUser(token) {
   return requestJson('/users/me', { token })
 }

@@ -10,6 +10,7 @@ import classSessionsRoutes from './routes/classSessions.js'
 import assessmentsRoutes from './routes/assessments.js'
 import participationRoutes from './routes/participationLogs.js'
 import financialRoutes from './routes/financialRecords.js'
+import dashboardRoutes from './routes/dashboard.js'
 import { ApiError, errorHandler } from './lib/api.js'
 
 dotenv.config()
@@ -29,6 +30,7 @@ app.use('/class-sessions', classSessionsRoutes)
 app.use('/assessments', assessmentsRoutes)
 app.use('/participation-logs', participationRoutes)
 app.use('/financial-records', financialRoutes)
+app.use('/dashboard', dashboardRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))

@@ -1,99 +1,84 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Administrator Dashboard</h1>
-        <p class="text-xs text-slate-500 font-geist mt-1">Institutional oversight, user role administration, and security analytics.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Administrator Dashboard</h1>
+        <p class="mt-1 text-xs text-slate-500 font-geist">Live institutional metrics from the current database.</p>
       </div>
-      <button class="px-4 py-2 bg-primary-container hover:bg-blue-700 text-white text-xs font-semibold rounded-eight font-geist transition-colors shadow-xs flex items-center gap-2">
-        <span class="material-symbols-outlined text-sm">person_add</span>
-        Add Staff / Student
-      </button>
+      <span v-if="metrics.lastUpdated" class="text-xs text-slate-400 font-geist">Updated {{ formatUpdated(metrics.lastUpdated) }}</span>
     </div>
 
-    <!-- Stat Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      <StatCard title="Active Enrolments" value="2,845" change="98.2% Active" :changeIsPositive="true" icon="school" variant="primary" />
-      <StatCard title="Staff Members" value="184" change="Full faculty" :changeIsPositive="true" icon="badge" variant="secondary" />
-      <StatCard title="System Health" value="99.9%" change="Optimal" :changeIsPositive="true" icon="verified_user" variant="emerald" />
-      <StatCard title="Audit Warnings" value="3" change="Low risk" :changeIsPositive="true" icon="security" variant="amber" />
+    <div v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+      {{ errorMessage }}
     </div>
 
-    <!-- Main Content Split -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Recent User Activity -->
-      <div class="lg:col-span-2 bg-white rounded-xl p-6 border border-border-subtle shadow-xs">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-bold text-slate-900 font-sans">Recent Institutional Audits</h2>
-          <span class="text-xs text-slate-500 font-geist">Live Updates</span>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard title="Total Students" :value="loading ? '…' : formatNumber(metrics.students)" change="Database count" :changeIsPositive="true" icon="school" variant="primary" />
+      <StatCard title="Staff Members" :value="loading ? '…' : formatNumber(metrics.faculty)" change="Teachers and administrators" :changeIsPositive="true" icon="badge" variant="secondary" />
+      <StatCard title="Courses" :value="loading ? '…' : formatNumber(metrics.courses)" change="Configured courses" :changeIsPositive="true" icon="auto_stories" variant="emerald" />
+      <StatCard title="Attendance Rate" :value="loading ? '…' : `${metrics.attendanceRate}%`" change="Recorded attendance" :changeIsPositive="metrics.attendanceRate >= 75" icon="fact_check" variant="amber" />
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="rounded-xl border border-border-subtle bg-white p-6 shadow-xs lg:col-span-2">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 font-sans">Live academic snapshot</h2>
+            <p class="mt-1 text-xs text-slate-500">Aggregated records visible to administrators.</p>
+          </div>
+          <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Live data</span>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs font-geist">
-            <thead>
-              <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
-                <th class="py-2.5 px-3 font-semibold">User</th>
-                <th class="py-2.5 px-3 font-semibold">Action</th>
-                <th class="py-2.5 px-3 font-semibold">Module</th>
-                <th class="py-2.5 px-3 font-semibold">Timestamp</th>
-                <th class="py-2.5 px-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-slate-700">
-              <tr v-for="(log, i) in auditLogs" :key="i" class="hover:bg-slate-50/80">
-                <td class="py-3 px-3 font-semibold text-slate-900">{{ log.user }}</td>
-                <td class="py-3 px-3">{{ log.action }}</td>
-                <td class="py-3 px-3">{{ log.module }}</td>
-                <td class="py-3 px-3 text-slate-400">{{ log.time }}</td>
-                <td class="py-3 px-3">
-                  <Badge :type="log.status === 'Success' ? 'present' : 'absent'" :text="log.status" />
-                </td>
-              </tr>
+            <tbody class="divide-y divide-slate-100">
+              <tr><td class="py-3 text-slate-500">Class sessions</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.sessions) }}</td></tr>
+              <tr><td class="py-3 text-slate-500">Assessment records</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.assessments) }}</td></tr>
+              <tr><td class="py-3 text-slate-500">Attendance records</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.attendanceRecords) }}</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Quick Controls -->
-      <div class="bg-white rounded-xl p-6 border border-border-subtle shadow-xs space-y-4">
-        <h2 class="text-base font-bold text-slate-900 font-sans">Quick Security Policies</h2>
-        <div class="space-y-3">
-          <div class="p-3 bg-slate-50 rounded-eight border border-slate-200 flex items-center justify-between">
-            <div>
-              <p class="text-xs font-bold text-slate-800">Biometric Attendance Sync</p>
-              <p class="text-[11px] text-slate-500">Automated gate check-in</p>
-            </div>
-            <span class="px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded">Active</span>
-          </div>
-
-          <div class="p-3 bg-slate-50 rounded-eight border border-slate-200 flex items-center justify-between">
-            <div>
-              <p class="text-xs font-bold text-slate-800">Gradebook Locking</p>
-              <p class="text-[11px] text-slate-500">Term 2026-A Final Submissions</p>
-            </div>
-            <span class="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 rounded">Pending</span>
-          </div>
-
-          <div class="p-3 bg-slate-50 rounded-eight border border-slate-200 flex items-center justify-between">
-            <div>
-              <p class="text-xs font-bold text-slate-800">Parent SMS Alerts</p>
-              <p class="text-[11px] text-slate-500">Instant absence notifications</p>
-            </div>
-            <span class="px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded">Active</span>
-          </div>
-        </div>
+      <div class="rounded-xl border border-border-subtle bg-white p-6 shadow-xs">
+        <h2 class="text-base font-bold text-slate-900 font-sans">Data status</h2>
+        <p class="mt-2 text-xs leading-5 text-slate-500">These figures are loaded from protected backend endpoints using the current administrator session.</p>
+        <button type="button" :disabled="loading" @click="loadMetrics" class="mt-5 rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+          {{ loading ? 'Refreshing…' : 'Refresh metrics' }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { onMounted, reactive, ref } from 'vue'
 import StatCard from '../components/StatCard.vue'
-import Badge from '../components/Badge.vue'
+import { fetchDashboardMetrics } from '../api.js'
+import { authStore } from '../store/auth.js'
 
-const auditLogs = [
-  { user: 'Dr. Eleanor Vance', action: 'Grade Submitted', module: 'Assessments', time: '10 mins ago', status: 'Success' },
-  { user: 'Prof. Marcus Brody', action: 'Attendance Recorded', module: 'Class Sessions', time: '24 mins ago', status: 'Success' },
-  { user: 'Admin User', action: 'Policy Update', module: 'Role Management', time: '1 hour ago', status: 'Success' },
-  { user: 'System Service', action: 'MFA Failed Entry', module: 'Auth Service', time: '2 hours ago', status: 'Warning' }
-]
+const loading = ref(true)
+const errorMessage = ref('')
+const metrics = reactive({ students: 0, faculty: 0, courses: 0, attendanceRate: 0, sessions: 0, assessments: 0, attendanceRecords: 0, lastUpdated: '' })
+
+function formatNumber(value) {
+  return new Intl.NumberFormat().format(Number(value) || 0)
+}
+
+function formatUpdated(value) {
+  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+async function loadMetrics() {
+  loading.value = true
+  errorMessage.value = ''
+  const result = await fetchDashboardMetrics(authStore.token.value)
+  if (!result.ok) {
+    errorMessage.value = result.error || 'Unable to load dashboard metrics.'
+  } else {
+    Object.assign(metrics, result.data || {})
+  }
+  loading.value = false
+}
+
+onMounted(loadMetrics)
 </script>
