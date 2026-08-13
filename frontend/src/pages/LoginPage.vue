@@ -75,9 +75,9 @@ const homeForRole = (role) => {
 
 const handleLogin = async () => {
   errorMessage.value = ''
-  Object.assign(fieldErrors, validate({ email: email.value, password: password.value }, {
-    email: [(value) => required(value, 'Email'), validateEmail],
-    password: [(value) => required(value, 'Password'), validatePassword],
+  Object.assign(fieldErrors, validate({
+    email: [required(email.value, 'Email'), validateEmail(email.value)],
+    password: [required(password.value, 'Password'), validatePassword(password.value)],
   }))
   if (firstError(fieldErrors)) return
   isSubmitting.value = true
