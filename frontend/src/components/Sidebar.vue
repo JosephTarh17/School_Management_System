@@ -90,6 +90,7 @@ const studentMenuGroups = [
       { label: 'My Portal Overview', path: '/student-portal', icon: 'person' },
       { label: 'My Course Schedule', path: '/class-sessions', icon: 'calendar_month' },
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
+      { label: 'Course Registration', path: '/course-registration', icon: 'how_to_reg' },
       { label: 'My Assessments', path: '/assessments', icon: 'assignment' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
@@ -108,6 +109,7 @@ const administratorMenuGroups = [
     items: [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
       { label: 'Student Enrollment', path: '/student-enrollment', icon: 'how_to_reg' },
+      { label: 'Registration Review', path: '/course-registration-review', icon: 'fact_check' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },

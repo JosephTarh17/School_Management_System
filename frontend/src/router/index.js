@@ -18,6 +18,18 @@ const routes = [
     meta: { requiresAuth: true, roles: ['student', 'teacher'] }
   },
   {
+    path: '/course-registration',
+    name: 'CourseRegistration',
+    component: () => import('../pages/CourseRegistration.vue'),
+    meta: { requiresAuth: true, roles: ['student'] }
+  },
+  {
+    path: '/course-registration-review',
+    name: 'CourseRegistrationReview',
+    component: () => import('../pages/CourseRegistrationReview.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
     path: '/assessments',
     name: 'Assessments',
     component: () => import('../pages/Assessments.vue'),

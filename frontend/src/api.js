@@ -155,6 +155,32 @@ export async function deleteEnrollment(token, enrollmentId) {
   return requestJson(`/enrollments/${enrollmentId}`, { method: 'DELETE', token })
 }
 
+export async function fetchRegistrationEligibility(token) {
+  return requestJson('/course-registrations/eligibility', { token })
+}
+
+export async function fetchRegistrationCatalog(token, term) {
+  const query = term ? `?term=${encodeURIComponent(term)}` : ''
+  return requestJson(`/course-registrations/catalog${query}`, { token })
+}
+
+export async function fetchCourseRegistrationRequests(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/course-registrations${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function submitCourseRegistration(token, body) {
+  return requestJson('/course-registrations', { method: 'POST', token, body })
+}
+
+export async function cancelCourseRegistration(token, requestId) {
+  return requestJson(`/course-registrations/${requestId}/cancel`, { method: 'PATCH', token })
+}
+
+export async function reviewCourseRegistration(token, requestId, body) {
+  return requestJson(`/course-registrations/${requestId}/review`, { method: 'PATCH', token, body })
+}
+
 export async function fetchAssessments(token, params = {}) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
   return requestJson(`/assessments${query.toString() ? `?${query.toString()}` : ''}`, { token })

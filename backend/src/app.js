@@ -12,6 +12,7 @@ import participationRoutes from './routes/participationLogs.js'
 import financialRoutes from './routes/financialRecords.js'
 import dashboardRoutes from './routes/dashboard.js'
 import enrollmentRoutes from './routes/enrollments.js'
+import courseRegistrationRoutes from './routes/courseRegistrations.js'
 import academicRecordsRoutes from './routes/academicRecords.js'
 import guardianPortalRoutes from './routes/guardianPortal.js'
 import attendanceReportsRoutes from './routes/attendanceReports.js'
@@ -39,6 +40,7 @@ app.use('/participation-logs', participationRoutes)
 app.use('/financial-records', financialRoutes)
 app.use('/dashboard', dashboardRoutes)
 app.use('/enrollments', enrollmentRoutes)
+app.use('/course-registrations', courseRegistrationRoutes)
 app.use('/academic-records', academicRecordsRoutes)
 app.use('/guardian-portal', guardianPortalRoutes)
 app.use('/attendance-reports', attendanceReportsRoutes)
