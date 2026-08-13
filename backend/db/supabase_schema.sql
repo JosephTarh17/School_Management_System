@@ -7,7 +7,7 @@ CREATE TYPE user_role AS ENUM ('student', 'teacher', 'guardian', 'administrator'
 CREATE TYPE attendance_status AS ENUM ('Present', 'Absent', 'Late', 'Excused');
 CREATE TYPE assessment_type AS ENUM ('Quiz', 'Assignment', 'Midterm', 'Final');
 CREATE TYPE participation_rating AS ENUM ('Active', 'Moderate', 'Passive', 'Disruptive');
-CREATE TYPE payment_status AS ENUM ('Pending', 'Paid', 'Overdue', 'Cancelled');
+CREATE TYPE payment_status AS ENUM ('Pending', 'Partial', 'Paid', 'Overdue', 'Waived', 'Cancelled');
 
 CREATE TABLE user_account (
   user_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23,10 +23,24 @@ CREATE TABLE student (
   student_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL UNIQUE REFERENCES user_account(user_id) ON DELETE CASCADE,
   full_name text NOT NULL,
+  class_level text CHECK (class_level IS NULL OR class_level IN ('Freshman', 'Sophomore', 'Junior')),
   dob date,
   phone text,
   address text
 );
+
+CREATE TABLE class_fee_setting (
+  class_fee_setting_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_level text NOT NULL UNIQUE CHECK (class_level IN ('Freshman', 'Sophomore', 'Junior')),
+  fee_xaf numeric(12,2) NOT NULL DEFAULT 0 CHECK (fee_xaf >= 0),
+  max_credits integer NOT NULL DEFAULT 0 CHECK (max_credits >= 0),
+  updated_by uuid REFERENCES user_account(user_id) ON DELETE SET NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO class_fee_setting (class_level, fee_xaf, max_credits)
+VALUES ('Freshman', 0, 0), ('Sophomore', 0, 0), ('Junior', 0, 0)
+ON CONFLICT (class_level) DO NOTHING;
 
 CREATE TABLE guardian (
   guardian_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -141,8 +155,23 @@ CREATE TABLE financial_record (
   student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
   amount_due numeric(12,2) NOT NULL DEFAULT 0.00,
   amount_paid numeric(12,2) NOT NULL DEFAULT 0.00,
+  balance_due numeric(12,2) NOT NULL DEFAULT 0.00 CHECK (balance_due >= 0),
   payment_status payment_status NOT NULL DEFAULT 'Pending',
   due_date date,
+  last_payment_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE payment_record (
+  payment_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id uuid NOT NULL REFERENCES financial_record(invoice_id) ON DELETE CASCADE,
+  amount numeric(12,2) NOT NULL CHECK (amount > 0),
+  payment_method text NOT NULL CHECK (payment_method IN ('Cash', 'Bank transfer', 'Mobile money - manual', 'Other')),
+  receipt_number text NOT NULL UNIQUE,
+  payment_reference text,
+  notes text,
+  paid_at timestamptz NOT NULL DEFAULT now(),
+  recorded_by uuid NOT NULL REFERENCES user_account(user_id) ON DELETE RESTRICT,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
