@@ -112,3 +112,11 @@ export async function fetchParticipationLogs(token) {
   return requestJson('/participation-logs', { token })
 }
 
+export async function updateParticipationLog(token, participationId, body) {
+  return requestJson(`/participation-logs/${participationId}`, { method: 'PATCH', token, body })
+}
+
+export async function deleteParticipationLog(token, participationId) {
+  return requestJson(`/participation-logs/${participationId}`, { method: 'DELETE', token })
+}
+
