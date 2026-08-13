@@ -2,6 +2,7 @@ import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ApiError, asDate, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { enrolledStudentIdsForTeacher } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -10,6 +11,11 @@ const select = 'student_id,user_id,full_name,dob,phone,address,user_account(user
 router.get('/', asyncRoute(async (req, res) => {
   let query = supabase.from('student').select(select).order('full_name')
   if (req.user.role === 'student') query = query.eq('user_id', req.user.user_id)
+  if (req.user.role === 'teacher') {
+    const studentIds = await enrolledStudentIdsForTeacher(req.user.user_id)
+    if (!studentIds.length) return sendData(res, [])
+    query = query.in('student_id', studentIds)
+  }
   if (req.query.user_id) query = query.eq('user_id', asUuid(req.query.user_id, 'user_id'))
   const { data, error } = await query
   if (error) throw error
@@ -22,6 +28,10 @@ router.get('/:studentId', asyncRoute(async (req, res) => {
   if (error) throw error
   if (!data) throw new ApiError(404, 'Student not found')
   if (req.user.role === 'student' && data.user_id !== req.user.user_id) throw new ApiError(403, 'You do not have permission to view this student')
+  if (req.user.role === 'teacher') {
+    const studentIds = await enrolledStudentIdsForTeacher(req.user.user_id)
+    if (!studentIds.includes(studentId)) throw new ApiError(403, 'You do not have permission to view this student')
+  }
   return sendData(res, data)
 }))
 

@@ -64,6 +64,11 @@ export async function fetchCourses(token) {
   return requestJson('/courses', { token })
 }
 
+export async function fetchEnrollments(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/enrollments${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
 export async function fetchAssessments(token) {
   return requestJson('/assessments', { token })
 }

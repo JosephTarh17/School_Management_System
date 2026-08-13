@@ -6,6 +6,7 @@ export const ENUMS = {
   assessmentType: ['Quiz', 'Assignment', 'Midterm', 'Final'],
   participationRating: ['Active', 'Moderate', 'Passive', 'Disruptive'],
   paymentStatus: ['Pending', 'Paid', 'Overdue', 'Cancelled'],
+  enrollmentStatus: ['active', 'completed', 'dropped'],
 }
 
 export function isUuid(value) {

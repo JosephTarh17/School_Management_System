@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ApiError, asDateTime, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { assertTeacherOwnsCourse, sessionForAccess, teacherIdForUser } from '../lib/ownership.js'
+import { studentCourseIdsForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -21,6 +22,10 @@ router.get('/', asyncRoute(async (req, res) => {
     const teacherId = await teacherIdForUser(req.user.user_id)
     if (!teacherId) return sendData(res, [])
     query = query.eq('teacher_id', teacherId)
+  } else if (req.user.role === 'student') {
+    const courseIds = await studentCourseIdsForUser(req.user.user_id)
+    if (!courseIds.length) return sendData(res, [])
+    query = query.in('course_id', courseIds)
   }
   if (req.query.course_id) query = query.eq('course_id', asUuid(req.query.course_id, 'course_id'))
   if (req.query.teacher_id) query = query.eq('teacher_id', asUuid(req.query.teacher_id, 'teacher_id'))
@@ -31,7 +36,14 @@ router.get('/', asyncRoute(async (req, res) => {
 
 router.get('/:sessionId', asyncRoute(async (req, res) => {
   const sessionId = asUuid(req.params.sessionId, 'sessionId')
-  await sessionForAccess(sessionId, req)
+  if (req.user.role === 'student') {
+    const courseIds = await studentCourseIdsForUser(req.user.user_id)
+    const { data: session, error: sessionError } = await supabase.from('class_session').select('course_id').eq('session_id', sessionId).maybeSingle()
+    if (sessionError) throw sessionError
+    if (!session || !courseIds.includes(session.course_id)) throw new ApiError(403, 'You do not have permission to view this class session')
+  } else {
+    await sessionForAccess(sessionId, req)
+  }
   const { data, error } = await supabase.from('class_session').select(select).eq('session_id', sessionId).maybeSingle()
   if (error) throw error
   return sendData(res, data)

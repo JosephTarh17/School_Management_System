@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { sessionForAccess } from '../lib/ownership.js'
+import { enrolledStudentIdsForTeacher, studentIdForUser, studentSessionIdsForUser, teacherSessionIdsForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -11,10 +12,14 @@ const select = '*, student(*), class_session(*)'
 router.get('/', asyncRoute(async (req, res) => {
   let query = supabase.from('participation_log').select(select).order('recorded_at', { ascending: false })
   if (req.user.role === 'student') {
-    const { data: student, error: studentError } = await supabase.from('student').select('student_id').eq('user_id', req.user.user_id).maybeSingle()
-    if (studentError) throw studentError
-    if (!student) return sendData(res, [])
-    query = query.eq('student_id', student.student_id)
+    const studentId = await studentIdForUser(req.user.user_id)
+    const sessionIds = await studentSessionIdsForUser(req.user.user_id)
+    if (!studentId || !sessionIds.length) return sendData(res, [])
+    query = query.eq('student_id', studentId).in('session_id', sessionIds)
+  } else if (req.user.role === 'teacher') {
+    const sessionIds = await teacherSessionIdsForUser(req.user.user_id)
+    if (!sessionIds.length) return sendData(res, [])
+    query = query.in('session_id', sessionIds)
   }
   if (req.query.student_id) query = query.eq('student_id', asUuid(req.query.student_id, 'student_id'))
   if (req.query.session_id) query = query.eq('session_id', asUuid(req.query.session_id, 'session_id'))
@@ -38,6 +43,10 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const rating = asEnum(req.body?.rating, 'rating', ENUMS.participationRating)
   const notes = asText(req.body?.notes, 'notes', { max: 1000, optional: true })
   await sessionForAccess(session_id, req)
+  if (req.user.role === 'teacher') {
+    const allowedStudentIds = await enrolledStudentIdsForTeacher(req.user.user_id)
+    if (!allowedStudentIds.includes(student_id)) throw new ApiError(403, 'You may only record participation for enrolled students')
+  }
   const { data, error } = await supabase.from('participation_log').insert({ student_id, session_id, rating, notes }).select(select).single()
   if (error) throw error
   return sendData(res, data, 201)

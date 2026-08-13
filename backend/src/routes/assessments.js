@@ -3,12 +3,22 @@ import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asDate, asEnum, asNumber, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { assertTeacherOwnsCourse } from '../lib/ownership.js'
+import { studentCourseIdsForUser, teacherCourseIdsForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
 router.use(requireAuth)
 
 router.get('/', asyncRoute(async (req, res) => {
   let query = supabase.from('assessment').select('*, course(*)').order('due_date', { ascending: true, nullsFirst: false })
+  if (req.user.role === 'student') {
+    const courseIds = await studentCourseIdsForUser(req.user.user_id)
+    if (!courseIds.length) return sendData(res, [])
+    query = query.in('course_id', courseIds)
+  } else if (req.user.role === 'teacher') {
+    const courseIds = await teacherCourseIdsForUser(req.user.user_id)
+    if (!courseIds.length) return sendData(res, [])
+    query = query.in('course_id', courseIds)
+  }
   if (req.query.course_id) query = query.eq('course_id', asUuid(req.query.course_id, 'course_id'))
   const { data, error } = await query
   if (error) throw error
@@ -20,6 +30,13 @@ router.get('/:assessmentId', asyncRoute(async (req, res) => {
   const { data, error } = await supabase.from('assessment').select('*, course(*)').eq('assessment_id', assessmentId).maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError(404, 'Assessment not found')
+  if (req.user.role === 'student') {
+    const courseIds = await studentCourseIdsForUser(req.user.user_id)
+    if (!courseIds.includes(data.course_id)) throw new ApiError(403, 'You do not have permission to view this assessment')
+  } else if (req.user.role === 'teacher') {
+    const courseIds = await teacherCourseIdsForUser(req.user.user_id)
+    if (!courseIds.includes(data.course_id)) throw new ApiError(403, 'You do not have permission to view this assessment')
+  }
   return sendData(res, data)
 }))
 

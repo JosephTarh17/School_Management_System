@@ -154,7 +154,7 @@ import { computed, onMounted, ref } from 'vue'
 import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
 import { authStore } from '../store/auth'
-import { fetchAssessments, fetchAttendance, fetchCourses } from '../api.js'
+import { fetchAssessments, fetchAttendance, fetchEnrollments } from '../api.js'
 
 const activeTab = ref('Overview & Courses')
 
@@ -174,16 +174,16 @@ const announcements = ref([])
 onMounted(async () => {
   const token = authStore.token.value
   if (!token) return
-  const [courseResult, assessmentResult, attendanceResult] = await Promise.all([
-    fetchCourses(token),
+  const [enrollmentResult, assessmentResult, attendanceResult] = await Promise.all([
+    fetchEnrollments(token, { status: 'active' }),
     fetchAssessments(token),
     fetchAttendance(token),
   ])
-  if (courseResult.ok) courses.value = (courseResult.data || []).map((course) => ({
-    code: course.course_code,
-    name: course.course_name,
+  if (enrollmentResult.ok) courses.value = (enrollmentResult.data || []).map((enrollment) => ({
+    code: enrollment.course?.course_code || enrollment.course_id,
+    name: enrollment.course?.course_name || 'Course',
     instructor: 'Not assigned',
-    credits: course.credit_units || '—',
+    credits: enrollment.course?.credit_units || '—',
     grade: 'Not graded',
     attendance: 'Not available',
   }))
