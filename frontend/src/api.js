@@ -226,3 +226,18 @@ export async function deleteParticipationLog(token, participationId) {
   return requestJson(`/participation-logs/${participationId}`, { method: 'DELETE', token })
 }
 
+export async function fetchBehaviorIncidents(token) {
+  return requestJson('/behavior-incidents', { token })
+}
+
+export async function createBehaviorIncident(token, body) {
+  return requestJson('/behavior-incidents', { method: 'POST', token, body })
+}
+
+export async function updateBehaviorIncident(token, incidentId, body) {
+  return requestJson(`/behavior-incidents/${incidentId}`, { method: 'PATCH', token, body })
+}
+
+export async function deleteBehaviorIncident(token, incidentId) {
+  return requestJson(`/behavior-incidents/${incidentId}`, { method: 'DELETE', token })
+}

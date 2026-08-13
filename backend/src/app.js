@@ -15,6 +15,7 @@ import enrollmentRoutes from './routes/enrollments.js'
 import academicRecordsRoutes from './routes/academicRecords.js'
 import guardianPortalRoutes from './routes/guardianPortal.js'
 import attendanceReportsRoutes from './routes/attendanceReports.js'
+import behaviorIncidentsRoutes from './routes/behaviorIncidents.js'
 import { ApiError, errorHandler } from './lib/api.js'
 
 dotenv.config()
@@ -39,6 +40,7 @@ app.use('/enrollments', enrollmentRoutes)
 app.use('/academic-records', academicRecordsRoutes)
 app.use('/guardian-portal', guardianPortalRoutes)
 app.use('/attendance-reports', attendanceReportsRoutes)
+app.use('/behavior-incidents', behaviorIncidentsRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))

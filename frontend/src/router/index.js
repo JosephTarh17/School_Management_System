@@ -95,6 +95,12 @@ const routes = [
     component: () => import('../pages/ParticipationLog.vue'),
     meta: { requiresAuth: true, roles: ['teacher'] }
   },
+  {
+    path: '/behavior-discipline',
+    name: 'BehaviorDiscipline',
+    component: () => import('../pages/BehaviorDiscipline.vue'),
+    meta: { requiresAuth: true, roles: ['administrator', 'teacher', 'student', 'guardian'] }
+  },
 ]
 
 const router = createRouter({

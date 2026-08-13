@@ -91,6 +91,7 @@ const studentMenuGroups = [
       { label: 'My Course Schedule', path: '/class-sessions', icon: 'calendar_month' },
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
       { label: 'My Assessments', path: '/assessments', icon: 'assignment' },
+      { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },
   {
@@ -107,6 +108,7 @@ const administratorMenuGroups = [
     items: [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
       { label: 'Student Enrollment', path: '/student-enrollment', icon: 'how_to_reg' },
+      { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },
   {
@@ -124,6 +126,7 @@ const guardianMenuGroups = [
     title: 'Guardian Portal',
     items: [
       { label: 'Children Overview', path: '/guardian-portal', icon: 'family_restroom' },
+      { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },
   {
@@ -147,6 +150,7 @@ const teacherMenuGroups = [
     title: 'Academic Operations',
     items: [
       { label: 'Participation Log', path: '/participation-log', icon: 'how_to_reg' },
+      { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
       { label: 'Class Sessions', path: '/class-sessions', icon: 'calendar_month' },
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
       { label: 'Assessments', path: '/assessments', icon: 'assignment' },

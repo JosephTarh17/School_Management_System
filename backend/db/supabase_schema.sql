@@ -79,14 +79,14 @@ CREATE TABLE course (
   course_name text NOT NULL,
   course_code text NOT NULL UNIQUE,
   term text,
-  credit_units integer
+  credit_units integer CHECK (credit_units IS NULL OR credit_units >= 0)
 );
 
 CREATE TABLE room (
   room_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   room_name text NOT NULL UNIQUE,
   location text,
-  capacity integer
+  capacity integer CHECK (capacity IS NULL OR capacity >= 0)
 );
 
 CREATE TABLE class_session (
@@ -106,7 +106,7 @@ CREATE TABLE assessment (
   course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
   title text NOT NULL,
   assessment_type assessment_type NOT NULL,
-  max_score numeric(6,2) NOT NULL DEFAULT 100.00,
+  max_score numeric(6,2) NOT NULL DEFAULT 100.00 CHECK (max_score >= 0),
   weight numeric(5,2) NOT NULL CHECK (weight BETWEEN 0 AND 100),
   due_date date,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -116,7 +116,7 @@ CREATE TABLE academic_record (
   record_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
   assessment_id uuid NOT NULL REFERENCES assessment(assessment_id) ON DELETE CASCADE,
-  score numeric(6,2),
+  score numeric(6,2) CHECK (score IS NULL OR score >= 0),
   grade text,
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE(student_id, assessment_id)
@@ -128,7 +128,7 @@ CREATE TABLE final_grade (
   course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
   computed_score numeric(6,2) CHECK (computed_score IS NULL OR computed_score BETWEEN 0 AND 100),
   letter_grade text,
-  gpa numeric(3,2),
+  gpa numeric(3,2) CHECK (gpa IS NULL OR gpa BETWEEN 0 AND 4.00),
   UNIQUE(student_id, course_id)
 );
 
@@ -139,6 +139,23 @@ CREATE TABLE participation_log (
   rating participation_rating NOT NULL,
   notes text,
   recorded_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE behavior_incident (
+  incident_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+  reported_by uuid NOT NULL REFERENCES user_account(user_id) ON DELETE RESTRICT,
+  incident_type text NOT NULL CHECK (incident_type IN ('Academic', 'Attendance', 'Conduct', 'Safety', 'Other')),
+  severity text NOT NULL CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
+  incident_date date NOT NULL,
+  description text NOT NULL CHECK (char_length(description) BETWEEN 1 AND 1000),
+  action_taken text CHECK (action_taken IS NULL OR char_length(action_taken) <= 1000),
+  status text NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'Under review', 'Resolved', 'Dismissed')),
+  resolution_notes text CHECK (resolution_notes IS NULL OR char_length(resolution_notes) <= 1000),
+  points numeric(6,2) NOT NULL DEFAULT 0 CHECK (points BETWEEN 0 AND 100),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (status NOT IN ('Resolved', 'Dismissed') OR COALESCE(NULLIF(btrim(resolution_notes), ''), NULLIF(btrim(action_taken), '')) IS NOT NULL)
 );
 
 CREATE TABLE attendance (
@@ -153,8 +170,8 @@ CREATE TABLE attendance (
 CREATE TABLE financial_record (
   invoice_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
-  amount_due numeric(12,2) NOT NULL DEFAULT 0.00,
-  amount_paid numeric(12,2) NOT NULL DEFAULT 0.00,
+  amount_due numeric(12,2) NOT NULL DEFAULT 0.00 CHECK (amount_due >= 0),
+  amount_paid numeric(12,2) NOT NULL DEFAULT 0.00 CHECK (amount_paid >= 0 AND amount_paid <= amount_due),
   balance_due numeric(12,2) NOT NULL DEFAULT 0.00 CHECK (balance_due >= 0),
   payment_status payment_status NOT NULL DEFAULT 'Pending',
   due_date date,
