@@ -2,6 +2,7 @@ import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { sessionForAccess } from '../lib/ownership.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -36,6 +37,7 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const session_id = asUuid(req.body?.session_id, 'session_id')
   const rating = asEnum(req.body?.rating, 'rating', ENUMS.participationRating)
   const notes = asText(req.body?.notes, 'notes', { max: 1000, optional: true })
+  await sessionForAccess(session_id, req)
   const { data, error } = await supabase.from('participation_log').insert({ student_id, session_id, rating, notes }).select(select).single()
   if (error) throw error
   return sendData(res, data, 201)
@@ -43,9 +45,16 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
 
 router.patch('/:participationId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const participationId = asUuid(req.params.participationId, 'participationId')
+  const { data: current, error: currentError } = await supabase.from('participation_log').select('participation_id,session_id').eq('participation_id', participationId).maybeSingle()
+  if (currentError) throw currentError
+  if (!current) throw new ApiError(404, 'Participation log not found')
+  await sessionForAccess(current.session_id, req)
   const updates = {}
   if (req.body?.student_id !== undefined) updates.student_id = asUuid(req.body.student_id, 'student_id')
-  if (req.body?.session_id !== undefined) updates.session_id = asUuid(req.body.session_id, 'session_id')
+  if (req.body?.session_id !== undefined) {
+    updates.session_id = asUuid(req.body.session_id, 'session_id')
+    await sessionForAccess(updates.session_id, req)
+  }
   if (req.body?.rating !== undefined) updates.rating = asEnum(req.body.rating, 'rating', ENUMS.participationRating)
   if (req.body?.notes !== undefined) updates.notes = asText(req.body.notes, 'notes', { max: 1000, optional: true })
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
@@ -56,6 +65,10 @@ router.patch('/:participationId', requireRole('teacher', 'administrator'), async
 
 router.delete('/:participationId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const participationId = asUuid(req.params.participationId, 'participationId')
+  const { data: current, error: currentError } = await supabase.from('participation_log').select('session_id').eq('participation_id', participationId).maybeSingle()
+  if (currentError) throw currentError
+  if (!current) throw new ApiError(404, 'Participation log not found')
+  await sessionForAccess(current.session_id, req)
   const { error } = await supabase.from('participation_log').delete().eq('participation_id', participationId)
   if (error) throw error
   return res.status(204).send()

@@ -2,6 +2,7 @@ import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ApiError, asDateTime, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { assertTeacherOwnsCourse, sessionForAccess, teacherIdForUser } from '../lib/ownership.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -16,6 +17,11 @@ function validateTimes(start_time, end_time) {
 
 router.get('/', asyncRoute(async (req, res) => {
   let query = supabase.from('class_session').select(select).order('start_time')
+  if (req.user.role === 'teacher') {
+    const teacherId = await teacherIdForUser(req.user.user_id)
+    if (!teacherId) return sendData(res, [])
+    query = query.eq('teacher_id', teacherId)
+  }
   if (req.query.course_id) query = query.eq('course_id', asUuid(req.query.course_id, 'course_id'))
   if (req.query.teacher_id) query = query.eq('teacher_id', asUuid(req.query.teacher_id, 'teacher_id'))
   const { data, error } = await query
@@ -25,9 +31,9 @@ router.get('/', asyncRoute(async (req, res) => {
 
 router.get('/:sessionId', asyncRoute(async (req, res) => {
   const sessionId = asUuid(req.params.sessionId, 'sessionId')
+  await sessionForAccess(sessionId, req)
   const { data, error } = await supabase.from('class_session').select(select).eq('session_id', sessionId).maybeSingle()
   if (error) throw error
-  if (!data) throw new ApiError(404, 'Class session not found')
   return sendData(res, data)
 }))
 
@@ -36,6 +42,10 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const teacher_id = asUuid(req.body?.teacher_id, 'teacher_id')
   const room_id = asUuid(req.body?.room_id, 'room_id')
   const substitute_teacher_id = asUuid(req.body?.substitute_teacher_id, 'substitute_teacher_id', { optional: true })
+  if (req.user.role === 'teacher') {
+    const teacherId = await teacherIdForUser(req.user.user_id)
+    if (!teacherId || teacher_id !== teacherId) throw new ApiError(403, 'Teachers may only create sessions assigned to themselves')
+  }
   const recurrence_pattern = asText(req.body?.recurrence_pattern, 'recurrence_pattern', { max: 120, optional: true })
   const times = validateTimes(req.body?.start_time, req.body?.end_time)
   const { data, error } = await supabase.from('class_session').insert({ course_id, teacher_id, room_id, substitute_teacher_id, recurrence_pattern, ...times }).select(select).single()
@@ -45,10 +55,16 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
 
 router.patch('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const sessionId = asUuid(req.params.sessionId, 'sessionId')
+  await sessionForAccess(sessionId, req)
   const updates = {}
   for (const field of ['course_id', 'teacher_id', 'room_id', 'substitute_teacher_id']) {
     if (req.body?.[field] !== undefined) updates[field] = asUuid(req.body[field], field, { optional: true })
   }
+  if (req.body?.teacher_id !== undefined && req.user.role === 'teacher') {
+    const teacherId = await teacherIdForUser(req.user.user_id)
+    if (req.body.teacher_id !== teacherId) throw new ApiError(403, 'Teachers may only assign sessions to themselves')
+  }
+  if (req.body?.course_id !== undefined) await assertTeacherOwnsCourse(updates.course_id, req)
   if (req.body?.recurrence_pattern !== undefined) updates.recurrence_pattern = asText(req.body.recurrence_pattern, 'recurrence_pattern', { max: 120, optional: true })
   if (req.body?.start_time !== undefined || req.body?.end_time !== undefined) {
     const { data: current, error: currentError } = await supabase.from('class_session').select('start_time,end_time').eq('session_id', sessionId).maybeSingle()
@@ -64,6 +80,7 @@ router.patch('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(
 
 router.delete('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const sessionId = asUuid(req.params.sessionId, 'sessionId')
+  await sessionForAccess(sessionId, req)
   const { error } = await supabase.from('class_session').delete().eq('session_id', sessionId)
   if (error) throw error
   return res.status(204).send()

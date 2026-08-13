@@ -2,6 +2,7 @@ import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asDate, asEnum, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { sessionForAccess } from '../lib/ownership.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -36,16 +37,7 @@ router.post('/batch', requireRole('teacher', 'administrator'), asyncRoute(async 
     throw new ApiError(400, 'entries must contain between 1 and 500 attendance records')
   }
 
-  const { data: session, error: sessionError } = await supabase
-    .from('class_session')
-    .select('session_id,teacher_id,teacher:teacher!class_session_teacher_id_fkey(user_id)')
-    .eq('session_id', session_id)
-    .maybeSingle()
-  if (sessionError) throw sessionError
-  if (!session) throw new ApiError(404, 'Class session not found')
-  if (req.user.role === 'teacher' && session.teacher?.user_id !== req.user.user_id) {
-    throw new ApiError(403, 'You do not have permission to record attendance for this session')
-  }
+  await sessionForAccess(session_id, req)
 
   const records = entries.map((entry, index) => ({
     student_id: asUuid(entry?.student_id, `entries[${index}].student_id`),
@@ -75,6 +67,7 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const session_id = asUuid(req.body?.session_id, 'session_id')
   const session_date = asDate(req.body?.session_date, 'session_date')
   const status = asEnum(req.body?.status, 'status', ENUMS.attendanceStatus)
+  await sessionForAccess(session_id, req)
   const { data, error } = await supabase.from('attendance').insert({ student_id, session_id, session_date, status }).select(select).single()
   if (error) throw error
   return sendData(res, data, 201)
@@ -82,9 +75,16 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
 
 router.patch('/:attendanceId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const attendanceId = asUuid(req.params.attendanceId, 'attendanceId')
+  const { data: current, error: currentError } = await supabase.from('attendance').select('attendance_id,session_id').eq('attendance_id', attendanceId).maybeSingle()
+  if (currentError) throw currentError
+  if (!current) throw new ApiError(404, 'Attendance record not found')
+  await sessionForAccess(current.session_id, req)
   const updates = {}
   if (req.body?.student_id !== undefined) updates.student_id = asUuid(req.body.student_id, 'student_id')
-  if (req.body?.session_id !== undefined) updates.session_id = asUuid(req.body.session_id, 'session_id')
+  if (req.body?.session_id !== undefined) {
+    updates.session_id = asUuid(req.body.session_id, 'session_id')
+    await sessionForAccess(updates.session_id, req)
+  }
   if (req.body?.session_date !== undefined) updates.session_date = asDate(req.body.session_date, 'session_date')
   if (req.body?.status !== undefined) updates.status = asEnum(req.body.status, 'status', ENUMS.attendanceStatus)
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
@@ -95,6 +95,10 @@ router.patch('/:attendanceId', requireRole('teacher', 'administrator'), asyncRou
 
 router.delete('/:attendanceId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const attendanceId = asUuid(req.params.attendanceId, 'attendanceId')
+  const { data: current, error: currentError } = await supabase.from('attendance').select('session_id').eq('attendance_id', attendanceId).maybeSingle()
+  if (currentError) throw currentError
+  if (!current) throw new ApiError(404, 'Attendance record not found')
+  await sessionForAccess(current.session_id, req)
   const { error } = await supabase.from('attendance').delete().eq('attendance_id', attendanceId)
   if (error) throw error
   return res.status(204).send()

@@ -2,6 +2,7 @@ import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asDate, asEnum, asNumber, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { assertTeacherOwnsCourse } from '../lib/ownership.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -29,6 +30,7 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const max_score = asNumber(req.body?.max_score ?? 100, 'max_score', { min: 0.01, max: 999999 })
   const weight = asNumber(req.body?.weight, 'weight', { min: 0, max: 100 })
   const due_date = asDate(req.body?.due_date, 'due_date', { optional: true })
+  await assertTeacherOwnsCourse(course_id, req)
   const { data, error } = await supabase.from('assessment').insert({ course_id, title, assessment_type, max_score, weight, due_date }).select('*, course(*)').single()
   if (error) throw error
   return sendData(res, data, 201)
@@ -36,8 +38,15 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
 
 router.patch('/:assessmentId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const assessmentId = asUuid(req.params.assessmentId, 'assessmentId')
+  const { data: current, error: currentError } = await supabase.from('assessment').select('assessment_id,course_id').eq('assessment_id', assessmentId).maybeSingle()
+  if (currentError) throw currentError
+  if (!current) throw new ApiError(404, 'Assessment not found')
+  await assertTeacherOwnsCourse(current.course_id, req)
   const updates = {}
-  if (req.body?.course_id !== undefined) updates.course_id = asUuid(req.body.course_id, 'course_id')
+  if (req.body?.course_id !== undefined) {
+    updates.course_id = asUuid(req.body.course_id, 'course_id')
+    await assertTeacherOwnsCourse(updates.course_id, req)
+  }
   if (req.body?.title !== undefined) updates.title = asText(req.body.title, 'title', { max: 200 })
   if (req.body?.assessment_type !== undefined) updates.assessment_type = asEnum(req.body.assessment_type, 'assessment_type', ENUMS.assessmentType)
   if (req.body?.max_score !== undefined) updates.max_score = asNumber(req.body.max_score, 'max_score', { min: 0.01, max: 999999 })
@@ -51,6 +60,10 @@ router.patch('/:assessmentId', requireRole('teacher', 'administrator'), asyncRou
 
 router.delete('/:assessmentId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const assessmentId = asUuid(req.params.assessmentId, 'assessmentId')
+  const { data: current, error: currentError } = await supabase.from('assessment').select('course_id').eq('assessment_id', assessmentId).maybeSingle()
+  if (currentError) throw currentError
+  if (!current) throw new ApiError(404, 'Assessment not found')
+  await assertTeacherOwnsCourse(current.course_id, req)
   const { error } = await supabase.from('assessment').delete().eq('assessment_id', assessmentId)
   if (error) throw error
   return res.status(204).send()
