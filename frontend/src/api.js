@@ -40,6 +40,14 @@ export async function fetchAttendance(token) {
   return requestJson('/attendance', { token })
 }
 
+export async function saveAttendanceBatch(token, body) {
+  return requestJson('/attendance/batch', { method: 'POST', token, body })
+}
+
+export async function fetchStudents(token) {
+  return requestJson('/students', { token })
+}
+
 export async function fetchCurrentUser(token) {
   return requestJson('/users/me', { token })
 }

@@ -28,6 +28,39 @@ router.get('/', asyncRoute(async (req, res) => {
   return sendData(res, data)
 }))
 
+router.post('/batch', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
+  const session_id = asUuid(req.body?.session_id, 'session_id')
+  const session_date = asDate(req.body?.session_date, 'session_date')
+  const entries = req.body?.entries
+  if (!Array.isArray(entries) || entries.length === 0 || entries.length > 500) {
+    throw new ApiError(400, 'entries must contain between 1 and 500 attendance records')
+  }
+
+  const { data: session, error: sessionError } = await supabase
+    .from('class_session')
+    .select('session_id,teacher_id,teacher(user_id)')
+    .eq('session_id', session_id)
+    .maybeSingle()
+  if (sessionError) throw sessionError
+  if (!session) throw new ApiError(404, 'Class session not found')
+  if (req.user.role === 'teacher' && session.teacher?.user_id !== req.user.user_id) {
+    throw new ApiError(403, 'You do not have permission to record attendance for this session')
+  }
+
+  const records = entries.map((entry, index) => ({
+    student_id: asUuid(entry?.student_id, `entries[${index}].student_id`),
+    session_id,
+    session_date,
+    status: asEnum(entry?.status, `entries[${index}].status`, ENUMS.attendanceStatus),
+  }))
+  const { data, error } = await supabase
+    .from('attendance')
+    .upsert(records, { onConflict: 'student_id,session_id,session_date' })
+    .select(select)
+  if (error) throw error
+  return sendData(res, data)
+}))
+
 router.get('/:attendanceId', asyncRoute(async (req, res) => {
   const attendanceId = asUuid(req.params.attendanceId, 'attendanceId')
   const { data, error } = await supabase.from('attendance').select(select).eq('attendance_id', attendanceId).maybeSingle()
