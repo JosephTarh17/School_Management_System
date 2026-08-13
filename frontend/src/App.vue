@@ -1,7 +1,13 @@
 <template>
   <div class="min-h-screen overflow-x-hidden bg-surface-bg text-slate-900 font-sans antialiased">
+    <RequestLoadingOverlay />
+
     <template v-if="$route.meta.layout === 'clean'">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </router-view>
     </template>
 
     <template v-else>
@@ -16,7 +22,11 @@
         <div class="flex min-w-0 flex-1 flex-col bg-surface-bg">
           <Navbar @toggle-menu="mobileMenuOpen = !mobileMenuOpen" />
           <main class="min-w-0 flex-1 overflow-y-auto p-3 sm:p-5 md:p-8">
-            <router-view />
+            <router-view v-slot="{ Component }">
+              <Transition name="page" mode="out-in">
+                <component :is="Component" />
+              </Transition>
+            </router-view>
           </main>
         </div>
       </div>
@@ -28,6 +38,7 @@
 import { ref } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import Navbar from './components/Navbar.vue'
+import RequestLoadingOverlay from './components/RequestLoadingOverlay.vue'
 
 const mobileMenuOpen = ref(false)
 </script>

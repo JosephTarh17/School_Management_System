@@ -1,4 +1,50 @@
+import { reactive } from 'vue'
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
+
+const REQUEST_SHOW_DELAY = 120
+const REQUEST_MIN_VISIBLE = 280
+
+export const requestLoading = reactive({
+  pending: 0,
+  visible: false,
+})
+
+let showTimer = null
+let visibleSince = 0
+let hideTimer = null
+
+function beginRequest() {
+  requestLoading.pending += 1
+  if (requestLoading.pending !== 1 || requestLoading.visible || showTimer) return
+
+  showTimer = window.setTimeout(() => {
+    showTimer = null
+    if (requestLoading.pending > 0) {
+      requestLoading.visible = true
+      visibleSince = Date.now()
+    }
+  }, REQUEST_SHOW_DELAY)
+}
+
+function endRequest() {
+  requestLoading.pending = Math.max(0, requestLoading.pending - 1)
+  if (requestLoading.pending > 0) return
+
+  if (showTimer) {
+    window.clearTimeout(showTimer)
+    showTimer = null
+  }
+
+  if (!requestLoading.visible) return
+
+  const remaining = Math.max(0, REQUEST_MIN_VISIBLE - (Date.now() - visibleSince))
+  if (hideTimer) window.clearTimeout(hideTimer)
+  hideTimer = window.setTimeout(() => {
+    requestLoading.visible = false
+    hideTimer = null
+  }, remaining)
+}
 
 const jsonHeaders = (token) => ({
   'Content-Type': 'application/json',
@@ -6,6 +52,7 @@ const jsonHeaders = (token) => ({
 })
 
 async function requestJson(path, { method = 'GET', token, body } = {}) {
+  beginRequest()
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method,
@@ -17,6 +64,8 @@ async function requestJson(path, { method = 'GET', token, body } = {}) {
     return { ok: response.ok, status: response.status, ...payload, error: response.ok ? payload.error : (payload.error || `Request failed (${response.status}).`) }
   } catch {
     return { ok: false, status: 0, error: 'Unable to reach the server. Check that the backend is running and try again.' }
+  } finally {
+    endRequest()
   }
 }
 
@@ -256,4 +305,16 @@ export async function verifyMfaEnrollment(token, code) {
 
 export async function disableMfa(token, code) {
   return requestJson('/auth/mfa/disable', { method: 'POST', token, body: { code } })
+}
+
+export async function fetchInstallments(token, invoiceId) {
+  return requestJson(`/financial-records/${invoiceId}/installments`, { token })
+}
+
+export async function createInstallmentSchedule(token, invoiceId, installments) {
+  return requestJson(`/financial-records/${invoiceId}/installments`, { method: 'POST', token, body: { installments } })
+}
+
+export async function recordInstallmentPayment(token, invoiceId, installmentId, body) {
+  return requestJson(`/financial-records/${invoiceId}/installments/${installmentId}/payments`, { method: 'POST', token, body })
 }

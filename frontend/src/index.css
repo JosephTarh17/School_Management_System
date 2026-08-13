@@ -49,3 +49,38 @@ body {
   background: #94a3b8;
 }
 
+
+/* Deliberate route transitions keep landing-page navigation from feeling abrupt. */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 320ms ease, transform 320ms ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.loading-fade-enter-active,
+.loading-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.loading-fade-enter-from,
+.loading-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active,
+  .loading-fade-enter-active,
+  .loading-fade-leave-active {
+    transition-duration: 1ms;
+  }
+}
