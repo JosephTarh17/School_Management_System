@@ -131,6 +131,7 @@ const teacherMenuGroups = [
       { label: 'Class Sessions', path: '/class-sessions', icon: 'calendar_month' },
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
       { label: 'Assessments', path: '/assessments', icon: 'assignment' },
+      { label: 'Gradebook', path: '/gradebook', icon: 'grading' },
     ]
   },
   {

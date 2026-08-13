@@ -154,7 +154,7 @@ import { computed, onMounted, ref } from 'vue'
 import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
 import { authStore } from '../store/auth'
-import { fetchAssessments, fetchAttendance, fetchEnrollments } from '../api.js'
+import { fetchAcademicRecords, fetchAssessments, fetchAttendance, fetchEnrollments, fetchFinalGrades } from '../api.js'
 
 const activeTab = ref('Overview & Courses')
 
@@ -170,21 +170,27 @@ const courses = ref([])
 const gradeItems = ref([])
 const attendanceLogs = ref([])
 const announcements = ref([])
+const finalGrades = ref([])
+const academicRecords = ref([])
 
 onMounted(async () => {
   const token = authStore.token.value
   if (!token) return
-  const [enrollmentResult, assessmentResult, attendanceResult] = await Promise.all([
+  const [enrollmentResult, assessmentResult, attendanceResult, recordsResult, finalGradesResult] = await Promise.all([
     fetchEnrollments(token, { status: 'active' }),
     fetchAssessments(token),
     fetchAttendance(token),
+    fetchAcademicRecords(token),
+    fetchFinalGrades(token),
   ])
+  if (recordsResult.ok) academicRecords.value = recordsResult.data || []
+  if (finalGradesResult.ok) finalGrades.value = finalGradesResult.data || []
   if (enrollmentResult.ok) courses.value = (enrollmentResult.data || []).map((enrollment) => ({
     code: enrollment.course?.course_code || enrollment.course_id,
     name: enrollment.course?.course_name || 'Course',
     instructor: 'Not assigned',
     credits: enrollment.course?.credit_units || '—',
-    grade: 'Not graded',
+    grade: finalGrades.value.find((grade) => grade.course_id === enrollment.course_id)?.letter_grade || 'Not graded',
     attendance: 'Not available',
   }))
   if (assessmentResult.ok) gradeItems.value = (assessmentResult.data || []).map((item) => ({
@@ -192,7 +198,9 @@ onMounted(async () => {
     code: item.course?.course_code || item.course_id,
     weight: `${item.weight}%`,
     date: item.due_date || 'Not scheduled',
-    score: 'Not graded',
+    score: academicRecords.value.find((record) => record.assessment_id === item.assessment_id)?.score != null
+      ? `${academicRecords.value.find((record) => record.assessment_id === item.assessment_id).score}/${item.max_score}`
+      : 'Not graded',
   }))
   if (attendanceResult.ok) attendanceLogs.value = (attendanceResult.data || []).map((log) => ({
     date: log.session_date,
@@ -204,6 +212,14 @@ onMounted(async () => {
 })
 
 const downloadTranscript = () => {
-  alert('Transcript downloads will be available when the academic-record API is connected.')
+  const lines = finalGrades.value.map((grade) => `${grade.course?.course_code || grade.course_id}: ${grade.computed_score ?? '—'}% (${grade.letter_grade || 'Pending'})`)
+  if (!lines.length) return alert('No published final grades are available yet.')
+  const blob = new Blob([`Academic results\n\n${lines.join('\n')}`], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'academic-results.txt'
+  link.click()
+  URL.revokeObjectURL(url)
 }
 </script>

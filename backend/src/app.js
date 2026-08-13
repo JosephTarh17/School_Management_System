@@ -12,6 +12,7 @@ import participationRoutes from './routes/participationLogs.js'
 import financialRoutes from './routes/financialRecords.js'
 import dashboardRoutes from './routes/dashboard.js'
 import enrollmentRoutes from './routes/enrollments.js'
+import academicRecordsRoutes from './routes/academicRecords.js'
 import { ApiError, errorHandler } from './lib/api.js'
 
 dotenv.config()
@@ -33,6 +34,7 @@ app.use('/participation-logs', participationRoutes)
 app.use('/financial-records', financialRoutes)
 app.use('/dashboard', dashboardRoutes)
 app.use('/enrollments', enrollmentRoutes)
+app.use('/academic-records', academicRecordsRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))

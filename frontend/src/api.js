@@ -106,8 +106,27 @@ export async function deleteEnrollment(token, enrollmentId) {
   return requestJson(`/enrollments/${enrollmentId}`, { method: 'DELETE', token })
 }
 
-export async function fetchAssessments(token) {
-  return requestJson('/assessments', { token })
+export async function fetchAssessments(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/assessments${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function fetchAcademicRecords(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/academic-records${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function fetchFinalGrades(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/academic-records/final-grades${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function saveAcademicRecord(token, body) {
+  return requestJson('/academic-records', { method: 'POST', token, body })
+}
+
+export async function updateAcademicRecord(token, recordId, body) {
+  return requestJson(`/academic-records/${recordId}`, { method: 'PATCH', token, body })
 }
 
 export async function createCourse(token, body) {

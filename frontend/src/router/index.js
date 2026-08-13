@@ -24,6 +24,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['student', 'teacher'] }
   },
   {
+    path: '/gradebook',
+    name: 'Gradebook',
+    component: () => import('../pages/Gradebook.vue'),
+    meta: { requiresAuth: true, roles: ['teacher'] }
+  },
+  {
     path: '/profile',
     name: 'UserProfile',
     component: () => import('../pages/UserProfile.vue'),
