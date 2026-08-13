@@ -99,13 +99,11 @@ const studentMenuGroups = [
   }
 ]
 
-const adminMenuGroups = [
+const administratorMenuGroups = [
   {
     title: 'Core Portals',
     items: [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
-      { label: 'Student Portal', path: '/student-portal', icon: 'person' },
-      { label: 'Teacher Attendance', path: '/teacher-attendance', icon: 'co_present' },
     ]
   },
   {
@@ -127,16 +125,35 @@ const adminMenuGroups = [
   }
 ]
 
+const teacherMenuGroups = [
+  {
+    title: 'Teaching Workspace',
+    items: [
+      { label: 'Teacher Dashboard', path: '/dashboard', icon: 'space_dashboard' },
+      { label: 'Teacher Attendance', path: '/teacher-attendance', icon: 'co_present' },
+    ]
+  },
+  {
+    title: 'Academic Operations',
+    items: [
+      { label: 'Participation Log', path: '/participation-log', icon: 'how_to_reg' },
+      { label: 'Class Sessions', path: '/class-sessions', icon: 'calendar_month' },
+      { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
+      { label: 'Assessments', path: '/assessments', icon: 'assignment' },
+    ]
+  },
+  {
+    title: 'Account',
+    items: [
+      { label: 'User Profile', path: '/profile', icon: 'account_circle' },
+    ]
+  }
+]
+
 const activeMenuGroups = computed(() => {
   if (isStudent.value) return studentMenuGroups
-  if (isTeacher.value) return adminMenuGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => !['/admin-dashboard', '/financial-records', '/student-portal'].includes(item.path)),
-  }))
-  if (isAdministrator.value) return adminMenuGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => !['/student-portal', '/teacher-attendance'].includes(item.path)),
-  }))
-  return adminMenuGroups
+  if (isTeacher.value) return teacherMenuGroups
+  if (isAdministrator.value) return administratorMenuGroups
+  return []
 })
 </script>
