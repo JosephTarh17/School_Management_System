@@ -107,16 +107,6 @@ const administratorMenuGroups = [
     ]
   },
   {
-    title: 'Academic Operations',
-    items: [
-      { label: 'Attendance Manage', path: '/attendance-management', icon: 'fact_check' },
-      { label: 'Participation Log', path: '/participation-log', icon: 'how_to_reg' },
-      { label: 'Class Sessions', path: '/class-sessions', icon: 'calendar_month' },
-      { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
-      { label: 'Assessments', path: '/assessments', icon: 'assignment' },
-    ]
-  },
-  {
     title: 'Administration',
     items: [
       { label: 'Financial Records', path: '/financial-records', icon: 'payments' },
