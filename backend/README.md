@@ -9,7 +9,7 @@ Node.js + Express backend scaffold for the School Management System.
    cd backend
    npm install
    ```
-2. Create `.env` from `.env.example` and set Supabase credentials and the JWT secret.
+2. Create `.env` from `.env.example` and set Supabase credentials and a random JWT secret of at least 32 characters.
 3. Start the backend:
    ```bash
    npm run dev
@@ -19,12 +19,18 @@ Node.js + Express backend scaffold for the School Management System.
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` — must be a Supabase service role key, not the anon/public key
-- `JWT_SECRET`
+- `JWT_SECRET` — random secret with at least 32 characters
+- `JWT_ISSUER` — defaults to `school-management-system`
+- `JWT_AUDIENCE` — defaults to `school-management-client`
+- `ACCESS_TOKEN_COOKIE` — defaults to `sms_access_token`
+- `NODE_ENV`
 - `PORT`
 
 ## Endpoints
 
-- `POST /auth/login` — authenticate a user and receive a JWT
+- `POST /auth/login` — authenticate a user, receive a JWT, and set an HttpOnly session cookie
+- `POST /auth/logout` — clear the HttpOnly session cookie
+- `GET /auth/session` — return the authenticated session identity and expiry
 - `GET /attendance` — list attendance for the authenticated user
 - `POST /attendance` — create a new attendance record
 - `GET /users/me` — fetch the authenticated user's profile
@@ -40,13 +46,16 @@ Node.js + Express backend scaffold for the School Management System.
 - `GET /participation-logs` — list participation entries
 - `POST /participation-logs` — create participation logs (teacher/admin)
 - `GET /financial-records` — list financial records
-- `POST /financial-records` — create financial records (admin/guardian/student)
+- `POST /financial-records` — create financial records (administrator-only)
 
 ## Notes
 
 - The backend uses `supabaseClient.js` to connect to Supabase with the service role key.
 - `auth/login` expects `email` and `password`.
-- The attendance routes require a valid `Authorization: Bearer <token>` header.
+- Protected routes accept either `Authorization: Bearer <token>` or the HttpOnly `sms_access_token` cookie.
+- JWTs use HS256 with issuer and audience validation, an access-token type claim, a unique token ID, and an eight-hour default expiry.
+- `requireRole('administrator')`, `requireRole('teacher')`, and `requireRole('student')` enforce server-side RBAC. Data routes additionally enforce student ownership where applicable.
+- Login attempts are limited to five failures per IP/email key within 15 minutes in each backend process. Use a shared gateway or distributed limiter for multi-instance production deployments.
 
 ## Debug notes
 

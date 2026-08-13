@@ -15,6 +15,7 @@ import { ApiError, errorHandler } from './lib/api.js'
 dotenv.config()
 
 const app = express()
+app.set('trust proxy', process.env.TRUST_PROXY === 'false' ? false : 1)
 app.use(cors())
 app.use(express.json({ limit: '1mb' }))
 
