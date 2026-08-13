@@ -11,6 +11,7 @@ Run the files in this order in a development or test Supabase project:
 3. `seeds/001_development_seed.sql` inserts deterministic development users and representative records.
 4. `migrations/002_student_demographics_and_enrollment.sql` through `migrations/008_nonnegative_numeric_integrity.sql` add the previously implemented vertical slices and integrity rules.
 5. `migrations/009_behavior_incidents.sql` creates the behavior and discipline incident ledger.
+6. `migrations/010_security_compliance.sql` adds Argon2id metadata, revocable sessions, encrypted MFA metadata, and the immutable security audit log.
 
 Migration 001 also enables row-level security on every application table without adding public policies. This blocks direct anon/authenticated table access by default; the backend must continue using the Supabase service-role key, which bypasses RLS server-side. If the frontend later queries Supabase directly, add narrowly scoped policies before enabling that access.
 
@@ -32,3 +33,5 @@ These are development-only credentials. Change or remove them before using the d
 ## Backend expectations
 
 The application uses the service-role Supabase key only on the backend. The API expects profile IDs to match their role-specific account: student profiles must reference student accounts, teacher profiles must reference teacher accounts, and so on. Student-facing reads are further restricted in the application layer to the authenticated student's own records. Behavior incidents follow the same rule: administrators have institution-wide access, teachers are limited to active teaching/enrollment scope and their own reported mutations, students can read only their own incidents, and guardians can read only linked children’s incidents.
+
+Chapter 8 requires `MFA_ENCRYPTION_KEY` in the backend environment. It must be a 32-byte hex or base64 value and must never be exposed to the frontend. New passwords use Argon2id; legacy bcrypt hashes are rehashed after successful login. Authentication now requires a matching, unrevoked `auth_session` record, and security mutations are written to the append-only `security_audit_log`.

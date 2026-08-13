@@ -241,3 +241,19 @@ export async function updateBehaviorIncident(token, incidentId, body) {
 export async function deleteBehaviorIncident(token, incidentId) {
   return requestJson(`/behavior-incidents/${incidentId}`, { method: 'DELETE', token })
 }
+
+export async function verifyMfaChallenge(challengeToken, code) {
+  return requestJson('/auth/mfa/verify', { method: 'POST', body: { challenge_token: challengeToken, code } })
+}
+
+export async function enrollMfa(token) {
+  return requestJson('/auth/mfa/enroll', { method: 'POST', token })
+}
+
+export async function verifyMfaEnrollment(token, code) {
+  return requestJson('/auth/mfa/verify-enrollment', { method: 'POST', token, body: { code } })
+}
+
+export async function disableMfa(token, code) {
+  return requestJson('/auth/mfa/disable', { method: 'POST', token, body: { code } })
+}

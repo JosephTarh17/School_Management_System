@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue'
-import { fetchCurrentUser, login as loginRequest, logout as logoutRequest, refreshSession as refreshSessionRequest } from '../api.js'
+import { fetchCurrentUser, login as loginRequest, logout as logoutRequest, refreshSession as refreshSessionRequest, verifyMfaChallenge as verifyMfaChallengeRequest } from '../api.js'
 
 const state = reactive({
   user: JSON.parse(sessionStorage.getItem('sms_user') || 'null'),
@@ -91,6 +91,7 @@ export const authStore = {
 
   async login(email, password) {
     const result = await loginRequest(email, password)
+    if (result.ok && result.data?.mfa_required && result.data?.challenge_token) return { mfaRequired: true, challengeToken: result.data.challenge_token }
     if (!result.ok || !result.token) throw new Error(result.error || result.message || 'Unable to sign in')
     state.token = result.token
     state.user = profileRecord(result.data?.user || result.user)
@@ -101,6 +102,18 @@ export const authStore = {
       persist()
       scheduleRefresh()
     }
+    return state.user
+  },
+
+  async completeMfa(challengeToken, code) {
+    const result = await verifyMfaChallengeRequest(challengeToken, code)
+    if (!result.ok || !result.token) throw new Error(result.error || result.message || 'Unable to verify MFA code')
+    state.token = result.token
+    state.user = profileRecord(result.data?.user || result.user)
+    const current = await fetchCurrentUser(state.token)
+    if (current.ok && current.data) state.user = profileRecord(current.data)
+    persist()
+    scheduleRefresh()
     return state.user
   },
 

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { randomUUID } from 'node:crypto'
 import { ApiError } from '../lib/api.js'
+import { assertActiveSession } from '../lib/sessions.js'
 
 const JWT_ALGORITHM = 'HS256'
 const JWT_ISSUER = process.env.JWT_ISSUER || 'school-management-system'
@@ -16,10 +17,10 @@ export function getJwtSecret() {
   return secret
 }
 
-export function signAccessToken(user) {
+export function signAccessToken(user, sessionId = randomUUID()) {
   if (!user?.user_id || !user?.email || !user?.role) throw new ApiError(500, 'Cannot create a session for an incomplete user')
   return jwt.sign(
-    { user_id: user.user_id, email: user.email, role: user.role, token_type: 'access', instance_id: SESSION_INSTANCE_ID },
+    { user_id: user.user_id, email: user.email, role: user.role, token_type: 'access', instance_id: SESSION_INSTANCE_ID, session_id: sessionId },
     getJwtSecret(),
     { algorithm: JWT_ALGORITHM, expiresIn: DEFAULT_EXPIRES_IN, issuer: JWT_ISSUER, audience: JWT_AUDIENCE, jwtid: randomUUID() }
   )
@@ -27,6 +28,16 @@ export function signAccessToken(user) {
 
 export function verifyAccessToken(token) {
   return jwt.verify(token, getJwtSecret(), { algorithms: [JWT_ALGORITHM], issuer: JWT_ISSUER, audience: JWT_AUDIENCE })
+}
+
+export function signMfaChallenge(user) {
+  return jwt.sign({ user_id: user.user_id, token_type: 'mfa_challenge', instance_id: SESSION_INSTANCE_ID }, getJwtSecret(), { algorithm: JWT_ALGORITHM, expiresIn: '5m', issuer: JWT_ISSUER, audience: JWT_AUDIENCE, jwtid: randomUUID() })
+}
+
+export function verifyMfaChallenge(token) {
+  const payload = jwt.verify(token, getJwtSecret(), { algorithms: [JWT_ALGORITHM], issuer: JWT_ISSUER, audience: JWT_AUDIENCE })
+  if (payload.token_type !== 'mfa_challenge' || payload.instance_id !== SESSION_INSTANCE_ID || !payload.user_id) throw new ApiError(401, 'Invalid or expired MFA challenge')
+  return payload
 }
 
 function parseCookies(header = '') {
@@ -49,14 +60,15 @@ function extractToken(req) {
 }
 
 export function requireAuth(req, res, next) {
+  let token
   try {
-    const token = extractToken(req)
+    token = extractToken(req)
     if (token.length > 4096) throw new ApiError(401, 'Invalid or expired token')
     const payload = verifyAccessToken(token)
-    if (payload.token_type !== 'access' || payload.instance_id !== SESSION_INSTANCE_ID || !payload.user_id || !payload.email || !payload.role) throw new ApiError(401, 'Invalid or expired token')
+    if (payload.token_type !== 'access' || payload.instance_id !== SESSION_INSTANCE_ID || !payload.user_id || !payload.email || !payload.role || !payload.session_id) throw new ApiError(401, 'Invalid or expired token')
     req.auth = { token, payload }
     req.user = payload
-    return next()
+    return assertActiveSession(token, payload.session_id).then(() => next()).catch((error) => next(error instanceof ApiError ? error : new ApiError(401, 'Invalid or expired session')))
   } catch (error) {
     return next(error instanceof ApiError ? error : new ApiError(401, 'Invalid or expired token'))
   }

@@ -9,7 +9,7 @@
         <p class="text-xs text-slate-500 font-geist mt-1">Use your institutional account to access your portal.</p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="space-y-4">
+      <form v-if="!mfaRequired" @submit.prevent="handleLogin" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 font-geist mb-1">Email Address</label>
           <div class="relative">
@@ -41,6 +41,17 @@
         </button>
       </form>
 
+      <form v-else @submit.prevent="handleMfa" class="space-y-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Verify administrator MFA</h2>
+          <p class="text-xs text-slate-500 mt-1">Enter the six-digit code from your authenticator application.</p>
+        </div>
+        <input v-model.trim="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required class="w-full px-4 py-3 text-center tracking-[0.4em] text-lg bg-slate-50 border border-slate-200 rounded-eight focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="000000" />
+        <p v-if="errorMessage" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">{{ errorMessage }}</p>
+        <button type="submit" :disabled="isSubmitting" class="w-full py-3 px-4 bg-primary-container hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-eight shadow-sm">{{ isSubmitting ? 'Verifying…' : 'Verify and Sign In' }}</button>
+        <button type="button" @click="resetMfa" class="w-full py-2 text-xs text-slate-500 hover:text-slate-800">Use a different account</button>
+      </form>
+
       <div class="mt-6 pt-4 border-t border-slate-200 text-center">
         <p class="text-xs text-slate-500 font-geist">
           Need an account?
@@ -65,6 +76,9 @@ const showPassword = ref(false)
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 const fieldErrors = reactive({ email: '', password: '' })
+const mfaRequired = ref(false)
+const challengeToken = ref('')
+const mfaCode = ref('')
 
 const homeForRole = (role) => {
   if (role === 'student') return '/student-portal'
@@ -83,6 +97,11 @@ const handleLogin = async () => {
   isSubmitting.value = true
   try {
     const user = await authStore.login(email.value, password.value)
+    if (user?.mfaRequired) {
+      mfaRequired.value = true
+      challengeToken.value = user.challengeToken
+      return
+    }
     const redirectPath = route.query.redirect || homeForRole(user.role)
     router.push(redirectPath)
   } catch (error) {
@@ -90,5 +109,29 @@ const handleLogin = async () => {
   } finally {
     isSubmitting.value = false
   }
+}
+
+const handleMfa = async () => {
+  errorMessage.value = ''
+  if (!/^\d{6,8}$/.test(mfaCode.value)) {
+    errorMessage.value = 'Enter the one-time code from your authenticator application.'
+    return
+  }
+  isSubmitting.value = true
+  try {
+    const user = await authStore.completeMfa(challengeToken.value, mfaCode.value)
+    router.push(route.query.redirect || homeForRole(user.role))
+  } catch (error) {
+    errorMessage.value = error.message || 'Unable to verify the MFA code.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+function resetMfa() {
+  mfaRequired.value = false
+  challengeToken.value = ''
+  mfaCode.value = ''
+  errorMessage.value = ''
 }
 </script>

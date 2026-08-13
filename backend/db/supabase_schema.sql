@@ -15,6 +15,12 @@ CREATE TABLE user_account (
   password_hash text,
   role user_role NOT NULL,
   mfa_enabled boolean NOT NULL DEFAULT false,
+  password_algorithm text NOT NULL DEFAULT 'bcryptjs',
+  mfa_secret_enc text,
+  mfa_pending_secret_enc text,
+  mfa_enrolled_at timestamptz,
+  security_version integer NOT NULL DEFAULT 0 CHECK (security_version >= 0),
+  disabled_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   last_login timestamptz
 );
@@ -200,3 +206,45 @@ CREATE INDEX idx_participation_log_student_id ON participation_log(student_id);
 CREATE INDEX idx_participation_log_session_id ON participation_log(session_id);
 CREATE INDEX idx_class_session_course_id ON class_session(course_id);
 CREATE INDEX idx_class_session_teacher_id ON class_session(teacher_id);
+
+CREATE TABLE auth_session (
+  session_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES user_account(user_id) ON DELETE CASCADE,
+  token_hash text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL,
+  revoked_at timestamptz,
+  ip_address inet,
+  user_agent text,
+  CHECK (expires_at > created_at)
+);
+
+CREATE TABLE security_audit_log (
+  audit_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_user_id uuid REFERENCES user_account(user_id) ON DELETE SET NULL,
+  action text NOT NULL CHECK (char_length(action) BETWEEN 1 AND 120),
+  resource_type text,
+  resource_id text,
+  http_method text,
+  request_path text,
+  status_code integer CHECK (status_code IS NULL OR status_code BETWEEN 100 AND 599),
+  ip_address inet,
+  user_agent text,
+  correlation_id uuid,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE auth_session ENABLE ROW LEVEL SECURITY;
+ALTER TABLE security_audit_log ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION deny_security_audit_mutation()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'security_audit_log is append-only';
+END;
+$$;
+
+CREATE TRIGGER trg_security_audit_no_update
+BEFORE UPDATE OR DELETE ON security_audit_log
+FOR EACH ROW EXECUTE FUNCTION deny_security_audit_mutation();

@@ -55,12 +55,35 @@
         </button>
       </div>
     </div>
+
+    <div v-if="currentUser?.role === 'administrator'" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs space-y-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Administrator MFA</h2>
+        <p class="text-xs text-slate-500 mt-1">Protect administrator sign-in with an authenticator application.</p>
+      </div>
+      <p class="text-sm" :class="mfaEnabled ? 'text-emerald-700' : 'text-amber-700'">{{ mfaEnabled ? 'MFA is enabled for this account.' : 'MFA is not enabled.' }}</p>
+      <button v-if="!mfaEnabled && !provisioningUri" @click="startMfaEnrollment" :disabled="mfaBusy" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-eight disabled:opacity-60">{{ mfaBusy ? 'Preparing…' : 'Set up MFA' }}</button>
+      <div v-if="provisioningUri" class="space-y-3">
+        <p class="text-xs text-slate-600">Add this provisioning URI to your authenticator application, then enter the generated code.</p>
+        <textarea readonly :value="provisioningUri" class="w-full min-h-24 p-3 text-xs bg-slate-50 border border-slate-200 rounded-lg"></textarea>
+        <div class="flex gap-2">
+          <input v-model.trim="mfaCode" inputmode="numeric" maxlength="8" placeholder="Authenticator code" class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg" />
+          <button @click="confirmMfaEnrollment" :disabled="mfaBusy" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-eight disabled:opacity-60">Verify</button>
+        </div>
+      </div>
+      <div v-if="mfaEnabled" class="flex gap-2">
+        <input v-model.trim="disableCode" inputmode="numeric" maxlength="8" placeholder="Current MFA code" class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg" />
+        <button @click="turnOffMfa" :disabled="mfaBusy" class="px-4 py-2 bg-slate-700 text-white text-xs font-semibold rounded-eight disabled:opacity-60">Disable MFA</button>
+      </div>
+      <p v-if="securityMessage" class="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">{{ securityMessage }}</p>
+      <p v-if="securityError" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ securityError }}</p>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { updateCurrentUser } from '../api.js'
+import { disableMfa, enrollMfa, updateCurrentUser, verifyMfaEnrollment } from '../api.js'
 import { authStore } from '../store/auth'
 
 const currentUser = computed(() => authStore.user.value)
@@ -68,7 +91,44 @@ const email = ref(currentUser.value?.email || '')
 const saving = ref(false)
 const message = ref('')
 const errorMessage = ref('')
-watch(currentUser, (user) => { email.value = user?.email || '' })
+const provisioningUri = ref('')
+const mfaCode = ref('')
+const disableCode = ref('')
+const mfaEnabled = ref(Boolean(currentUser.value?.mfa_enabled))
+const mfaBusy = ref(false)
+const securityMessage = ref('')
+const securityError = ref('')
+watch(currentUser, (user) => { email.value = user?.email || ''; mfaEnabled.value = Boolean(user?.mfa_enabled) })
+
+async function startMfaEnrollment() {
+  mfaBusy.value = true
+  securityMessage.value = ''
+  securityError.value = ''
+  const result = await enrollMfa(authStore.token.value)
+  if (!result.ok) securityError.value = result.error || 'Unable to start MFA enrollment.'
+  else provisioningUri.value = result.data?.provisioning_uri || ''
+  mfaBusy.value = false
+}
+
+async function confirmMfaEnrollment() {
+  mfaBusy.value = true
+  securityMessage.value = ''
+  securityError.value = ''
+  const result = await verifyMfaEnrollment(authStore.token.value, mfaCode.value)
+  if (!result.ok) securityError.value = result.error || 'Unable to verify MFA enrollment.'
+  else { mfaEnabled.value = true; provisioningUri.value = ''; mfaCode.value = ''; securityMessage.value = 'MFA has been enabled.' }
+  mfaBusy.value = false
+}
+
+async function turnOffMfa() {
+  mfaBusy.value = true
+  securityMessage.value = ''
+  securityError.value = ''
+  const result = await disableMfa(authStore.token.value, disableCode.value)
+  if (!result.ok) securityError.value = result.error || 'Unable to disable MFA.'
+  else { mfaEnabled.value = false; disableCode.value = ''; securityMessage.value = 'MFA has been disabled.' }
+  mfaBusy.value = false
+}
 
 async function saveProfile() {
   saving.value = true

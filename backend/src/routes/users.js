@@ -1,12 +1,13 @@
 import express from 'express'
-import bcrypt from 'bcryptjs'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { hashPassword } from '../lib/security.js'
+import { revokeAllUserSessions } from '../lib/sessions.js'
 
 const router = express.Router()
 router.use(requireAuth)
-const publicFields = 'user_id,email,role,created_at,last_login'
+const publicFields = 'user_id,email,role,mfa_enabled,created_at,last_login'
 
 router.get('/', requireRole('administrator'), asyncRoute(async (req, res) => {
   const { data, error } = await supabase.from('user_account').select(`${publicFields}, guardian(guardian_id,full_name,email,phone,relationship)`).order('created_at', { ascending: false })
@@ -40,7 +41,7 @@ router.post('/register', requireRole('administrator'), asyncRoute(async (req, re
   const role = asEnum(req.body?.role, 'role', ENUMS.roles)
   if (!/^\S+@\S+\.\S+$/.test(email)) throw new ApiError(400, 'email must be a valid email address')
   if (password.length < 8) throw new ApiError(400, 'password must be at least 8 characters')
-  const password_hash = await bcrypt.hash(password, 12)
+  const password_hash = await hashPassword(password)
   const { data, error } = await supabase.from('user_account').insert({ email, password_hash, role }).select(publicFields).single()
   if (error) throw error
   return sendData(res, data, 201)
@@ -52,11 +53,13 @@ router.patch('/me', asyncRoute(async (req, res) => {
   if (req.body?.password !== undefined) {
     const password = asText(req.body.password, 'password', { max: 128 })
     if (password.length < 8) throw new ApiError(400, 'password must be at least 8 characters')
-    updates.password_hash = await bcrypt.hash(password, 12)
+    updates.password_hash = await hashPassword(password)
+    updates.password_algorithm = 'argon2id'
   }
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('user_account').update(updates).eq('user_id', req.user.user_id).select(publicFields).single()
   if (error) throw error
+  if (req.body?.password !== undefined) await revokeAllUserSessions(req.user.user_id)
   return sendData(res, data)
 }))
 
