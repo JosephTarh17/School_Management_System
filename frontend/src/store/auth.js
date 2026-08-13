@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue'
-import { fetchCurrentUser, login as loginRequest, logout as logoutRequest } from '../api.js'
+import { fetchCurrentUser, login as loginRequest, logout as logoutRequest, refreshSession as refreshSessionRequest } from '../api.js'
 
 const state = reactive({
   user: JSON.parse(sessionStorage.getItem('sms_user') || 'null'),
@@ -18,6 +18,54 @@ function profileRecord(profile) {
     role: String(profile.role || '').toLowerCase(),
     profile: roleProfile || null,
   }
+}
+
+let refreshTimer = null
+let refreshInFlight = null
+
+function decodeToken(token) {
+  try {
+    const payload = token.split('.')[1]
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+  } catch {
+    return null
+  }
+}
+
+function scheduleRefresh() {
+  if (refreshTimer) window.clearTimeout(refreshTimer)
+  if (!state.token) return
+  const payload = decodeToken(state.token)
+  const expiresAt = payload?.exp ? payload.exp * 1000 : Date.now() + 60 * 60 * 1000
+  const delay = Math.max(30_000, expiresAt - Date.now() - 60_000)
+  refreshTimer = window.setTimeout(() => { refresh().catch(() => {}) }, delay)
+}
+
+function clearState() {
+  if (refreshTimer) window.clearTimeout(refreshTimer)
+  refreshTimer = null
+  state.user = null
+  state.token = null
+  persist()
+}
+
+async function refresh() {
+  if (!state.token) return null
+  if (refreshInFlight) return refreshInFlight
+  refreshInFlight = refreshSessionRequest(state.token).then(async (result) => {
+    if (!result.ok || !result.token) throw new Error(result.error || 'Session expired')
+    state.token = result.token
+    const current = await fetchCurrentUser(state.token)
+    if (!current.ok || !current.data) throw new Error('Session expired')
+    state.user = profileRecord(current.data)
+    persist()
+    scheduleRefresh()
+    return state.user
+  }).catch((error) => {
+    clearState()
+    throw error
+  }).finally(() => { refreshInFlight = null })
+  return refreshInFlight
 }
 
 function persist() {
@@ -47,6 +95,7 @@ export const authStore = {
       if (current.ok && current.data) state.user = profileRecord(current.data)
     } finally {
       persist()
+      scheduleRefresh()
     }
     return state.user
   },
@@ -54,10 +103,7 @@ export const authStore = {
   async restoreSession() {
     if (!state.token) return null
     try {
-      const result = await fetchCurrentUser(state.token)
-      if (!result.ok || !result.data) throw new Error('Session expired')
-      state.user = profileRecord(result.data)
-      persist()
+      await refresh()
       return state.user
     } catch {
       this.clear()
@@ -66,9 +112,7 @@ export const authStore = {
   },
 
   clear() {
-    state.user = null
-    state.token = null
-    persist()
+    clearState()
   },
 
   async logout() {
