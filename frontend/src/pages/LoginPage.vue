@@ -14,8 +14,9 @@
           <label class="block text-xs font-semibold text-slate-700 font-geist mb-1">Email Address</label>
           <div class="relative">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-            <input v-model="email" type="email" required autocomplete="username" class="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-eight focus:outline-none focus:ring-2 focus:ring-primary-container focus:bg-white transition-all font-sans" placeholder="you@example.edu" />
+            <input v-model.trim="email" type="email" required autocomplete="username" :aria-invalid="Boolean(fieldErrors.email)" aria-describedby="email-error" class="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-eight focus:outline-none focus:ring-2 focus:ring-primary-container focus:bg-white transition-all font-sans" placeholder="you@example.edu" />
           </div>
+          <p v-if="fieldErrors.email" id="email-error" class="mt-1 text-xs text-red-600">{{ fieldErrors.email }}</p>
         </div>
 
         <div>
@@ -25,11 +26,12 @@
           </div>
           <div class="relative">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
-            <input v-model="password" :type="showPassword ? 'text' : 'password'" required autocomplete="current-password" class="w-full pl-9 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-eight focus:outline-none focus:ring-2 focus:ring-primary-container focus:bg-white transition-all font-sans" placeholder="Your password" />
+            <input v-model="password" :type="showPassword ? 'text' : 'password'" required autocomplete="current-password" :aria-invalid="Boolean(fieldErrors.password)" aria-describedby="password-error" class="w-full pl-9 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-eight focus:outline-none focus:ring-2 focus:ring-primary-container focus:bg-white transition-all font-sans" placeholder="Your password" />
             <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
               <span class="material-symbols-outlined text-lg">{{ showPassword ? 'visibility' : 'visibility_off' }}</span>
             </button>
           </div>
+          <p v-if="fieldErrors.password" id="password-error" class="mt-1 text-xs text-red-600">{{ fieldErrors.password }}</p>
         </div>
 
         <p v-if="errorMessage" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">{{ errorMessage }}</p>
@@ -50,9 +52,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authStore } from '../store/auth'
+import { email as validateEmail, firstError, password as validatePassword, required, validate } from '../lib/validation.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -61,6 +64,7 @@ const password = ref('')
 const showPassword = ref(false)
 const isSubmitting = ref(false)
 const errorMessage = ref('')
+const fieldErrors = reactive({ email: '', password: '' })
 
 const homeForRole = (role) => {
   if (role === 'student') return '/student-portal'
@@ -71,6 +75,11 @@ const homeForRole = (role) => {
 
 const handleLogin = async () => {
   errorMessage.value = ''
+  Object.assign(fieldErrors, validate({ email: email.value, password: password.value }, {
+    email: [(value) => required(value, 'Email'), validateEmail],
+    password: [(value) => required(value, 'Password'), validatePassword],
+  }))
+  if (firstError(fieldErrors)) return
   isSubmitting.value = true
   try {
     const user = await authStore.login(email.value, password.value)

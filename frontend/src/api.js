@@ -6,14 +6,18 @@ const jsonHeaders = (token) => ({
 })
 
 async function requestJson(path, { method = 'GET', token, body } = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: jsonHeaders(token),
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  const payload = await response.json().catch(() => ({}))
-  return { ok: response.ok, status: response.status, ...payload }
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: jsonHeaders(token),
+      credentials: 'include',
+      body: body ? JSON.stringify(body) : undefined,
+    })
+    const payload = await response.json().catch(() => ({}))
+    return { ok: response.ok, status: response.status, ...payload, error: response.ok ? payload.error : (payload.error || `Request failed (${response.status}).`) }
+  } catch {
+    return { ok: false, status: 0, error: 'Unable to reach the server. Check that the backend is running and try again.' }
+  }
 }
 
 export function authHeaders(token) {
@@ -26,6 +30,10 @@ export async function login(email, password) {
 
 export async function logout(token) {
   return requestJson('/auth/logout', { method: 'POST', token })
+}
+
+export async function refreshSession(token) {
+  return requestJson('/auth/refresh', { method: 'POST', token })
 }
 
 export async function fetchAttendance(token) {

@@ -15,6 +15,7 @@ describe('Authentication and RBAC', () => {
     expect(payload).to.have.property('jti')
     expect(payload).to.have.property('iss', 'school-management-system')
     expect(payload).to.have.property('aud', 'school-management-client')
+    expect(payload).to.have.property('instance_id')
   })
 
   it('rejects tokens signed with an invalid secret', () => {
@@ -39,6 +40,7 @@ describe('Authentication and RBAC', () => {
     setAuthCookie({ setHeader: (name, value) => { headers[name] = value } }, 'token-value')
     expect(headers['Set-Cookie']).to.include('HttpOnly')
     expect(headers['Set-Cookie']).to.include('SameSite=Strict')
+    expect(headers['Set-Cookie']).not.to.include('Max-Age=')
     clearAuthCookie({ setHeader: (name, value) => { headers[name] = value } })
     expect(headers['Set-Cookie']).to.include('Max-Age=0')
   })

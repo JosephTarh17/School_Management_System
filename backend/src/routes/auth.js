@@ -52,6 +52,12 @@ router.post('/login', asyncRoute(async (req, res) => {
   return res.json({ token, data: { token, user: { user_id: user.user_id, email: user.email, role: user.role } } })
 }))
 
+router.post('/refresh', requireAuth, asyncRoute(async (req, res) => {
+  const token = signAccessToken(req.user)
+  setAuthCookie(res, token)
+  return res.json({ token, data: { token } })
+}))
+
 router.post('/logout', requireAuth, asyncRoute(async (req, res) => {
   clearAuthCookie(res)
   return res.status(204).send()
