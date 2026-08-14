@@ -58,11 +58,20 @@ router.get('/children/:studentId', asyncRoute(async (req, res) => {
     payments = paymentResult.data || []
   }
 
-  const financialWithInstallments = financialRecords.map((invoice) => ({
-    ...invoice,
-    installments: installments.filter((item) => item.invoice_id === invoice.invoice_id),
-    payments: payments.filter((payment) => payment.invoice_id === invoice.invoice_id),
-  }))
+  const financialWithInstallments = financialRecords.map((invoice) => {
+    const invoiceInstallments = installments.filter((item) => item.invoice_id === invoice.invoice_id)
+    const invoicePayments = payments.filter((payment) => payment.invoice_id === invoice.invoice_id)
+    const installmentTotalDue = invoiceInstallments.reduce((sum, item) => sum + Number(item.amount_due || 0), 0)
+    const installmentPaid = invoiceInstallments.reduce((sum, item) => sum + Number(item.amount_paid || 0), 0)
+    return {
+      ...invoice,
+      installments: invoiceInstallments,
+      payments: invoicePayments,
+      installment_total_due: installmentTotalDue,
+      installment_paid: installmentPaid,
+      unallocated_paid: Math.max(Number(invoice.amount_paid || 0) - installmentPaid, 0),
+    }
+  })
   return sendData(res, { student: studentResult.data, enrollments: enrollmentResult.data || [], attendance: attendanceResult.data || [], academic_records: recordsResult.data || [], final_grades: gradesResult.data || [], financial_records: financialWithInstallments })
 }))
 

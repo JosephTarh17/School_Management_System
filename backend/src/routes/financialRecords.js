@@ -180,6 +180,9 @@ router.post('/:invoiceId/payments', requireRole('administrator'), asyncRoute(asy
   const { data: invoice, error: invoiceError } = await supabase.from('financial_record').select('invoice_id,amount_due,amount_paid').eq('invoice_id', invoiceId).maybeSingle()
   if (invoiceError) throw invoiceError
   if (!invoice) throw new ApiError(404, 'Financial record not found')
+  const { count: installmentCount, error: installmentError } = await supabase.from('fee_installment').select('installment_id', { count: 'exact', head: true }).eq('invoice_id', invoiceId)
+  if (installmentError) throw installmentError
+  if (installmentCount > 0) throw new ApiError(400, 'This invoice has an installment schedule. Record the payment against a specific installment.')
   const currentPaid = Number(invoice.amount_paid || 0)
   const amountDue = Number(invoice.amount_due || 0)
   if (currentPaid + amount > amountDue) throw new ApiError(400, 'Payment cannot exceed the outstanding balance')
