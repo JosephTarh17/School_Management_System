@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { ApiError, ENUMS, asDate, asEnum, asNumber, asUuid, asText } from '../src/lib/api.js'
+import { ApiError, ENUMS, asDate, asEnum, asNumber, asUuid, asText, asXafAmount } from '../src/lib/api.js'
 
 describe('API validation helpers', () => {
   it('accepts valid UUIDs and rejects malformed UUIDs', () => {
@@ -19,5 +19,13 @@ describe('API validation helpers', () => {
     expect(() => asNumber(-1, 'amount', { min: 0 })).to.throw(ApiError)
     expect(asText('  Course  ', 'name')).to.equal('Course')
     expect(() => asText('', 'name')).to.throw(ApiError)
+  })
+
+  it('accepts whole-number XAF amounts and rejects fractions or invalid signs', () => {
+    expect(asXafAmount('75000', 'payment', { positive: true })).to.equal(75000)
+    expect(asXafAmount(0, 'balance')).to.equal(0)
+    expect(() => asXafAmount('75000.50', 'payment', { positive: true })).to.throw(ApiError, 'payment must be a valid integer')
+    expect(() => asXafAmount(0, 'payment', { positive: true })).to.throw(ApiError, 'payment must be at least 1')
+    expect(() => asXafAmount(-1, 'balance')).to.throw(ApiError)
   })
 })

@@ -73,6 +73,11 @@ export function asNumber(value, field, { optional = false, min, max, integer = f
   return number
 }
 
+export function asXafAmount(value, field, { optional = false, positive = false, max = 999999999 } = {}) {
+  const minimum = positive ? 1 : 0
+  return asNumber(value, field, { optional, min: minimum, max, integer: true })
+}
+
 export function asEnum(value, field, values, { optional = false } = {}) {
   if (value == null || value === '') {
     if (optional) return undefined

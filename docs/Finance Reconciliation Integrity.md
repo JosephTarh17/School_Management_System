@@ -2,7 +2,7 @@
 
 ## Authoritative equations
 
-All monetary values are non-negative XAF amounts. For an invoice:
+All monetary values are whole-number XAF amounts with no fractional XAF units. New fees, invoice charges, installment amounts, and payment entries must be positive. Calculated paid totals, balances, and aggregate totals may be `0 XAF` when no amount has been paid or nothing remains outstanding. For an invoice:
 
 ```text
 invoice balance = invoice amount due - invoice amount paid
@@ -40,4 +40,4 @@ Installment 2: 50,000 due - 0 paid = 50,000 balance (Pending)
 Invoice: 100,000 due - 50,000 paid = 50,000 balance (Partial)
 ```
 
-Apply `backend/db/migrations/014_finance_reconciliation_integrity.sql` after migrations 011 and 013.
+Apply `backend/db/migrations/014_finance_reconciliation_integrity.sql` after migrations 011 and 013, then apply `backend/db/migrations/016_xaf_whole_numbers_and_behavior_points.sql` after any existing migration 015. Migration 016 rejects fractional legacy XAF values instead of silently rounding them, changes monetary columns to scale-zero numeric types, and adds database constraints for whole-number amounts.

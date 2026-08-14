@@ -19,7 +19,7 @@
         <label class="text-xs font-semibold text-slate-700">Type<select v-model="form.incident_type" class="mt-1.5 block w-full rounded-md border px-3 py-2 text-sm"><option v-for="value in incidentTypes" :key="value">{{ value }}</option></select></label>
         <label class="text-xs font-semibold text-slate-700">Severity<select v-model="form.severity" class="mt-1.5 block w-full rounded-md border px-3 py-2 text-sm"><option v-for="value in severities" :key="value">{{ value }}</option></select></label>
         <label class="text-xs font-semibold text-slate-700">Incident date<input v-model="form.incident_date" type="date" required class="mt-1.5 block w-full rounded-md border px-3 py-2 text-sm" /></label>
-        <label class="text-xs font-semibold text-slate-700">Points<input v-model="form.points" type="number" min="0" max="100" step="0.01" class="mt-1.5 block w-full rounded-md border px-3 py-2 text-sm" /></label>
+        <label class="text-xs font-semibold text-slate-700">Automatic points<div class="mt-1.5 flex items-center justify-between rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm text-indigo-900" aria-live="polite"><span>{{ form.severity }} severity</span><strong>{{ calculatedPoints.toFixed(2) }}</strong></div><span class="mt-1 block text-[11px] font-normal text-slate-500">Calculated from severity; not editable.</span></label>
         <label class="text-xs font-semibold text-slate-700 sm:col-span-2 lg:col-span-3">Description<textarea v-model.trim="form.description" required maxlength="1000" rows="3" class="mt-1.5 block w-full rounded-md border px-3 py-2 text-sm"></textarea></label>
         <label class="text-xs font-semibold text-slate-700 sm:col-span-2 lg:col-span-3">Action taken<textarea v-model.trim="form.action_taken" maxlength="1000" rows="2" class="mt-1.5 block w-full rounded-md border px-3 py-2 text-sm"></textarea></label>
       </div>
@@ -28,7 +28,7 @@
 
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-900">Incident history</h2><p class="text-xs text-slate-500">{{ incidents.length }} record(s) within your permitted scope.</p></div>
-      <table class="min-w-full text-left text-sm"><thead class="border-b text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Student</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Severity</th><th class="px-4 py-3">Points</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Action</th></tr></thead><tbody><tr v-for="incident in incidents" :key="incident.incident_id" class="border-b last:border-0"><td class="px-4 py-3 font-semibold text-slate-900">{{ incident.student?.full_name || 'Student' }}</td><td class="px-4 py-3">{{ incident.incident_date }}</td><td class="px-4 py-3">{{ incident.incident_type }}</td><td class="px-4 py-3">{{ incident.severity }}</td><td class="px-4 py-3">{{ incident.points }}</td><td class="px-4 py-3"><select v-if="canManage && canEdit(incident)" :value="incident.status" @change="changeStatus(incident, $event.target.value)" class="rounded-md border px-2 py-1 text-xs"><option v-for="value in statuses" :key="value">{{ value }}</option></select><span v-else>{{ incident.status }}</span></td><td class="px-4 py-3"><button v-if="canDelete(incident)" @click="removeIncident(incident)" class="text-xs font-semibold text-rose-700">Delete</button><span v-else class="text-xs text-slate-400">Read-only</span></td></tr><tr v-if="!incidents.length"><td colspan="7" class="px-4 py-10 text-center text-slate-500">No behavior incidents are available in your permitted scope.</td></tr></tbody></table>
+      <table class="min-w-full text-left text-sm"><thead class="border-b text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Student</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Severity</th><th class="px-4 py-3">Points</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Action</th></tr></thead><tbody><tr v-for="incident in incidents" :key="incident.incident_id" class="border-b last:border-0"><td class="px-4 py-3 font-semibold text-slate-900">{{ incident.student?.full_name || 'Student' }}</td><td class="px-4 py-3">{{ incident.incident_date }}</td><td class="px-4 py-3">{{ incident.incident_type }}</td><td class="px-4 py-3">{{ incident.severity }}</td><td class="px-4 py-3">{{ Number(incident.points || 0).toFixed(2) }}</td><td class="px-4 py-3"><select v-if="canManage && canEdit(incident)" :value="incident.status" @change="changeStatus(incident, $event.target.value)" class="rounded-md border px-2 py-1 text-xs"><option v-for="value in statuses" :key="value">{{ value }}</option></select><span v-else>{{ incident.status }}</span></td><td class="px-4 py-3"><button v-if="canDelete(incident)" @click="removeIncident(incident)" class="text-xs font-semibold text-rose-700">Delete</button><span v-else class="text-xs text-slate-400">Read-only</span></td></tr><tr v-if="!incidents.length"><td colspan="7" class="px-4 py-10 text-center text-slate-500">No behavior incidents are available in your permitted scope.</td></tr></tbody></table>
     </div>
   </section>
 </template>
@@ -37,7 +37,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { authStore } from '../store/auth'
 import { createBehaviorIncident, deleteBehaviorIncident, fetchBehaviorIncidents, fetchStudents, updateBehaviorIncident } from '../api.js'
-import { numberRange } from '../lib/validation.js'
 
 const incidents = ref([])
 const students = ref([])
@@ -47,10 +46,12 @@ const errorMessage = ref('')
 const message = ref('')
 const incidentTypes = ['Academic', 'Attendance', 'Conduct', 'Safety', 'Other']
 const severities = ['Low', 'Medium', 'High', 'Critical']
+const severityPoints = { Low: 0.25, Medium: 0.5, High: 0.75, Critical: 1 }
 const statuses = ['Open', 'Under review', 'Resolved', 'Dismissed']
-const form = reactive({ student_id: '', incident_type: 'Conduct', severity: 'Low', incident_date: new Date().toISOString().slice(0, 10), description: '', action_taken: '', points: 0 })
+const form = reactive({ student_id: '', incident_type: 'Conduct', severity: 'Low', incident_date: new Date().toISOString().slice(0, 10), description: '', action_taken: '' })
 const role = computed(() => authStore.userRole.value)
 const canManage = computed(() => ['teacher', 'administrator'].includes(role.value))
+const calculatedPoints = computed(() => severityPoints[form.severity] ?? 0)
 const token = () => authStore.token.value
 
 async function load() {
@@ -67,12 +68,11 @@ async function load() {
 
 async function saveIncident() {
   errorMessage.value = ''; message.value = ''
-  const pointsError = numberRange(form.points, 'Points', { min: 0, max: 100 })
-  if (pointsError || !form.description.trim()) { errorMessage.value = pointsError || 'Description is required.'; return }
+  if (!form.description.trim()) { errorMessage.value = 'Description is required.'; return }
   saving.value = true
-  const result = await createBehaviorIncident(token(), { ...form, points: Number(form.points) })
+  const result = await createBehaviorIncident(token(), { ...form })
   if (!result.ok) errorMessage.value = result.error
-  else { incidents.value.unshift(result.data); message.value = 'Behavior incident recorded.'; form.description = ''; form.action_taken = ''; form.points = 0 }
+  else { incidents.value.unshift(result.data); message.value = 'Behavior incident recorded.'; form.description = ''; form.action_taken = '' }
   saving.value = false
 }
 

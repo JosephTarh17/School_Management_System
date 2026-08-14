@@ -1,7 +1,7 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ApiError, asDate, asEnum, asNumber, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ApiError, asDate, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { enrolledStudentIdsForTeacher, studentIdForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
@@ -9,7 +9,12 @@ router.use(requireAuth)
 
 const incidentTypes = ['Academic', 'Attendance', 'Conduct', 'Safety', 'Other']
 const severities = ['Low', 'Medium', 'High', 'Critical']
+const severityPoints = Object.freeze({ Low: 0.25, Medium: 0.5, High: 0.75, Critical: 1 })
 const statuses = ['Open', 'Under review', 'Resolved', 'Dismissed']
+
+function pointsForSeverity(severity) {
+  return severityPoints[severity]
+}
 const select = '*, student(student_id,full_name,class_level)'
 
 async function guardianStudentIds(userId) {
@@ -39,16 +44,19 @@ async function assertStudentScope(studentId, req) {
 }
 
 function incidentPayload(body, { partial = false } = {}) {
+  if (body.points !== undefined) throw new ApiError(400, 'points are calculated automatically from severity')
   const payload = {}
   if (!partial || body.student_id !== undefined) payload.student_id = asUuid(body.student_id, 'student_id')
   if (!partial || body.incident_type !== undefined) payload.incident_type = asEnum(body.incident_type, 'incident_type', incidentTypes)
-  if (!partial || body.severity !== undefined) payload.severity = asEnum(body.severity, 'severity', severities)
+  if (!partial || body.severity !== undefined) {
+    payload.severity = asEnum(body.severity, 'severity', severities)
+    payload.points = pointsForSeverity(payload.severity)
+  }
   if (!partial || body.incident_date !== undefined) payload.incident_date = asDate(body.incident_date, 'incident_date')
   if (!partial || body.description !== undefined) payload.description = asText(body.description, 'description', { max: 1000 })
   if (body.action_taken !== undefined) payload.action_taken = body.action_taken == null || body.action_taken === '' ? null : asText(body.action_taken, 'action_taken', { max: 1000 })
   if (body.resolution_notes !== undefined) payload.resolution_notes = body.resolution_notes == null || body.resolution_notes === '' ? null : asText(body.resolution_notes, 'resolution_notes', { max: 1000 })
   if (body.status !== undefined) payload.status = asEnum(body.status, 'status', statuses)
-  if (body.points !== undefined) payload.points = asNumber(body.points, 'points', { min: 0, max: 100 })
   return payload
 }
 

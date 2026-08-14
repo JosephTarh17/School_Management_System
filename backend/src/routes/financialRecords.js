@@ -1,7 +1,7 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ENUMS, ApiError, asDate, asEnum, asNumber, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ENUMS, ApiError, asDate, asEnum, asNumber, asText, asUuid, asXafAmount, asyncRoute, sendData } from '../lib/api.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -52,7 +52,7 @@ router.get('/class-fees', requireRole('administrator'), asyncRoute(async (req, r
 
 router.patch('/class-fees/:classLevel', requireRole('administrator'), asyncRoute(async (req, res) => {
   const class_level = asEnum(req.params.classLevel, 'class_level', classLevels)
-  const fee_xaf = asNumber(req.body?.fee_xaf, 'fee_xaf', { min: 0, max: 999999999 })
+  const fee_xaf = asXafAmount(req.body?.fee_xaf, 'fee_xaf', { positive: true })
   const max_credits = asNumber(req.body?.max_credits, 'max_credits', { min: 0, max: 999, integer: true })
   const { data, error } = await supabase.from('class_fee_setting').upsert({ class_level, fee_xaf, max_credits, updated_by: req.user.user_id, updated_at: new Date().toISOString() }, { onConflict: 'class_level' }).select('class_fee_setting_id,class_level,fee_xaf,max_credits,updated_by,updated_at').single()
   if (error) throw error
@@ -98,13 +98,13 @@ router.post('/:invoiceId/installments', requireRole('administrator'), asyncRoute
     invoice_id: invoiceId,
     installment_number: index + 1,
     guardian_id: asUuid(item?.guardian_id, 'guardian_id'),
-    amount_due: asNumber(item?.amount_due, 'amount_due', { min: 0.01, max: 999999999 }),
+    amount_due: asXafAmount(item?.amount_due, 'amount_due', { positive: true }),
     amount_paid: 0,
-    balance_due: asNumber(item?.amount_due, 'amount_due', { min: 0.01, max: 999999999 }),
+    balance_due: asXafAmount(item?.amount_due, 'amount_due', { positive: true }),
     due_date: asDate(item?.due_date, 'due_date'),
   }))
   const total = rows.reduce((sum, row) => sum + Number(row.amount_due), 0)
-  if (Math.abs(total - Number(invoice.amount_due || 0)) > 0.01) throw new ApiError(400, 'Installment amounts must equal the invoice amount due')
+  if (total !== Number(invoice.amount_due || 0)) throw new ApiError(400, 'Installment amounts must equal the invoice amount due in whole XAF units')
   const guardianIds = [...new Set(rows.map((row) => row.guardian_id))]
   const { data: links, error: linkError } = await supabase.from('student_guardian').select('guardian_id').eq('student_id', invoice.student_id).in('guardian_id', guardianIds)
   if (linkError) throw linkError
@@ -118,7 +118,7 @@ router.post('/:invoiceId/installments', requireRole('administrator'), asyncRoute
 router.post('/:invoiceId/installments/:installmentId/payments', requireRole('administrator'), asyncRoute(async (req, res) => {
   const invoiceId = asUuid(req.params.invoiceId, 'invoiceId')
   const installmentId = asUuid(req.params.installmentId, 'installmentId')
-  const amount = asNumber(req.body?.amount, 'amount', { min: 0.01, max: 999999999 })
+  const amount = asXafAmount(req.body?.amount, 'amount', { positive: true })
   const payment_method = asEnum(req.body?.payment_method, 'payment_method', paymentMethods)
   const receipt_number = asText(req.body?.receipt_number, 'receipt_number', { max: 80 })
   const payment_reference = req.body?.payment_reference ? asText(req.body.payment_reference, 'payment_reference', { max: 120, optional: true }) : null
@@ -156,8 +156,8 @@ router.get('/:invoiceId', asyncRoute(async (req, res) => {
 
 router.post('/', requireRole('administrator'), asyncRoute(async (req, res) => {
   const student_id = asUuid(req.body?.student_id, 'student_id')
-  const amount_due = asNumber(req.body?.amount_due, 'amount_due', { min: 0, max: 999999999 })
-  const amount_paid = asNumber(req.body?.amount_paid ?? 0, 'amount_paid', { min: 0, max: 999999999 })
+  const amount_due = asXafAmount(req.body?.amount_due, 'amount_due', { positive: true })
+  const amount_paid = asXafAmount(req.body?.amount_paid ?? 0, 'amount_paid')
   if (amount_paid > amount_due) throw new ApiError(400, 'amount_paid cannot exceed amount_due')
   const payment_status = asEnum(req.body?.payment_status ?? statusForBalance(amount_due, amount_paid), 'payment_status', ENUMS.paymentStatus)
   const due_date = asDate(req.body?.due_date, 'due_date', { optional: true })
@@ -168,7 +168,7 @@ router.post('/', requireRole('administrator'), asyncRoute(async (req, res) => {
 
 router.post('/:invoiceId/payments', requireRole('administrator'), asyncRoute(async (req, res) => {
   const invoiceId = asUuid(req.params.invoiceId, 'invoiceId')
-  const amount = asNumber(req.body?.amount, 'amount', { min: 0.01, max: 999999999 })
+  const amount = asXafAmount(req.body?.amount, 'amount', { positive: true })
   const payment_method = asEnum(req.body?.payment_method, 'payment_method', paymentMethods)
   const receipt_number = String(req.body?.receipt_number || '').trim()
   if (!receipt_number || receipt_number.length > 80) throw new ApiError(400, 'receipt_number is required and must be 80 characters or fewer')
@@ -200,8 +200,8 @@ router.patch('/:invoiceId', requireRole('administrator'), asyncRoute(async (req,
   const invoiceId = asUuid(req.params.invoiceId, 'invoiceId')
   const updates = {}
   if (req.body?.student_id !== undefined) updates.student_id = asUuid(req.body.student_id, 'student_id')
-  if (req.body?.amount_due !== undefined) updates.amount_due = asNumber(req.body.amount_due, 'amount_due', { min: 0, max: 999999999 })
-  if (req.body?.amount_paid !== undefined) updates.amount_paid = asNumber(req.body.amount_paid, 'amount_paid', { min: 0, max: 999999999 })
+  if (req.body?.amount_due !== undefined) updates.amount_due = asXafAmount(req.body.amount_due, 'amount_due', { positive: true })
+  if (req.body?.amount_paid !== undefined) updates.amount_paid = asXafAmount(req.body.amount_paid, 'amount_paid')
   if (req.body?.payment_status !== undefined) updates.payment_status = asEnum(req.body.payment_status, 'payment_status', ENUMS.paymentStatus)
   if (req.body?.due_date !== undefined) updates.due_date = asDate(req.body.due_date, 'due_date', { optional: true })
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')

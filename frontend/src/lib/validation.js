@@ -26,12 +26,17 @@ export function dateOrder(start, end, startLabel = 'Start date', endLabel = 'End
   return new Date(start) <= new Date(end) ? '' : `${endLabel} must be on or after ${startLabel.toLowerCase()}.`
 }
 
-export function numberRange(value, label, { min = -Infinity, max = Infinity, requiredValue = true } = {}) {
+export function numberRange(value, label, { min = -Infinity, max = Infinity, requiredValue = true, integer = false } = {}) {
   if (value === '' || value === null || value === undefined) return requiredValue ? `${label} is required.` : ''
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return `${label} must be a number.`
+  if (integer && !Number.isInteger(parsed)) return `${label} must be a whole number.`
   if (parsed < min || parsed > max) return `${label} must be between ${min} and ${max}.`
   return ''
+}
+
+export function xafAmount(value, label, { positive = false, requiredValue = true, max = 999999999 } = {}) {
+  return numberRange(value, label, { min: positive ? 1 : 0, max, requiredValue, integer: true })
 }
 
 export function validate(rules) {

@@ -19,24 +19,25 @@ Apply `backend/db/migrations/009_behavior_incidents.sql` after migrations 001 th
 
 ## Validation rules
 
-Incident type is one of `Academic`, `Attendance`, `Conduct`, `Safety`, or `Other`. Severity is one of `Low`, `Medium`, `High`, or `Critical`. Status is one of `Open`, `Under review`, `Resolved`, or `Dismissed`. Points are decimal-compatible, non-negative, and capped at 100. Descriptions, actions, and resolution notes are capped at 1000 characters. Resolved or dismissed incidents require action taken or resolution notes.
+Incident type is one of `Academic`, `Attendance`, `Conduct`, `Safety`, or `Other`. Severity is one of `Low`, `Medium`, `High`, or `Critical`. Status is one of `Open`, `Under review`, `Resolved`, or `Dismissed`. Points are calculated automatically from severity and are not accepted as a client-controlled value: `Low = 0.25`, `Medium = 0.50`, `High = 0.75`, and `Critical = 1.00`. Descriptions, actions, and resolution notes are capped at 1000 characters. Resolved or dismissed incidents require action taken or resolution notes.
 
 ## Manual acceptance test
 
 1. Apply migration 009 in the development Supabase project.
 2. Restart the backend and frontend.
 3. Sign in as an administrator and open **Behavior & Discipline**.
-4. Create a Conduct incident for a real student with zero or positive points.
-5. Confirm the incident appears in the administrator list and can be moved to `Under review` and then `Resolved` only after action or resolution notes are present.
-6. Sign in as a teacher who actively teaches the student and confirm the incident is visible.
-7. Attempt to create an incident for a student outside that teacher’s scope; confirm the backend returns HTTP 403.
-8. Sign in as the affected student and confirm only that student’s incidents are visible.
-9. Sign in as a linked guardian and confirm the child’s incidents are visible.
-10. Sign in as an unrelated guardian or student and confirm the incident is not visible.
-11. Attempt a negative points value, invalid incident type, malformed student UUID, and overlong description; confirm the backend returns HTTP 400 and creates no row.
-12. Verify that a teacher cannot delete a resolved incident and that an administrator can delete it.
-13. Verify the role-specific sidebar and direct URL guard for `/behavior-discipline`.
+4. Select each severity and confirm the read-only automatic points display changes to `0.25`, `0.50`, `0.75`, and `1.00` respectively.
+5. Create a Conduct incident for a real student and confirm the stored points match the selected severity.
+6. Confirm the incident appears in the administrator list and can be moved to `Under review` and then `Resolved` only after action or resolution notes are present.
+7. Sign in as a teacher who actively teaches the student and confirm the incident is visible.
+8. Attempt to create an incident for a student outside that teacher’s scope; confirm the backend returns HTTP 403.
+9. Sign in as the affected student and confirm only that student’s incidents are visible.
+10. Sign in as a linked guardian and confirm the child’s incidents are visible.
+11. Sign in as an unrelated guardian or student and confirm the incident is not visible.
+12. Attempt a negative or client-supplied point value, invalid incident type, malformed student UUID, and overlong description; confirm the backend returns HTTP 400 and creates no row.
+13. Verify that a teacher cannot delete a resolved incident and that an administrator can delete it.
+14. Verify the role-specific sidebar and direct URL guard for `/behavior-discipline`.
 
 ## Known limitation
 
-This chapter records and scopes behavior incidents. It does not yet implement automated disciplinary policy calculation, appeals, notification delivery, or immutable audit-event storage. Those belong in the security/compliance and institutional policy follow-up work.
+This chapter records and scopes behavior incidents and applies the defined severity-based point calculation. It does not yet implement appeals, notification delivery, or immutable audit-event storage. Those belong in the security/compliance and institutional policy follow-up work.
