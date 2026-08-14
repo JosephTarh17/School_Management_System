@@ -35,6 +35,20 @@
       <p v-if="successMessage" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">{{ successMessage }}</p>
     </section>
 
+    <section class="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 shadow-xs sm:p-6">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">Security & compliance</p>
+          <h2 class="mt-1 text-base font-bold text-slate-900 font-sans">Administrator audit logs</h2>
+          <p class="mt-1 max-w-2xl text-xs leading-5 text-slate-600">Review protected backend activity, including the actor, action, resource, request path, status code, correlation ID, and sanitized metadata. Records are append-only.</p>
+        </div>
+        <router-link to="/audit-logs" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-eight bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+          <span class="material-symbols-outlined text-base">history</span>
+          Open Audit Logs
+        </router-link>
+      </div>
+    </section>
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="rounded-xl border border-border-subtle bg-white p-6 shadow-xs lg:col-span-2">
         <div class="mb-4 flex items-center justify-between">
