@@ -38,7 +38,7 @@ When MFA is enabled, administrator login first returns a short-lived MFA challen
 
 Mutation requests are recorded in `security_audit_log` with the actor, HTTP action, resource path, status code, IP address, user agent, correlation identifier, and sanitized metadata. Passwords, tokens, cookies, MFA secrets, and verification codes are excluded from audit metadata.
 
-The database trigger rejects updates and deletes against audit rows. The application uses the backend service-role connection for insertion, while row-level security prevents direct public access.
+The database trigger rejects updates and deletes against audit rows. The application uses the backend service-role connection for insertion, while row-level security prevents direct public access. Administrators review the sanitized records through the administrator-only `/audit-logs` page and API route; IP addresses and user agents remain stored for security investigation but are not exposed in the routine portal list.
 
 ## Acceptance tests
 
@@ -54,6 +54,8 @@ The following checks must be completed after applying migration 010 and restarti
 | Submit an invalid MFA code | Enrollment or login is rejected with HTTP 400/401 and no access token is issued. |
 | Complete administrator MFA login | A normal access token is issued only after a valid code. |
 | Submit a sensitive mutation | A corresponding audit row is created. |
+| Open `/audit-logs` as an administrator | Recent audit records load with actor, action, resource, status, correlation ID, and sanitized metadata. |
+| Open `/audit-logs` as another role | Existing RBAC denial behavior returns HTTP 403 or the frontend redirects to the role home. |
 | Attempt to update or delete an audit row | The database rejects the operation. |
 | Access another role’s protected module | Existing RBAC denial behavior remains unchanged. |
 

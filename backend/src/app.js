@@ -19,6 +19,7 @@ import attendanceReportsRoutes from './routes/attendanceReports.js'
 import behaviorIncidentsRoutes from './routes/behaviorIncidents.js'
 import { ApiError, errorHandler } from './lib/api.js'
 import { securityAuditMiddleware } from './lib/audit.js'
+import auditLogsRoutes from './routes/auditLogs.js'
 
 dotenv.config()
 
@@ -45,6 +46,7 @@ app.use('/academic-records', academicRecordsRoutes)
 app.use('/guardian-portal', guardianPortalRoutes)
 app.use('/attendance-reports', attendanceReportsRoutes)
 app.use('/behavior-incidents', behaviorIncidentsRoutes)
+app.use('/audit-logs', auditLogsRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))

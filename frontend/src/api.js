@@ -130,6 +130,11 @@ export async function fetchDashboardMetrics(token) {
   return requestJson('/dashboard/metrics', { token })
 }
 
+export async function fetchAuditLogs(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/audit-logs${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
 export async function fetchCurrentUser(token) {
   return requestJson('/users/me', { token })
 }

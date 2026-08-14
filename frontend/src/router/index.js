@@ -66,6 +66,18 @@ const routes = [
     meta: { requiresAuth: true, roles: ['administrator'] }
   },
   {
+    path: '/guardian-management',
+    name: 'GuardianManagement',
+    component: () => import('../pages/GuardianManagement.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
+    path: '/audit-logs',
+    name: 'AuditLogs',
+    component: () => import('../pages/AuditLogs.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
     path: '/student-enrollment',
     name: 'StudentEnrollment',
     component: () => import('../pages/StudentEnrollment.vue'),
