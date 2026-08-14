@@ -143,6 +143,10 @@ export async function updateCurrentUser(token, body) {
   return requestJson('/users/me', { method: 'PATCH', token, body })
 }
 
+export async function changePassword(token, body) {
+  return requestJson('/users/me/change-password', { method: 'POST', token, body })
+}
+
 export async function fetchCourses(token) {
   return requestJson('/courses', { token })
 }

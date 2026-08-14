@@ -2,12 +2,20 @@ import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
-import { hashPassword } from '../lib/security.js'
+import { hashPassword, verifyPassword } from '../lib/security.js'
 import { revokeAllUserSessions } from '../lib/sessions.js'
 
 const router = express.Router()
 router.use(requireAuth)
 const publicFields = 'user_id,email,role,mfa_enabled,created_at,last_login'
+
+export function parsePasswordChange(body = {}) {
+  const currentPassword = asText(body.current_password, 'current_password', { max: 128 })
+  const newPassword = asText(body.new_password, 'new_password', { max: 128 })
+  if (newPassword.length < 8) throw new ApiError(400, 'new_password must be at least 8 characters')
+  if (currentPassword === newPassword) throw new ApiError(400, 'new_password must be different from the current password')
+  return { currentPassword, newPassword }
+}
 
 router.get('/', requireRole('administrator'), asyncRoute(async (req, res) => {
   const { data, error } = await supabase.from('user_account').select(`${publicFields}, guardian(guardian_id,full_name,email,phone,relationship)`).order('created_at', { ascending: false })
@@ -79,19 +87,35 @@ router.post('/register-guardian', requireRole('administrator'), asyncRoute(async
   return sendData(res, { ...account, guardian }, 201)
 }))
 
+router.post('/me/change-password', asyncRoute(async (req, res) => {
+  const { currentPassword, newPassword } = parsePasswordChange(req.body)
+
+  const { data: user, error: userError } = await supabase
+    .from('user_account')
+    .select('user_id,password_hash')
+    .eq('user_id', req.user.user_id)
+    .maybeSingle()
+  if (userError) throw userError
+  if (!user?.password_hash || !await verifyPassword(user.password_hash, currentPassword)) throw new ApiError(401, 'Current password is incorrect')
+
+  const password_hash = await hashPassword(newPassword)
+  const { error: updateError } = await supabase
+    .from('user_account')
+    .update({ password_hash, password_algorithm: 'argon2id' })
+    .eq('user_id', req.user.user_id)
+  if (updateError) throw updateError
+
+  await revokeAllUserSessions(req.user.user_id)
+  return sendData(res, { message: 'Password changed successfully. Please sign in again.' })
+}))
+
 router.patch('/me', asyncRoute(async (req, res) => {
+  if (req.body?.password !== undefined) throw new ApiError(400, 'Use the change-password feature to update your password')
   const updates = {}
   if (req.body?.email !== undefined) updates.email = asText(req.body.email, 'email', { max: 320 }).toLowerCase()
-  if (req.body?.password !== undefined) {
-    const password = asText(req.body.password, 'password', { max: 128 })
-    if (password.length < 8) throw new ApiError(400, 'password must be at least 8 characters')
-    updates.password_hash = await hashPassword(password)
-    updates.password_algorithm = 'argon2id'
-  }
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('user_account').update(updates).eq('user_id', req.user.user_id).select(publicFields).single()
   if (error) throw error
-  if (req.body?.password !== undefined) await revokeAllUserSessions(req.user.user_id)
   return sendData(res, data)
 }))
 

@@ -56,6 +56,34 @@
       </div>
     </div>
 
+    <div v-if="currentUser" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs space-y-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Change Password</h2>
+        <p class="text-xs text-slate-500 mt-1">Enter your current password before choosing a new password. All active sessions will be signed out after a successful change.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-geist">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1" for="current-password">Current Password</label>
+          <input id="current-password" v-model="currentPassword" type="password" autocomplete="current-password" required class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 font-sans text-sm" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1" for="new-password">New Password</label>
+          <input id="new-password" v-model="newPassword" type="password" autocomplete="new-password" minlength="8" required class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 font-sans text-sm" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1" for="confirm-password">Confirm New Password</label>
+          <input id="confirm-password" v-model="confirmPassword" type="password" autocomplete="new-password" minlength="8" required class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 font-sans text-sm" />
+        </div>
+      </div>
+      <p v-if="passwordMessage" class="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">{{ passwordMessage }}</p>
+      <p v-if="passwordError" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ passwordError }}</p>
+      <div class="flex justify-end">
+        <button @click="changeCurrentPassword" :disabled="passwordBusy" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-eight font-geist disabled:opacity-60">
+          {{ passwordBusy ? 'Changing…' : 'Change Password' }}
+        </button>
+      </div>
+    </div>
+
     <div v-if="currentUser?.role === 'administrator'" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs space-y-4">
       <div>
         <h2 class="text-lg font-bold text-slate-900">Administrator MFA</h2>
@@ -83,7 +111,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { disableMfa, enrollMfa, updateCurrentUser, verifyMfaEnrollment } from '../api.js'
+import { changePassword, disableMfa, enrollMfa, updateCurrentUser, verifyMfaEnrollment } from '../api.js'
 import { authStore } from '../store/auth'
 
 const currentUser = computed(() => authStore.user.value)
@@ -98,7 +126,33 @@ const mfaEnabled = ref(Boolean(currentUser.value?.mfa_enabled))
 const mfaBusy = ref(false)
 const securityMessage = ref('')
 const securityError = ref('')
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const passwordBusy = ref(false)
+const passwordMessage = ref('')
+const passwordError = ref('')
 watch(currentUser, (user) => { email.value = user?.email || ''; mfaEnabled.value = Boolean(user?.mfa_enabled) })
+
+async function changeCurrentPassword() {
+  passwordBusy.value = true
+  passwordMessage.value = ''
+  passwordError.value = ''
+  if (newPassword.value.length < 8) passwordError.value = 'The new password must be at least 8 characters.'
+  else if (newPassword.value !== confirmPassword.value) passwordError.value = 'The new password and confirmation do not match.'
+  else {
+    const result = await changePassword(authStore.token.value, { current_password: currentPassword.value, new_password: newPassword.value })
+    if (!result.ok) passwordError.value = result.error || 'Unable to change password.'
+    else {
+      currentPassword.value = ''
+      newPassword.value = ''
+      confirmPassword.value = ''
+      passwordMessage.value = 'Password changed successfully. You will be signed out and must sign in again.'
+      window.setTimeout(() => authStore.clear(), 1200)
+    }
+  }
+  passwordBusy.value = false
+}
 
 async function startMfaEnrollment() {
   mfaBusy.value = true
