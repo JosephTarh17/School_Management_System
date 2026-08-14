@@ -7,12 +7,18 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ
 
 const { default: app } = await import('../src/app.js')
 const { requireRole, signAccessToken } = await import('../src/middleware/auth.js')
+const { shouldAuditRequest } = await import('../src/lib/audit.js')
 
 describe('Administrator audit-log route', () => {
   it('requires authentication', async () => {
     const response = await request(app).get('/audit-logs')
     expect(response.status).to.equal(401)
     expect(response.body.error).to.equal('Authentication required')
+  })
+
+  it('does not create routine logout audit noise', () => {
+    expect(shouldAuditRequest({ method: 'POST', path: '/auth/logout' })).to.equal(false)
+    expect(shouldAuditRequest({ method: 'POST', path: '/users/register' })).to.equal(true)
   })
 
   it('rejects authenticated non-administrators at the administrator role guard', () => {

@@ -19,9 +19,19 @@ export async function recordAuditEvent({ req, action, statusCode, resourceType =
   if (error) throw error
 }
 
+const NON_AUDITABLE_AUTH_PATHS = new Set([
+  '/auth/login',
+  '/auth/logout',
+  '/auth/refresh',
+  '/auth/mfa/verify',
+])
+
+export function shouldAuditRequest(req) {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && !NON_AUDITABLE_AUTH_PATHS.has(req.path)
+}
+
 export function securityAuditMiddleware(req, res, next) {
-  const shouldAudit = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
-  if (!shouldAudit || req.path === '/auth/login' || req.path === '/auth/refresh' || req.path === '/auth/mfa/verify') return next()
+  if (!shouldAuditRequest(req)) return next()
   res.on('finish', () => {
     recordAuditEvent({ req, action: `${req.method} ${req.path}`, statusCode: res.statusCode }).catch(() => {})
   })

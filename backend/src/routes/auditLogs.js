@@ -13,6 +13,7 @@ router.get('/', asyncRoute(async (req, res) => {
   let query = supabase
     .from('security_audit_log')
     .select('audit_id,actor_user_id,action,resource_type,resource_id,http_method,request_path,status_code,correlation_id,metadata,created_at,user_account(email,role)')
+    .neq('action', 'POST /auth/logout')
     .order('created_at', { ascending: false })
     .limit(limit)
 
