@@ -63,7 +63,7 @@
       {{ successMessage }}
     </div>
 
-    <div class="rounded-xl border border-border-subtle bg-white p-6 shadow-xs">
+    <div class="rounded-xl border border-border-subtle bg-white p-4 shadow-xs sm:p-6">
       <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 class="text-base font-bold text-slate-900 font-sans">Student attendance roster</h2>
@@ -80,40 +80,16 @@
       <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading your sessions and student roster…</div>
       <div v-else-if="!selectedSessionId" class="py-10 text-center text-sm text-slate-500">Select a class session to load attendance.</div>
       <div v-else-if="!roster.length" class="py-10 text-center text-sm text-slate-500">No students are available for this session.</div>
-      <div v-else class="overflow-x-auto">
-        <table class="w-full min-w-[680px] text-left text-xs font-geist">
-          <thead>
-            <tr class="border-b border-slate-200 bg-slate-50 text-slate-500">
-              <th class="px-4 py-3 font-semibold">Student ID</th>
-              <th class="px-4 py-3 font-semibold">Student name</th>
-              <th class="px-4 py-3 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 text-slate-700">
-            <tr v-for="student in roster" :key="student.student_id" class="hover:bg-slate-50/80">
-              <td class="px-4 py-3.5 font-bold text-slate-900">{{ student.student_id }}</td>
-              <td class="px-4 py-3.5 font-medium text-slate-900">{{ student.full_name }}</td>
-              <td class="px-4 py-3.5">
-                <div class="inline-flex rounded-md shadow-xs" role="group" :aria-label="`Attendance status for ${student.full_name}`">
-                  <button
-                    v-for="status in statuses"
-                    :key="status"
-                    type="button"
-                    :aria-pressed="student.status === status"
-                    :disabled="saving"
-                    @click="student.status = status"
-                    :class="[
-                      'border px-2.5 py-1 text-[11px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60',
-                      student.status === status ? getActiveStatusBtnClass(status) : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    ]"
-                  >
-                    {{ status }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else>
+        <div class="space-y-3 md:hidden">
+          <article v-for="student in roster" :key="student.student_id" class="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+            <div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="break-all text-[11px] font-bold text-slate-500">{{ student.student_id }}</p><p class="mt-1 truncate text-sm font-semibold text-slate-900">{{ student.full_name }}</p></div><span class="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">{{ student.status }}</span></div>
+            <div class="mt-4 grid grid-cols-2 gap-2" role="group" :aria-label="`Attendance status for ${student.full_name}`">
+              <button v-for="status in statuses" :key="status" type="button" :aria-pressed="student.status === status" :disabled="saving" @click="student.status = status" :class="['rounded-md border px-2 py-2 text-[11px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60', student.status === status ? getActiveStatusBtnClass(status) : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50']">{{ status }}</button>
+            </div>
+          </article>
+        </div>
+        <div class="hidden overflow-x-auto md:block"><table class="w-full min-w-[680px] text-left text-xs font-geist"><thead><tr class="border-b border-slate-200 bg-slate-50 text-slate-500"><th class="px-4 py-3 font-semibold">Student ID</th><th class="px-4 py-3 font-semibold">Student name</th><th class="px-4 py-3 font-semibold">Status</th></tr></thead><tbody class="divide-y divide-slate-100 text-slate-700"><tr v-for="student in roster" :key="student.student_id" class="hover:bg-slate-50/80"><td class="px-4 py-3.5 font-bold text-slate-900">{{ student.student_id }}</td><td class="px-4 py-3.5 font-medium text-slate-900">{{ student.full_name }}</td><td class="px-4 py-3.5"><div class="inline-flex rounded-md shadow-xs" role="group" :aria-label="`Attendance status for ${student.full_name}`"><button v-for="status in statuses" :key="status" type="button" :aria-pressed="student.status === status" :disabled="saving" @click="student.status = status" :class="['border px-2.5 py-1 text-[11px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60', student.status === status ? getActiveStatusBtnClass(status) : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50']">{{ status }}</button></div></td></tr></tbody></table></div>
       </div>
     </div>
   </div>
