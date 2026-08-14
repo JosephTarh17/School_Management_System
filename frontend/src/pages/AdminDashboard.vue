@@ -13,9 +13,9 @@
     </div>
 
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard title="Total Students" :value="loading ? '…' : formatNumber(metrics.students)" change="Database count" :changeIsPositive="true" icon="school" variant="primary" />
-      <StatCard title="Staff Members" :value="loading ? '…' : formatNumber(metrics.faculty)" change="Teachers and administrators" :changeIsPositive="true" icon="badge" variant="secondary" />
-      <StatCard title="Courses" :value="loading ? '…' : formatNumber(metrics.courses)" change="Configured courses" :changeIsPositive="true" icon="auto_stories" variant="emerald" />
+      <StatCard :title="loading ? 'Total Students' : `Total ${pluralize(metrics.students, 'Student', 'Students')}`" :value="loading ? '…' : formatNumber(metrics.students)" change="Database count" :changeIsPositive="true" icon="school" variant="primary" />
+      <StatCard :title="loading ? 'Staff Members' : pluralize(metrics.faculty, 'Staff Member', 'Staff Members')" :value="loading ? '…' : formatNumber(metrics.faculty)" change="Teachers and administrators" :changeIsPositive="true" icon="badge" variant="secondary" />
+      <StatCard :title="loading ? 'Courses' : pluralize(metrics.courses, 'Course', 'Courses')" :value="loading ? '…' : formatNumber(metrics.courses)" change="Configured courses" :changeIsPositive="true" icon="auto_stories" variant="emerald" />
       <StatCard title="Attendance Rate" :value="loading ? '…' : `${metrics.attendanceRate}%`" change="Recorded attendance" :changeIsPositive="metrics.attendanceRate >= 75" icon="fact_check" variant="amber" />
     </div>
 
@@ -61,9 +61,9 @@
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs font-geist">
             <tbody class="divide-y divide-slate-100">
-              <tr><td class="py-3 text-slate-500">Class sessions</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.sessions) }}</td></tr>
-              <tr><td class="py-3 text-slate-500">Assessment records</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.assessments) }}</td></tr>
-              <tr><td class="py-3 text-slate-500">Attendance records</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.attendanceRecords) }}</td></tr>
+              <tr><td class="py-3 text-slate-500">{{ loading ? 'Class sessions' : countLabel(metrics.sessions, 'Class session') }}</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.sessions) }}</td></tr>
+              <tr><td class="py-3 text-slate-500">{{ loading ? 'Assessment records' : countLabel(metrics.assessments, 'Assessment record') }}</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.assessments) }}</td></tr>
+              <tr><td class="py-3 text-slate-500">{{ loading ? 'Attendance records' : countLabel(metrics.attendanceRecords, 'Attendance record') }}</td><td class="py-3 text-right font-semibold text-slate-900">{{ loading ? '…' : formatNumber(metrics.attendanceRecords) }}</td></tr>
             </tbody>
           </table>
         </div>
@@ -85,6 +85,7 @@ import { onMounted, reactive, ref } from 'vue'
 import StatCard from '../components/StatCard.vue'
 import { createGuardian, fetchDashboardMetrics } from '../api.js'
 import { authStore } from '../store/auth.js'
+import { countLabel, pluralize } from '../lib/formatters.js'
 
 const loading = ref(true)
 const guardianSaving = ref(false)

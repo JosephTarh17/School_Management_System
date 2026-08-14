@@ -27,7 +27,7 @@
     </form>
 
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-900">Incident history</h2><p class="text-xs text-slate-500">{{ incidents.length }} record(s) within your permitted scope.</p></div>
+      <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-900">Incident history</h2><p class="text-xs text-slate-500">{{ countLabel(incidents.length, 'record') }} within your permitted scope.</p></div>
       <table class="min-w-full text-left text-sm"><thead class="border-b text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Student</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Severity</th><th class="px-4 py-3">Points</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Action</th></tr></thead><tbody><tr v-for="incident in incidents" :key="incident.incident_id" class="border-b last:border-0"><td class="px-4 py-3 font-semibold text-slate-900">{{ incident.student?.full_name || 'Student' }}</td><td class="px-4 py-3">{{ incident.incident_date }}</td><td class="px-4 py-3">{{ incident.incident_type }}</td><td class="px-4 py-3">{{ incident.severity }}</td><td class="px-4 py-3">{{ Number(incident.points || 0).toFixed(2) }}</td><td class="px-4 py-3"><select v-if="canManage && canEdit(incident)" :value="incident.status" @change="changeStatus(incident, $event.target.value)" class="rounded-md border px-2 py-1 text-xs"><option v-for="value in statuses" :key="value">{{ value }}</option></select><span v-else>{{ incident.status }}</span></td><td class="px-4 py-3"><button v-if="canDelete(incident)" @click="removeIncident(incident)" class="text-xs font-semibold text-rose-700">Delete</button><span v-else class="text-xs text-slate-400">Read-only</span></td></tr><tr v-if="!incidents.length"><td colspan="7" class="px-4 py-10 text-center text-slate-500">No behavior incidents are available in your permitted scope.</td></tr></tbody></table>
     </div>
   </section>
@@ -37,6 +37,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { authStore } from '../store/auth'
 import { createBehaviorIncident, deleteBehaviorIncident, fetchBehaviorIncidents, fetchStudents, updateBehaviorIncident } from '../api.js'
+import { countLabel } from '../lib/formatters.js'
 
 const incidents = ref([])
 const students = ref([])

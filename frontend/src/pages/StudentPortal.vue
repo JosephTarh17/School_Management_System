@@ -25,9 +25,9 @@
 
     <!-- Student Key Metrics -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      <StatCard title="Available Courses" :value="`${courses.length} Courses`" change="From the course catalog" :changeIsPositive="true" icon="auto_stories" variant="tertiary" />
-      <StatCard title="Attendance Records" :value="`${attendanceLogs.length} Records`" change="Loaded from the backend" :changeIsPositive="true" icon="check_circle" variant="emerald" />
-      <StatCard title="Assessments" :value="`${gradeItems.length} Items`" change="Loaded from the backend" :changeIsPositive="true" icon="assignment" variant="amber" />
+      <StatCard title="Available Courses" :value="countLabel(courses.length, 'Course', 'Courses')" change="From the course catalog" :changeIsPositive="true" icon="auto_stories" variant="tertiary" />
+      <StatCard title="Attendance Records" :value="countLabel(attendanceLogs.length, 'Record', 'Records')" change="Loaded from the backend" :changeIsPositive="true" icon="check_circle" variant="emerald" />
+      <StatCard title="Assessments" :value="countLabel(gradeItems.length, 'Item', 'Items')" change="Loaded from the backend" :changeIsPositive="true" icon="assignment" variant="amber" />
       <StatCard title="Account Role" value="Student" change="Authenticated account" :changeIsPositive="true" icon="verified_user" variant="primary" />
     </div>
 
@@ -155,7 +155,7 @@ import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
 import { authStore } from '../store/auth'
 import { fetchAcademicRecords, fetchAssessments, fetchAttendance, fetchEnrollments, fetchFinalGrades } from '../api.js'
-import { clampPercent, formatPercent } from '../lib/formatters.js'
+import { clampPercent, countLabel, formatPercent } from '../lib/formatters.js'
 
 const activeTab = ref('Overview & Courses')
 

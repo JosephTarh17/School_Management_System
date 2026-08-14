@@ -12,7 +12,7 @@
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ errorMessage }}</p>
 
     <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label class="w-full text-xs font-semibold text-slate-700 sm:max-w-sm">Filter by action<input v-model.trim="actionFilter" placeholder="Example: Review or Create" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" /></label><span class="text-xs text-slate-500">Showing {{ filteredLogs.length }} recent record{{ filteredLogs.length === 1 ? '' : 's' }}</span></div>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label class="w-full text-xs font-semibold text-slate-700 sm:max-w-sm">Filter by action<input v-model.trim="actionFilter" placeholder="Example: Review or Create" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" /></label><span class="text-xs text-slate-500">Showing {{ countLabel(filteredLogs.length, 'recent record') }}</span></div>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -82,6 +82,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { authStore } from '../store/auth.js'
 import { fetchAuditLogs } from '../api.js'
+import { countLabel } from '../lib/formatters.js'
 
 const logs = ref([])
 const actionFilter = ref('')

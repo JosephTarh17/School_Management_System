@@ -24,7 +24,7 @@
       <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 class="text-base font-bold text-slate-900 font-sans">Recent Attendance Records</h2>
-          <p class="text-xs text-slate-500">{{ loading ? 'Loading records…' : `${logs.length} record${logs.length === 1 ? '' : 's'} loaded` }}</p>
+          <p class="text-xs text-slate-500">{{ loading ? 'Loading records…' : `${countLabel(logs.length, 'record')} loaded` }}</p>
         </div>
         <p class="text-xs text-slate-400">Excuse review is not configured in the current database schema.</p>
       </div>
@@ -62,6 +62,7 @@ import StatCard from '../components/StatCard.vue'
 import Badge from '../components/Badge.vue'
 import { authStore } from '../store/auth'
 import { fetchAttendance } from '../api.js'
+import { countLabel } from '../lib/formatters.js'
 
 const logs = ref([])
 const loading = ref(true)

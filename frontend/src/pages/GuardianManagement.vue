@@ -26,7 +26,7 @@
       </form>
 
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="mb-4 flex items-center justify-between gap-3"><div><h2 class="font-bold text-slate-900">Guardian profiles</h2><p class="text-xs text-slate-500">{{ guardians.length }} guardian account{{ guardians.length === 1 ? '' : 's' }} available</p></div><span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">Administrator only</span></div>
+        <div class="mb-4 flex items-center justify-between gap-3"><div><h2 class="font-bold text-slate-900">Guardian profiles</h2><p class="text-xs text-slate-500">{{ countLabel(guardians.length, 'guardian account') }} available</p></div><span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">Administrator only</span></div>
         <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading guardian profiles…</div>
         <div v-else-if="!guardians.length" class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">No guardian profiles exist yet.</div>
         <div v-else class="space-y-3">
@@ -45,6 +45,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { authStore } from '../store/auth.js'
 import { createGuardian, fetchUsers } from '../api.js'
+import { countLabel } from '../lib/formatters.js'
 
 const users = ref([])
 const loading = ref(true)

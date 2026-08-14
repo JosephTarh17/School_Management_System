@@ -7,8 +7,8 @@
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard title="Amount Paid" :value="loading ? '…' : formatCurrency(totalPaid)" change="All loaded records" :changeIsPositive="true" icon="attach_money" variant="primary" />
       <StatCard title="Outstanding Balance" :value="loading ? '…' : formatCurrency(outstanding)" change="Amount still due" :changeIsPositive="outstanding === 0" icon="account_balance_wallet" variant="amber" />
-      <StatCard title="Records With Payments" :value="loading ? '…' : String(processedPayments)" change="Amount paid greater than zero" :changeIsPositive="true" icon="credit_card" variant="emerald" />
-      <StatCard title="Active Invoices" :value="loading ? '…' : String(transactions.length)" change="Database count" :changeIsPositive="true" icon="receipt_long" variant="tertiary" />
+      <StatCard :title="loading ? 'Records With Payments' : pluralize(processedPayments, 'Record With Payment', 'Records With Payments')" :value="loading ? '…' : String(processedPayments)" change="Amount paid greater than zero" :changeIsPositive="true" icon="credit_card" variant="emerald" />
+      <StatCard :title="loading ? 'Active Invoices' : pluralize(transactions.length, 'Active Invoice', 'Active Invoices')" :value="loading ? '…' : String(transactions.length)" change="Database count" :changeIsPositive="true" icon="receipt_long" variant="tertiary" />
     </div>
     <div v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ errorMessage }}</div>
     <div v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">{{ successMessage }}</div>
@@ -51,7 +51,7 @@ import Badge from '../components/Badge.vue'
 import { authStore } from '../store/auth.js'
 import { deleteFinancialRecord, fetchClassFeeSettings, fetchFinancialRecords, fetchPaymentRecords, recordManualPayment, updateClassFeeSetting, updateFinancialRecord } from '../api.js'
 import { xafAmount } from '../lib/validation.js'
-import { formatXaf } from '../lib/formatters.js'
+import { formatXaf, pluralize } from '../lib/formatters.js'
 
 const paymentStatuses = ['Pending', 'Partial', 'Paid', 'Overdue', 'Waived']
 const paymentMethods = ['Cash', 'Bank transfer', 'Mobile money - manual', 'Other']
