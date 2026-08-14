@@ -12,7 +12,7 @@
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ errorMessage }}</p>
 
     <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label class="w-full text-xs font-semibold text-slate-700 sm:max-w-sm">Filter by action<input v-model.trim="actionFilter" @keyup.enter="loadLogs" placeholder="Example: POST /users" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" /></label><span class="text-xs text-slate-500">Showing {{ logs.length }} recent record{{ logs.length === 1 ? '' : 's' }}</span></div>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label class="w-full text-xs font-semibold text-slate-700 sm:max-w-sm">Filter by action<input v-model.trim="actionFilter" placeholder="Example: Review or Create" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" /></label><span class="text-xs text-slate-500">Showing {{ filteredLogs.length }} recent record{{ filteredLogs.length === 1 ? '' : 's' }}</span></div>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -23,21 +23,18 @@
           <thead class="border-b border-slate-100 bg-slate-50/50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
             <tr>
               <th class="px-5 py-3">Timestamp</th>
-              <th class="px-5 py-3">Action & Path</th>
+              <th class="px-5 py-3">Action</th>
               <th class="px-5 py-3">Actor</th>
               <th class="px-5 py-3">Status</th>
               <th class="px-5 py-3 text-right">Details</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <template v-for="log in logs" :key="log.audit_id">
+            <template v-for="log in filteredLogs" :key="log.audit_id">
               <tr class="group hover:bg-slate-50/50">
                 <td class="whitespace-nowrap px-5 py-4 text-slate-500">{{ formatDate(log.created_at) }}</td>
                 <td class="px-5 py-4">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold text-slate-900">{{ log.action }}</span>
-                  </div>
-                  <div class="mt-1 font-mono text-[10px] text-slate-400">{{ log.request_path }}</div>
+                  <span class="font-bold text-slate-900">{{ displayAction(log) }}</span>
                 </td>
                 <td class="px-5 py-4">
                   <div class="font-medium text-slate-700">{{ log.user_account?.email || 'System' }}</div>
@@ -82,7 +79,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { authStore } from '../store/auth.js'
 import { fetchAuditLogs } from '../api.js'
 
@@ -91,6 +88,28 @@ const actionFilter = ref('')
 const loading = ref(true)
 const errorMessage = ref('')
 const token = () => authStore.token.value
+
+const filteredLogs = computed(() => {
+  const query = actionFilter.value.toLowerCase()
+  if (!query) return logs.value
+  return logs.value.filter((log) => displayAction(log).toLowerCase().includes(query))
+})
+
+function displayAction(log) {
+  const method = String(log.http_method || '').toUpperCase()
+  const raw = `${log.action || ''} ${log.request_path || ''}`.toLowerCase()
+  if (raw.includes('/auth/login') || raw.includes('login')) return 'Login'
+  if (raw.includes('/auth/logout') || raw.includes('logout')) return 'Logout'
+  if (raw.includes('/review') || raw.includes('review')) return 'Review'
+  if (raw.includes('/acknowledge') || raw.includes('acknowledge')) return 'Acknowledge'
+  if (method === 'DELETE' || raw.includes('/delete')) return 'Delete'
+  if (method === 'PATCH' || method === 'PUT' || raw.includes('/update')) return 'Update'
+  if (method === 'POST' || raw.includes('/create') || raw.includes('/register')) return 'Create'
+
+  const token = String(log.action || '').split(/\s+/).pop()?.split('/').filter(Boolean).pop()
+  if (!token) return 'Event'
+  return token.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString() : 'Not recorded'
@@ -107,7 +126,7 @@ function hasMetadata(value) {
 async function loadLogs() {
   loading.value = true
   errorMessage.value = ''
-  const result = await fetchAuditLogs(token(), { limit: 100, action: actionFilter.value })
+  const result = await fetchAuditLogs(token(), { limit: 100 })
   if (!result.ok) errorMessage.value = result.error || 'Unable to load audit logs.'
   else logs.value = (result.data || []).map((log) => ({ ...log, expanded: false }))
   loading.value = false
