@@ -47,6 +47,38 @@ router.post('/register', requireRole('administrator'), asyncRoute(async (req, re
   return sendData(res, data, 201)
 }))
 
+router.post('/register-guardian', requireRole('administrator'), asyncRoute(async (req, res) => {
+  const email = asText(req.body?.email, 'email', { max: 320 }).toLowerCase()
+  const password = asText(req.body?.password, 'password', { max: 128 })
+  const full_name = asText(req.body?.full_name, 'full_name', { max: 160 })
+  const phone = asText(req.body?.phone, 'phone', { max: 40, optional: true })
+  const relationship = asText(req.body?.relationship, 'relationship', { max: 80, optional: true })
+  if (!/^\S+@\S+\.\S+$/.test(email)) throw new ApiError(400, 'email must be a valid email address')
+  if (password.length < 8) throw new ApiError(400, 'password must be at least 8 characters')
+
+  const password_hash = await hashPassword(password)
+  const { data: account, error: accountError } = await supabase
+    .from('user_account')
+    .insert({ email, password_hash, role: 'guardian' })
+    .select(publicFields)
+    .single()
+  if (accountError?.code === '23505') throw new ApiError(409, 'An account with this email already exists')
+  if (accountError) throw accountError
+
+  const { data: guardian, error: guardianError } = await supabase
+    .from('guardian')
+    .insert({ user_id: account.user_id, full_name, email, phone, relationship })
+    .select('guardian_id,user_id,full_name,email,phone,relationship')
+    .single()
+  if (guardianError) {
+    await supabase.from('user_account').delete().eq('user_id', account.user_id)
+    if (guardianError.code === '23505') throw new ApiError(409, 'This user account already has a guardian profile')
+    throw guardianError
+  }
+
+  return sendData(res, { ...account, guardian }, 201)
+}))
+
 router.patch('/me', asyncRoute(async (req, res) => {
   const updates = {}
   if (req.body?.email !== undefined) updates.email = asText(req.body.email, 'email', { max: 320 }).toLowerCase()
