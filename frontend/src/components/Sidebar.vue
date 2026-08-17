@@ -92,6 +92,7 @@ const studentMenuGroups = [
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
       { label: 'Course Registration', path: '/course-registration', icon: 'how_to_reg' },
       { label: 'My Assessments', path: '/assessments', icon: 'assignment' },
+      { label: 'My Report Card', path: '/report-card', icon: 'description' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },
@@ -110,6 +111,7 @@ const administratorMenuGroups = [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
       { label: 'Student Enrollment', path: '/student-enrollment', icon: 'how_to_reg' },
       { label: 'Registration Review', path: '/course-registration-review', icon: 'fact_check' },
+      { label: 'Grading Review & Publication', path: '/grading-review', icon: 'fact_check' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },
@@ -130,6 +132,7 @@ const guardianMenuGroups = [
     title: 'Guardian Portal',
     items: [
       { label: 'Children Overview', path: '/guardian-portal', icon: 'family_restroom' },
+      { label: 'Published Report Cards', path: '/report-card', icon: 'description' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },

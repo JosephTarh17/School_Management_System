@@ -221,6 +221,49 @@ export async function updateAcademicRecord(token, recordId, body) {
   return requestJson(`/academic-records/${recordId}`, { method: 'PATCH', token, body })
 }
 
+export async function fetchGradingGradebook(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/grading/gradebook${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function saveGradingMark(token, body) {
+  return requestJson('/grading/marks', { method: 'POST', token, body })
+}
+
+export async function confirmGradingAssessment(token, assessmentId) {
+  return requestJson(`/grading/assessments/${assessmentId}/confirm`, { method: 'POST', token })
+}
+
+export async function fetchGradingReview(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/grading/review${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function publishGradingAssessment(token, assessmentId) {
+  return requestJson(`/grading/assessments/${assessmentId}/publish`, { method: 'POST', token })
+}
+
+export async function unpublishGradingAssessment(token, assessmentId) {
+  return requestJson(`/grading/assessments/${assessmentId}/unpublish`, { method: 'POST', token })
+}
+
+export async function fetchReportCard(token, studentId, term = '') {
+  const query = term ? `?term=${encodeURIComponent(term)}` : ''
+  return requestJson(`/grading/report-cards/${studentId}${query}`, { token })
+}
+
+export async function generateReportCard(token, studentId, body) {
+  return requestJson(`/grading/report-cards/${studentId}/generate`, { method: 'POST', token, body })
+}
+
+export async function publishReportCard(token, studentId, body) {
+  return requestJson(`/grading/report-cards/${studentId}/publish`, { method: 'POST', token, body })
+}
+
+export async function unpublishReportCard(token, studentId, body) {
+  return requestJson(`/grading/report-cards/${studentId}/unpublish`, { method: 'POST', token, body })
+}
+
 export async function fetchGuardianChildren(token) {
   return requestJson('/guardian-portal/children', { token })
 }
@@ -360,4 +403,12 @@ export async function createInstallmentSchedule(token, invoiceId, installments) 
 
 export async function recordInstallmentPayment(token, invoiceId, installmentId, body) {
   return requestJson(`/financial-records/${invoiceId}/installments/${installmentId}/payments`, { method: 'POST', token, body })
+}
+
+export async function initializeCinetPayPayment(token, body) {
+  return requestJson('/cinetpay/initialize', { method: 'POST', token, body })
+}
+
+export async function fetchCinetPayStatus(token, merchantTransactionId) {
+  return requestJson(`/cinetpay/status/${encodeURIComponent(merchantTransactionId)}`, { token })
 }

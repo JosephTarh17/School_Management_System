@@ -42,6 +42,18 @@ const routes = [
     meta: { requiresAuth: true, roles: ['teacher'] }
   },
   {
+    path: '/grading-review',
+    name: 'GradingReview',
+    component: () => import('../pages/GradingReview.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
+    path: '/report-card',
+    name: 'ReportCard',
+    component: () => import('../pages/ReportCard.vue'),
+    meta: { requiresAuth: true, roles: ['student', 'guardian'] }
+  },
+  {
     path: '/profile',
     name: 'UserProfile',
     component: () => import('../pages/UserProfile.vue'),

@@ -21,6 +21,8 @@ import { ApiError, errorHandler } from './lib/api.js'
 import { securityAuditMiddleware } from './lib/audit.js'
 import auditLogsRoutes from './routes/auditLogs.js'
 import translationsRoutes from './routes/translations.js'
+import cinetpayRoutes from './routes/cinetpay.js'
+import gradingRoutes from './routes/grading.js'
 
 dotenv.config()
 
@@ -29,6 +31,7 @@ app.set('trust proxy', process.env.TRUST_PROXY === 'false' ? false : 1)
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',').map((origin) => origin.trim()).filter(Boolean)
 app.use(cors({ origin: allowedOrigins, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
+app.use(express.urlencoded({ extended: false, limit: '100kb' }))
 app.use(securityAuditMiddleware)
 
 app.use('/auth', authRoutes)
@@ -49,6 +52,8 @@ app.use('/attendance-reports', attendanceReportsRoutes)
 app.use('/behavior-incidents', behaviorIncidentsRoutes)
 app.use('/audit-logs', auditLogsRoutes)
 app.use('/translations', translationsRoutes)
+app.use('/cinetpay', cinetpayRoutes)
+app.use('/grading', gradingRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))

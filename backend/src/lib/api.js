@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 export const ENUMS = {
   roles: ['student', 'teacher', 'guardian', 'administrator'],
   attendanceStatus: ['Present', 'Absent', 'Late', 'Excused'],
-  assessmentType: ['Quiz', 'Assignment', 'Midterm', 'Final'],
+  assessmentType: ['Test', 'Quiz', 'Assignment', 'Midterm', 'Final'],
   participationRating: ['Active', 'Moderate', 'Passive', 'Disruptive'],
   paymentStatus: ['Pending', 'Partial', 'Paid', 'Overdue', 'Waived', 'Cancelled'],
   enrollmentStatus: ['active', 'completed', 'dropped'],

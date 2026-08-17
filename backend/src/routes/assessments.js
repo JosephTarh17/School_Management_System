@@ -45,10 +45,14 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const title = asText(req.body?.title, 'title', { max: 200 })
   const assessment_type = asEnum(req.body?.assessment_type, 'assessment_type', ENUMS.assessmentType)
   const max_score = asNumber(req.body?.max_score ?? 100, 'max_score', { min: 0.01, max: 999999 })
-  const weight = asNumber(req.body?.weight, 'weight', { min: 0, max: 100 })
+  const term = asText(req.body?.term, 'term', { max: 80, optional: true })
+  const assessment_number = req.body?.assessment_number == null || req.body?.assessment_number === '' ? null : asNumber(req.body.assessment_number, 'assessment_number', { min: 1, max: 3, integer: true })
+  if (assessment_type === 'Test' && assessment_number == null) throw new ApiError(400, 'assessment_number is required for Test assessments')
+  if (assessment_type !== 'Test' && assessment_number != null) throw new ApiError(400, 'assessment_number is only valid for Test assessments')
+  const weight = assessment_type === 'Test' ? 20 : assessment_type === 'Final' ? 40 : asNumber(req.body?.weight, 'weight', { min: 0, max: 100 })
   const due_date = asDate(req.body?.due_date, 'due_date', { optional: true })
   await assertTeacherOwnsCourse(course_id, req)
-  const { data, error } = await supabase.from('assessment').insert({ course_id, title, assessment_type, max_score, weight, due_date }).select('*, course(*)').single()
+  const { data, error } = await supabase.from('assessment').insert({ course_id, title, assessment_type, assessment_number, term, max_score, weight, due_date }).select('*, course(*)').single()
   if (error) throw error
   return sendData(res, data, 201)
 }))
@@ -66,8 +70,12 @@ router.patch('/:assessmentId', requireRole('teacher', 'administrator'), asyncRou
   }
   if (req.body?.title !== undefined) updates.title = asText(req.body.title, 'title', { max: 200 })
   if (req.body?.assessment_type !== undefined) updates.assessment_type = asEnum(req.body.assessment_type, 'assessment_type', ENUMS.assessmentType)
+  if (req.body?.term !== undefined) updates.term = asText(req.body.term, 'term', { max: 80, optional: true })
+  if (req.body?.assessment_number !== undefined) updates.assessment_number = req.body.assessment_number == null || req.body.assessment_number === '' ? null : asNumber(req.body.assessment_number, 'assessment_number', { min: 1, max: 3, integer: true })
   if (req.body?.max_score !== undefined) updates.max_score = asNumber(req.body.max_score, 'max_score', { min: 0.01, max: 999999 })
-  if (req.body?.weight !== undefined) updates.weight = asNumber(req.body.weight, 'weight', { min: 0, max: 100 })
+  if (req.body?.assessment_type === 'Test') updates.weight = 20
+  else if (req.body?.assessment_type === 'Final') updates.weight = 40
+  else if (req.body?.weight !== undefined) updates.weight = asNumber(req.body.weight, 'weight', { min: 0, max: 100 })
   if (req.body?.due_date !== undefined) updates.due_date = asDate(req.body.due_date, 'due_date', { optional: true })
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('assessment').update(updates).eq('assessment_id', assessmentId).select('*, course(*)').single()

@@ -99,7 +99,8 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const assessment_id = asUuid(req.body?.assessment_id, 'assessment_id')
   const score = asNumber(req.body?.score, 'score', { min: 0 })
   const evaluation_date = asDate(req.body?.evaluation_date, 'evaluation_date', { optional: true })
-  const published = req.body?.published === true
+  if (req.user.role === 'teacher' && req.body?.published === true) throw new ApiError(403, 'Teachers must confirm marks for administrator review before publication')
+  const published = req.user.role === 'administrator' && req.body?.published === true
   const { data: assessment, error: assessmentError } = await supabase.from('assessment').select('assessment_id,course_id,max_score').eq('assessment_id', assessment_id).maybeSingle()
   if (assessmentError) throw assessmentError
   if (!assessment) throw new ApiError(404, 'Assessment not found')
@@ -130,7 +131,8 @@ router.patch('/:recordId', requireRole('teacher', 'administrator'), asyncRoute(a
     updates.grade = letterGrade(clampPercent(round2((updates.score / Number(current.assessment.max_score)) * 100)))
   }
   if (req.body?.evaluation_date !== undefined) updates.evaluation_date = asDate(req.body.evaluation_date, 'evaluation_date', { optional: true })
-  if (req.body?.published !== undefined) updates.published = req.body.published === true
+  if (req.body?.published === true && req.user.role === 'teacher') throw new ApiError(403, 'Teachers must confirm marks for administrator review before publication')
+  if (req.body?.published !== undefined) updates.published = req.user.role === 'administrator' && req.body.published === true
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('academic_record').update(updates).eq('record_id', recordId).select(select).single()
   if (error) throw error
