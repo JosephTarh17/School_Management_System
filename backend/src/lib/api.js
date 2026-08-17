@@ -8,6 +8,7 @@ export const ENUMS = {
   paymentStatus: ['Pending', 'Partial', 'Paid', 'Overdue', 'Waived', 'Cancelled'],
   enrollmentStatus: ['active', 'completed', 'dropped'],
   classLevel: ['Freshman', 'Sophomore', 'Junior'],
+  semester: ['Semester 1', 'Semester 2'],
 }
 
 export function isUuid(value) {
@@ -85,6 +86,14 @@ export function asEnum(value, field, values, { optional = false } = {}) {
   }
   if (!values.includes(value)) throw new ApiError(400, `${field} must be one of: ${values.join(', ')}`)
   return value
+}
+
+export function asSemester(value, field = 'semester', { optional = false } = {}) {
+  return asEnum(value, field, ENUMS.semester, { optional })
+}
+
+export function asAcademicYear(value, field = 'academic_year', { optional = false } = {}) {
+  return asNumber(value, field, { optional, min: 2000, max: 9999, integer: true })
 }
 
 export class ApiError extends Error {

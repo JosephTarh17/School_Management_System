@@ -15,15 +15,20 @@
     <p v-if="message" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ message }}</p>
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ errorMessage }}</p>
 
-    <div class="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-5">
       <label class="text-sm font-medium text-slate-700">Course
         <select v-model="selectedCourseId" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" :disabled="loading">
           <option value="">Select course</option>
           <option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }} ({{ course.credit_units || 0 }} credits)</option>
         </select>
       </label>
-      <label class="text-sm font-medium text-slate-700">Term
-        <input v-model="term" type="text" maxlength="80" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. 2026-A" @change="loadGradebook" />
+      <label class="text-sm font-medium text-slate-700">Academic year
+        <input v-model.number="academicYear" type="number" min="2000" max="9999" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" @change="loadGradebook" />
+      </label>
+      <label class="text-sm font-medium text-slate-700">Semester
+        <select v-model="semester" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" @change="loadGradebook">
+          <option v-for="option in semesters" :key="option" :value="option">{{ option }}</option>
+        </select>
       </label>
       <label class="text-sm font-medium text-slate-700 md:col-span-2">Assessment or exam
         <select v-model="selectedAssessmentId" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" :disabled="loading || !assessments.length">
@@ -78,7 +83,9 @@ const assessments = ref([])
 const rows = ref([])
 const selectedCourseId = ref('')
 const selectedAssessmentId = ref('')
-const term = ref('2026-A')
+const semesters = ['Semester 1', 'Semester 2']
+const academicYear = ref(2026)
+const semester = ref('Semester 1')
 const selectedCourse = ref(null)
 const loading = ref(false)
 const saving = ref(false)
@@ -121,7 +128,7 @@ async function loadGradebook() {
   if (!selectedCourseId.value) return
   loading.value = true; errorMessage.value = ''; message.value = ''
   try {
-    const result = await fetchGradingGradebook(token(), { course_id: selectedCourseId.value, term: term.value, assessment_id: selectedAssessmentId.value })
+    const result = await fetchGradingGradebook(token(), { course_id: selectedCourseId.value, academic_year: academicYear.value, semester: semester.value, assessment_id: selectedAssessmentId.value })
     if (!result.ok) throw new Error(result.error)
     mapResponse(result.data)
   } catch (error) { errorMessage.value = error.message || 'Unable to load the gradebook.' }

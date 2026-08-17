@@ -2,11 +2,11 @@
 
 ## Scope
 
-This feature adds term-aware grading for actively registered students, an Excel-like teacher gradebook, administrator review and publication for every individual assessment, credit-weighted GPA calculation, and published report-card views for students and linked guardians.
+This feature adds academic-year and semester-aware grading for actively registered students, an Excel-like teacher gradebook, administrator review and publication for every individual assessment, credit-weighted GPA calculation, and published report-card views for students and linked guardians.
 
 ## Grading rules
 
-Each registered course term uses three assessments of type `Test` at 20 percent each and one `Final` examination at 40 percent. The existing letter scale remains: A from 90 to 100, B from 80 to 89, C from 70 to 79, D from 60 to 69, and F below 60.
+Each registered course academic period uses three assessments of type `Test` at 20 percent each and one `Final` examination at 40 percent. The existing letter scale remains: A from 90 to 100, B from 80 to 89, C from 70 to 79, D from 60 to 69, and F below 60.
 
 A student is graded only for courses with an active enrollment. An unjustified absence receives a score of zero and is included in the weighted calculation. A justified absence requires a reason and is excluded from the calculation. A course is incomplete if any required assessment has no mark or absence decision. A course passes at a weighted average of at least 60 percent, equivalent to at least 2.4 on the four-point GPA scale.
 
@@ -18,7 +18,7 @@ GPA = sum(course GPA × course credits) / sum(course credits)
 
 ## Workflow
 
-1. A teacher selects a course and term in **Gradebook**.
+1. A teacher selects a course, academic year, and semester in **Gradebook**.
 2. The teacher selects Test 1, Test 2, Test 3, or Final.
 3. The teacher enters a mark for every actively registered student or records an absence decision.
 4. The gradebook displays live assessment and course metrics.
@@ -29,7 +29,7 @@ GPA = sum(course GPA × course credits) / sum(course credits)
 
 ## Migration
 
-Apply `backend/db/migrations/019_report_cards_and_grading.sql` manually in Supabase SQL Editor after the existing migrations. The migration is not executed automatically by the application. It adds term and assessment-number fields, teacher-confirmation and administrator-publication fields, absence decision states, and the `report_card` table.
+Apply `backend/db/migrations/019_report_cards_and_grading.sql` manually in Supabase SQL Editor after the existing migrations, followed by `backend/db/migrations/020_academic_year_and_semesters.sql`. The migrations are not executed automatically by the application. Migration 019 adds the grading workflow and `report_card` table; migration 020 transforms legacy academic-period values into `academic_year` plus `semester`, recreates report-card uniqueness using both fields, and adds the class-session academic period.
 
 The migration preserves existing academic records. Existing records with a null score are classified as `PENDING`; existing scored records remain `GRADED`.
 
@@ -43,7 +43,7 @@ The migration preserves existing academic records. Existing records with a null 
 | `GET /grading/review` | Administrator | Review assessment submissions and individual marks. |
 | `POST /grading/assessments/:assessmentId/publish` | Administrator | Publish every teacher-confirmed mark for one assessment. |
 | `GET /grading/report-cards/:studentId` | Authorized role | Retrieve a report card; students and guardians receive published results only. |
-| `POST /grading/report-cards/:studentId/generate` | Administrator | Generate a term report card for review. |
+| `POST /grading/report-cards/:studentId/generate` | Administrator | Generate an academic-year and semester report card for review. |
 | `POST /grading/report-cards/:studentId/publish` | Administrator | Publish the final report card after all assessments are published. |
 
 ## Verification

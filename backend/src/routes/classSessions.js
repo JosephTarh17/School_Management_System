@@ -1,13 +1,23 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ApiError, asDateTime, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ApiError, asAcademicYear, asDateTime, asSemester, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { assertTeacherOwnsCourse, sessionForAccess, teacherIdForUser } from '../lib/ownership.js'
 import { studentCourseIdsForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
 router.use(requireAuth)
 const select = '*, course(*), teacher:teacher!class_session_teacher_id_fkey(*), room(*), substitute_teacher:teacher!class_session_substitute_teacher_id_fkey(*)'
+
+function exposeCourse(course) {
+  if (!course) return course
+  return { ...course, semester: course.semester, academic_year: course.academic_year }
+}
+
+function exposeSession(session) {
+  if (!session) return session
+  return { ...session, course: exposeCourse(session.course) }
+}
 
 function validateTimes(start_time, end_time) {
   const start = asDateTime(start_time, 'start_time')
@@ -31,7 +41,17 @@ router.get('/', asyncRoute(async (req, res) => {
   if (req.query.teacher_id) query = query.eq('teacher_id', asUuid(req.query.teacher_id, 'teacher_id'))
   const { data, error } = await query
   if (error) throw error
-  return sendData(res, data)
+  return sendData(res, (data || []).map(exposeSession))
+}))
+
+router.get('/resources', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
+  const [{ data: courses, error: courseError }, { data: rooms, error: roomError }] = await Promise.all([
+    supabase.from('course').select('*').order('course_code'),
+    supabase.from('room').select('*').order('room_name'),
+  ])
+  if (courseError) throw courseError
+  if (roomError) throw roomError
+  return sendData(res, { courses: (courses || []).map(exposeCourse), rooms: rooms || [] })
 }))
 
 router.get('/:sessionId', asyncRoute(async (req, res) => {
@@ -46,23 +66,24 @@ router.get('/:sessionId', asyncRoute(async (req, res) => {
   }
   const { data, error } = await supabase.from('class_session').select(select).eq('session_id', sessionId).maybeSingle()
   if (error) throw error
-  return sendData(res, data)
+  return sendData(res, exposeSession(data))
 }))
 
 router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const course_id = asUuid(req.body?.course_id, 'course_id')
-  const teacher_id = asUuid(req.body?.teacher_id, 'teacher_id')
+  const teacher_id = req.user.role === 'teacher'
+    ? await teacherIdForUser(req.user.user_id)
+    : asUuid(req.body?.teacher_id, 'teacher_id')
+  if (!teacher_id) throw new ApiError(403, 'Teacher profile not found')
   const room_id = asUuid(req.body?.room_id, 'room_id')
   const substitute_teacher_id = asUuid(req.body?.substitute_teacher_id, 'substitute_teacher_id', { optional: true })
-  if (req.user.role === 'teacher') {
-    const teacherId = await teacherIdForUser(req.user.user_id)
-    if (!teacherId || teacher_id !== teacherId) throw new ApiError(403, 'Teachers may only create sessions assigned to themselves')
-  }
+  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
+  const semester = asSemester(req.body?.semester, 'semester')
   const recurrence_pattern = asText(req.body?.recurrence_pattern, 'recurrence_pattern', { max: 120, optional: true })
   const times = validateTimes(req.body?.start_time, req.body?.end_time)
-  const { data, error } = await supabase.from('class_session').insert({ course_id, teacher_id, room_id, substitute_teacher_id, recurrence_pattern, ...times }).select(select).single()
+  const { data, error } = await supabase.from('class_session').insert({ course_id, teacher_id, room_id, substitute_teacher_id, academic_year, semester, recurrence_pattern, ...times }).select(select).single()
   if (error) throw error
-  return sendData(res, data, 201)
+  return sendData(res, exposeSession(data), 201)
 }))
 
 router.patch('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
@@ -72,6 +93,8 @@ router.patch('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(
   for (const field of ['course_id', 'teacher_id', 'room_id', 'substitute_teacher_id']) {
     if (req.body?.[field] !== undefined) updates[field] = asUuid(req.body[field], field, { optional: true })
   }
+  if (req.body?.academic_year !== undefined || req.body?.year !== undefined) updates.academic_year = asAcademicYear(req.body.academic_year ?? req.body.year, 'academic_year')
+  if (req.body?.semester !== undefined) updates.semester = asSemester(req.body.semester, 'semester')
   if (req.body?.teacher_id !== undefined && req.user.role === 'teacher') {
     const teacherId = await teacherIdForUser(req.user.user_id)
     if (req.body.teacher_id !== teacherId) throw new ApiError(403, 'Teachers may only assign sessions to themselves')
@@ -87,7 +110,7 @@ router.patch('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('class_session').update(updates).eq('session_id', sessionId).select(select).single()
   if (error) throw error
-  return sendData(res, data)
+  return sendData(res, exposeSession(data))
 }))
 
 router.delete('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {

@@ -14,7 +14,7 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 class="text-base font-bold text-slate-900">{{ request.student?.full_name || request.student_id }}</h2>
-            <p class="mt-1 text-xs text-slate-500">{{ request.student?.class_level || 'Class level not configured' }} · {{ request.term }} · submitted {{ formatDate(request.submitted_at) }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ request.student?.class_level || 'Class level not configured' }} · {{ request.academic_year || 'Year not assigned' }} · {{ request.semester || 'Semester not assigned' }} · submitted {{ formatDate(request.submitted_at) }}</p>
           </div>
           <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-800">{{ request.total_credits }} credits · pending</span>
         </div>

@@ -151,8 +151,9 @@ export async function changePassword(token, body) {
   return requestJson('/users/me/change-password', { method: 'POST', token, body })
 }
 
-export async function fetchCourses(token) {
-  return requestJson('/courses', { token })
+export async function fetchCourses(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/courses${query.toString() ? `?${query.toString()}` : ''}`, { token })
 }
 
 export async function fetchEnrollments(token, params = {}) {
@@ -176,9 +177,9 @@ export async function fetchRegistrationEligibility(token) {
   return requestJson('/course-registrations/eligibility', { token })
 }
 
-export async function fetchRegistrationCatalog(token, term) {
-  const query = term ? `?term=${encodeURIComponent(term)}` : ''
-  return requestJson(`/course-registrations/catalog${query}`, { token })
+export async function fetchRegistrationCatalog(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/course-registrations/catalog${query.toString() ? `?${query.toString()}` : ''}`, { token })
 }
 
 export async function fetchCourseRegistrationRequests(token, params = {}) {
@@ -247,9 +248,9 @@ export async function unpublishGradingAssessment(token, assessmentId) {
   return requestJson(`/grading/assessments/${assessmentId}/unpublish`, { method: 'POST', token })
 }
 
-export async function fetchReportCard(token, studentId, term = '') {
-  const query = term ? `?term=${encodeURIComponent(term)}` : ''
-  return requestJson(`/grading/report-cards/${studentId}${query}`, { token })
+export async function fetchReportCard(token, studentId, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/grading/report-cards/${studentId}${query.toString() ? `?${query.toString()}` : ''}`, { token })
 }
 
 export async function generateReportCard(token, studentId, body) {
@@ -311,6 +312,10 @@ export async function deleteAssessment(token, assessmentId) {
 
 export async function fetchClassSessions(token) {
   return requestJson('/class-sessions', { token })
+}
+
+export async function fetchClassSessionResources(token) {
+  return requestJson('/class-sessions/resources', { token })
 }
 
 export async function createClassSession(token, body) {

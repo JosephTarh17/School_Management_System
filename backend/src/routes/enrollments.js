@@ -7,7 +7,7 @@ import { enrolledStudentIdsForTeacher, studentIdForUser, teacherCourseIdsForUser
 const router = express.Router()
 router.use(requireAuth)
 
-const select = 'enrollment_id,student_id,course_id,status,enrolled_at,student(student_id,user_id,full_name),course(course_id,course_name,course_code,term)'
+const select = 'enrollment_id,student_id,course_id,status,enrolled_at,student(student_id,user_id,full_name),course(course_id,course_name,course_code,academic_year,semester)'
 
 router.get('/', asyncRoute(async (req, res) => {
   let query = supabase.from('enrollment').select(select).order('enrolled_at', { ascending: false })

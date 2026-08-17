@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { ApiError, ENUMS, asDate, asEnum, asNumber, asUuid, asText, asXafAmount } from '../src/lib/api.js'
+import { ApiError, ENUMS, asAcademicYear, asDate, asEnum, asNumber, asSemester, asUuid, asText, asXafAmount } from '../src/lib/api.js'
 
 describe('API validation helpers', () => {
   it('accepts valid UUIDs and rejects malformed UUIDs', () => {
@@ -12,6 +12,13 @@ describe('API validation helpers', () => {
     expect(() => asDate('2026-02-30', 'date')).to.throw(ApiError)
     expect(asEnum('Present', 'status', ENUMS.attendanceStatus)).to.equal('Present')
     expect(() => asEnum('Unknown', 'status', ENUMS.attendanceStatus)).to.throw(ApiError)
+    expect(asSemester('Semester 1')).to.equal('Semester 1')
+    expect(asSemester('Semester 2')).to.equal('Semester 2')
+    expect(() => asSemester('2026-A')).to.throw(ApiError)
+    expect(asAcademicYear(2026)).to.equal(2026)
+    expect(asAcademicYear('2026')).to.equal(2026)
+    expect(() => asAcademicYear(1999)).to.throw(ApiError)
+    expect(() => asAcademicYear('2026 Term 1')).to.throw(ApiError)
   })
 
   it('validates bounded numbers and text', () => {

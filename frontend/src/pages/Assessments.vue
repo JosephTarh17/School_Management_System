@@ -13,7 +13,8 @@
       <input v-model="form.title" required placeholder="Assessment title" class="px-3 py-2 border rounded-lg text-sm" />
       <select v-model="form.assessment_type" required class="px-3 py-2 border rounded-lg text-sm"><option>Test</option><option>Final</option><option>Quiz</option><option>Assignment</option><option>Midterm</option></select>
       <select v-if="form.assessment_type === 'Test'" v-model.number="form.assessment_number" required class="px-3 py-2 border rounded-lg text-sm"><option :value="null">Select test number</option><option :value="1">Test 1</option><option :value="2">Test 2</option><option :value="3">Test 3</option></select>
-      <input v-model="form.term" required placeholder="Term e.g. 2026-A" class="px-3 py-2 border rounded-lg text-sm" />
+      <input v-model.number="form.academic_year" type="number" min="2000" max="9999" required placeholder="Academic year e.g. 2026" class="px-3 py-2 border rounded-lg text-sm" />
+      <select v-model="form.semester" required class="px-3 py-2 border rounded-lg text-sm"><option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option></select>
       <input v-model.number="form.max_score" type="number" min="0.01" required placeholder="Max score" class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model.number="form.weight" type="number" min="0" max="100" :disabled="['Test', 'Final'].includes(form.assessment_type)" :placeholder="form.assessment_type === 'Test' ? '20% automatic' : form.assessment_type === 'Final' ? '40% automatic' : 'Weight %'" class="px-3 py-2 border rounded-lg text-sm disabled:bg-slate-100" />
       <input v-model="form.due_date" type="date" class="px-3 py-2 border rounded-lg text-sm" />
@@ -28,7 +29,7 @@
           <thead><tr class="bg-slate-50 text-slate-500 border-b border-slate-200"><th class="py-3 px-4 font-semibold">Assessment Title</th><th class="py-3 px-4 font-semibold">Course Code</th><th class="py-3 px-4 font-semibold">Type</th><th class="py-3 px-4 font-semibold">Weight</th><th class="py-3 px-4 font-semibold">Due Date</th><th class="py-3 px-4 font-semibold">Actions</th></tr></thead>
           <tbody class="divide-y divide-slate-100 text-slate-700">
             <tr v-if="!assessments.length"><td colspan="6" class="py-8 px-4 text-center text-slate-500">No assessments are available.</td></tr>
-            <tr v-for="a in assessments" :key="a.assessment_id" class="hover:bg-slate-50/80"><td class="py-3.5 px-4 font-bold text-slate-900">{{ a.title }}</td><td class="py-3.5 px-4 font-semibold text-primary-container">{{ a.course?.course_code || a.course_id }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? `Test ${a.assessment_number || ''}` : a.assessment_type }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? 20 : a.assessment_type === 'Final' ? 40 : a.weight }}%</td><td class="py-3.5 px-4 text-slate-500">{{ a.term || a.course?.term || 'Not set' }} · {{ a.due_date || 'Not scheduled' }}</td><td class="py-3.5 px-4"><button v-if="canDelete" @click="removeAssessment(a.assessment_id)" class="text-red-700 font-semibold">Delete</button><span v-else class="text-slate-400">—</span></td></tr>
+            <tr v-for="a in assessments" :key="a.assessment_id" class="hover:bg-slate-50/80"><td class="py-3.5 px-4 font-bold text-slate-900">{{ a.title }}</td><td class="py-3.5 px-4 font-semibold text-primary-container">{{ a.course?.course_code || a.course_id }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? `Test ${a.assessment_number || ''}` : a.assessment_type }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? 20 : a.assessment_type === 'Final' ? 40 : a.weight }}%</td><td class="py-3.5 px-4 text-slate-500">{{ a.academic_year || a.course?.academic_year || 'Year not set' }} · {{ a.semester || a.course?.semester || 'Semester not set' }} · {{ a.due_date || 'Not scheduled' }}</td><td class="py-3.5 px-4"><button v-if="canDelete" @click="removeAssessment(a.assessment_id)" class="text-red-700 font-semibold">Delete</button><span v-else class="text-slate-400">—</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -43,11 +44,12 @@ import { createAssessment, deleteAssessment, fetchAssessments, fetchCourses } fr
 
 const assessments = ref([])
 const courses = ref([])
+const semesters = ['Semester 1', 'Semester 2']
 const loading = ref(true)
 const saving = ref(false)
 const showForm = ref(false)
 const errorMessage = ref('')
-const form = reactive({ course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, term: '2026-A', max_score: 100, weight: 20, due_date: '' })
+const form = reactive({ course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, academic_year: 2026, semester: 'Semester 1', max_score: 100, weight: 20, due_date: '' })
 const canManage = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
 const canDelete = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
 
@@ -63,7 +65,7 @@ async function createNewAssessment() {
   saving.value = true
   const result = await createAssessment(authStore.token.value, form)
   if (!result.ok) errorMessage.value = result.error || 'Unable to create assessment.'
-  else { assessments.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, term: '2026-A', max_score: 100, weight: 20, due_date: '' }) }
+  else { assessments.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, academic_year: 2026, semester: 'Semester 1', max_score: 100, weight: 20, due_date: '' }) }
   saving.value = false
 }
 async function removeAssessment(id) {

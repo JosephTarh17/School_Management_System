@@ -6,10 +6,10 @@
         <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Course Registration</h1>
         <p class="mt-1 text-sm text-slate-500">Submit your course selections for administrator approval.</p>
       </div>
-      <label class="text-sm font-semibold text-slate-700">
-        Academic term
-        <input v-model.trim="term" class="mt-1 block rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="Fall 2026" />
-      </label>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label class="text-sm font-semibold text-slate-700">Academic year<input v-model.number="academicYear" type="number" min="2000" max="9999" class="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs" /></label>
+        <label class="text-sm font-semibold text-slate-700">Semester<select v-model="semester" class="mt-1 block rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"><option v-for="option in semesters" :key="option" :value="option">{{ option }}</option></select></label>
+      </div>
     </div>
 
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMessage }}</p>
@@ -35,12 +35,12 @@
         <div class="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 class="text-base font-bold text-slate-900">Available courses</h2>
-            <p class="mt-1 text-xs text-slate-500">Select courses offered for {{ term || 'the selected term' }}.</p>
+            <p class="mt-1 text-xs text-slate-500">Select courses offered for {{ academicYear }} — {{ semester }}.</p>
           </div>
           <span class="text-xs font-semibold text-slate-500">{{ countLabel(selectedCourseIds.length, 'course selected', 'courses selected') }}</span>
         </div>
         <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading registration options…</div>
-        <div v-else-if="!catalog.length" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No courses are available for this term.</div>
+        <div v-else-if="!catalog.length" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No courses are available for this semester.</div>
         <div v-else class="grid gap-3 md:grid-cols-2">
           <label v-for="course in catalog" :key="course.course_id" class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition" :class="selectedCourseIds.includes(course.course_id) ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'">
             <input v-model="selectedCourseIds" type="checkbox" :value="course.course_id" class="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
@@ -50,7 +50,7 @@
                 <span class="text-xs font-semibold text-slate-500">{{ Number(course.credit_units || 0) }} credits</span>
               </span>
               <span class="mt-1 block text-sm font-semibold text-slate-900">{{ course.course_name }}</span>
-              <span class="mt-1 block text-xs text-slate-500">{{ course.term || 'Open term' }}</span>
+              <span class="mt-1 block text-xs text-slate-500">{{ course.semester || 'Semester not assigned' }}</span>
             </span>
           </label>
         </div>
@@ -63,7 +63,7 @@
           <div class="flex justify-between gap-3"><span class="text-slate-400">Courses</span><span class="font-semibold">{{ countLabel(selectedCourseIds.length, 'course') }}</span></div>
           <div class="flex justify-between gap-3"><span class="text-slate-400">Credits</span><span class="font-semibold">{{ selectedCredits }}</span></div>
         </div>
-        <button :disabled="submitting || !selectedCourseIds.length || !term || selectedCredits > Number(eligibility.max_credits || 0)" @click="submitRequest" class="mt-5 w-full rounded-lg bg-blue-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50">
+        <button :disabled="submitting || !selectedCourseIds.length || !semester || selectedCredits > Number(eligibility.max_credits || 0)" @click="submitRequest" class="mt-5 w-full rounded-lg bg-blue-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50">
           {{ submitting ? 'Submitting…' : 'Submit registration request' }}
         </button>
       </aside>
@@ -75,7 +75,7 @@
       <div v-else class="space-y-3">
         <article v-for="request in requests" :key="request.registration_request_id" class="rounded-xl border border-slate-200 p-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div><p class="font-semibold text-slate-900">{{ request.term }}</p><p class="mt-1 text-xs text-slate-500">{{ request.total_credits }} credits · {{ countLabel(request.course_registration_item?.length || 0, 'course') }} · {{ formatDate(request.submitted_at) }}</p></div>
+            <div><p class="font-semibold text-slate-900">{{ request.academic_year || 'Year not assigned' }} — {{ request.semester || 'Semester not assigned' }}</p><p class="mt-1 text-xs text-slate-500">{{ request.total_credits }} credits · {{ countLabel(request.course_registration_item?.length || 0, 'course') }} · {{ formatDate(request.submitted_at) }}</p></div>
             <div class="flex items-center gap-3"><span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider" :class="statusClasses(request.status)">{{ request.status }}</span><button v-if="request.status === 'pending'" @click="cancelRequest(request.registration_request_id)" class="text-xs font-semibold text-red-700 hover:text-red-900">Cancel</button></div>
           </div>
           <p v-if="request.review_notes" class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ request.review_notes }}</p>
@@ -86,12 +86,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
 import { cancelCourseRegistration, fetchCourseRegistrationRequests, fetchRegistrationCatalog, fetchRegistrationEligibility, submitCourseRegistration } from '../api.js'
 import { countLabel } from '../lib/formatters.js'
 
-const term = ref('Fall 2026')
+const semesters = ['Semester 1', 'Semester 2']
+const academicYear = ref(2026)
+const semester = ref('Semester 1')
 const catalog = ref([])
 const requests = ref([])
 const selectedCourseIds = ref([])
@@ -118,7 +120,7 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   const token = authStore.token.value
-  const [catalogResult, eligibilityResult] = await Promise.all([fetchRegistrationCatalog(token, term.value), fetchRegistrationEligibility(token)])
+  const [catalogResult, eligibilityResult] = await Promise.all([fetchRegistrationCatalog(token, { academic_year: academicYear.value, semester: semester.value }), fetchRegistrationEligibility(token)])
   if (catalogResult.ok) catalog.value = catalogResult.data || []
   else errorMessage.value = catalogResult.error || 'Unable to load course catalog.'
   if (eligibilityResult.ok) eligibility.value = eligibilityResult.data || eligibility.value
@@ -131,7 +133,7 @@ async function submitRequest() {
   submitting.value = true
   errorMessage.value = ''
   successMessage.value = ''
-  const result = await submitCourseRegistration(authStore.token.value, { term: term.value, course_ids: selectedCourseIds.value })
+  const result = await submitCourseRegistration(authStore.token.value, { academic_year: academicYear.value, semester: semester.value, course_ids: selectedCourseIds.value })
   if (!result.ok) errorMessage.value = result.error || 'Unable to submit registration request.'
   else { successMessage.value = 'Registration request submitted for administrator review.'; selectedCourseIds.value = []; await loadRequests() }
   submitting.value = false
@@ -144,4 +146,5 @@ async function cancelRequest(requestId) {
 }
 
 onMounted(loadData)
+watch([academicYear, semester], loadData)
 </script>

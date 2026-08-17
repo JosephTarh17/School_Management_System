@@ -1,19 +1,19 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ApiError, asAcademicYear, asEnum, asSemester, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { studentIdForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
 router.use(requireAuth)
 
 const requestSelect = `
-  registration_request_id, student_id, term, status, total_credits,
+  registration_request_id, student_id, academic_year, semester, status, total_credits,
   submitted_at, reviewed_by, reviewed_at, review_notes,
   student(student_id, user_id, full_name, class_level),
   course_registration_item(
     registration_item_id, course_id, credit_units,
-    course(course_id, course_name, course_code, term, credit_units)
+    course(course_id, course_name, course_code, academic_year, semester, credit_units)
   )
 `
 
@@ -28,6 +28,26 @@ function courseIdsFromBody(value) {
   if (!Array.isArray(value) || value.length === 0) throw new ApiError(400, 'course_ids must contain at least one course')
   if (value.length > 50) throw new ApiError(400, 'A registration request cannot contain more than 50 courses')
   return value.map((courseId) => asUuid(courseId, 'course_id'))
+}
+
+function exposeCourse(course) {
+  if (!course) return course
+  return { ...course, semester: course.semester, academic_year: course.academic_year }
+}
+
+function exposeRegistration(registration) {
+  if (!registration) return registration
+  return {
+    ...registration,
+    course_registration_item: (registration.course_registration_item || []).map((item) => ({
+      ...item,
+      course: exposeCourse(item.course),
+    })),
+  }
+}
+
+function exposeRegistrations(value) {
+  return Array.isArray(value) ? value.map(exposeRegistration) : exposeRegistration(value)
 }
 
 router.get('/eligibility', requireRole('student'), asyncRoute(async (req, res) => {
@@ -50,13 +70,14 @@ router.get('/eligibility', requireRole('student'), asyncRoute(async (req, res) =
 }))
 
 router.get('/catalog', asyncRoute(async (req, res) => {
-  const term = req.query.term ? asText(req.query.term, 'term', { max: 80 }) : undefined
-  const { data, error } = await supabase.from('course').select('course_id,course_name,course_code,term,credit_units').order('course_code')
+  const academic_year = req.query.academic_year || req.query.year ? asAcademicYear(req.query.academic_year ?? req.query.year, 'academic_year') : undefined
+  const semester = req.query.semester ? asSemester(req.query.semester, 'semester') : undefined
+  let query = supabase.from('course').select('course_id,course_name,course_code,academic_year,semester,credit_units').order('course_code')
+  if (academic_year !== undefined) query = query.eq('academic_year', academic_year)
+  if (semester) query = query.eq('semester', semester)
+  const { data, error } = await query
   if (error) throw error
-  const catalog = term
-    ? (data || []).filter((course) => !course.term || course.term === term)
-    : (data || [])
-  return sendData(res, catalog)
+  return sendData(res, (data || []).map(exposeCourse))
 }))
 
 router.get('/', asyncRoute(async (req, res) => {
@@ -69,24 +90,27 @@ router.get('/', asyncRoute(async (req, res) => {
     return sendData(res, [])
   }
   if (req.query.status) query = query.eq('status', asEnum(req.query.status, 'status', ['pending', 'approved', 'rejected', 'cancelled']))
-  if (req.query.term) query = query.eq('term', asText(req.query.term, 'term', { max: 80 }))
+  if (req.query.academic_year || req.query.year) query = query.eq('academic_year', asAcademicYear(req.query.academic_year ?? req.query.year, 'academic_year'))
+  if (req.query.semester) query = query.eq('semester', asSemester(req.query.semester, 'semester'))
   const { data, error } = await query
   if (error) throw error
-  return sendData(res, data || [])
+  return sendData(res, exposeRegistrations(data || []))
 }))
 
 router.post('/', requireRole('student'), asyncRoute(async (req, res) => {
   const studentId = await studentIdForUser(req.user.user_id)
   if (!studentId) throw new ApiError(403, 'Student profile is not configured')
-  const term = asText(req.body?.term, 'term', { max: 80 })
+  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
+  const semester = asSemester(req.body?.semester, 'semester')
   const courseIds = courseIdsFromBody(req.body?.course_ids)
   const { data, error } = await supabase.rpc('submit_course_registration', {
     p_student_id: studentId,
-    p_term: term,
+    p_academic_year: academic_year,
+    p_semester: semester,
     p_course_ids: courseIds,
   })
   if (error) throw registrationError(error)
-  return sendData(res, data, 201)
+  return sendData(res, exposeRegistrations(data), 201)
 }))
 
 router.patch('/:requestId/cancel', requireRole('student'), asyncRoute(async (req, res) => {
@@ -101,7 +125,7 @@ router.patch('/:requestId/cancel', requireRole('student'), asyncRoute(async (req
     .maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError(404, 'Pending registration request not found')
-  return sendData(res, data)
+  return sendData(res, exposeRegistration(data))
 }))
 
 router.patch('/:requestId/review', requireRole('administrator'), asyncRoute(async (req, res) => {
@@ -118,7 +142,7 @@ router.patch('/:requestId/review', requireRole('administrator'), asyncRoute(asyn
       p_review_notes: reviewNotes,
     })
     if (error) throw registrationError(error, 'Unable to approve registration request')
-    return sendData(res, data)
+    return sendData(res, exposeRegistrations(data))
   }
 
   const { data, error } = await supabase.from('course_registration_request')
@@ -129,7 +153,7 @@ router.patch('/:requestId/review', requireRole('administrator'), asyncRoute(asyn
     .maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError(404, 'Pending registration request not found')
-  return sendData(res, data)
+  return sendData(res, exposeRegistration(data))
 }))
 
 export default router

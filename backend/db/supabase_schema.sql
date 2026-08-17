@@ -84,7 +84,8 @@ CREATE TABLE course (
   course_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   course_name text NOT NULL,
   course_code text NOT NULL UNIQUE,
-  term text,
+  academic_year integer NOT NULL CHECK (academic_year BETWEEN 2000 AND 9999),
+  semester text NOT NULL CHECK (semester IN ('Semester 1', 'Semester 2')),
   credit_units integer CHECK (credit_units IS NULL OR credit_units >= 0)
 );
 
@@ -103,6 +104,8 @@ CREATE TABLE class_session (
   substitute_teacher_id uuid REFERENCES teacher(teacher_id) ON DELETE SET NULL,
   start_time timestamptz NOT NULL,
   end_time timestamptz NOT NULL,
+  academic_year integer NOT NULL DEFAULT 2026 CHECK (academic_year BETWEEN 2000 AND 9999),
+  semester text NOT NULL DEFAULT 'Semester 1' CHECK (semester IN ('Semester 1', 'Semester 2')),
   recurrence_pattern text,
   CHECK (start_time < end_time)
 );
@@ -112,6 +115,8 @@ CREATE TABLE assessment (
   course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
   title text NOT NULL,
   assessment_type assessment_type NOT NULL,
+  academic_year integer NOT NULL CHECK (academic_year BETWEEN 2000 AND 9999),
+  semester text NOT NULL CHECK (semester IN ('Semester 1', 'Semester 2')),
   max_score numeric(6,2) NOT NULL DEFAULT 100.00 CHECK (max_score >= 0),
   weight numeric(5,2) NOT NULL CHECK (weight BETWEEN 0 AND 100),
   due_date date,

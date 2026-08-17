@@ -12,6 +12,8 @@
       <select v-model="form.course_id" required class="px-3 py-2 border rounded-lg text-sm"><option value="">Select course</option><option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }}</option></select>
       <input v-model="form.teacher_id" required placeholder="Teacher UUID" class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model="form.room_id" required placeholder="Room UUID" class="px-3 py-2 border rounded-lg text-sm" />
+      <input v-model.number="form.academic_year" type="number" min="2000" max="9999" required placeholder="Academic year e.g. 2026" class="px-3 py-2 border rounded-lg text-sm" />
+      <select v-model="form.semester" required class="px-3 py-2 border rounded-lg text-sm"><option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option></select>
       <input v-model="form.start_time" type="datetime-local" required class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model="form.end_time" type="datetime-local" required class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model="form.recurrence_pattern" placeholder="Recurrence (optional)" class="px-3 py-2 border rounded-lg text-sm" />
@@ -25,7 +27,7 @@
       <div v-for="session in sessions" :key="session.session_id" class="bg-white rounded-xl border border-border-subtle p-5 shadow-xs hover:shadow-md transition-shadow">
         <div class="flex items-center justify-between mb-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 font-geist">{{ session.course?.course_code || session.course_id }}</span><button v-if="canManage" @click="removeSession(session.session_id)" class="text-xs text-red-700 font-semibold">Delete</button></div>
         <h3 class="text-base font-bold text-slate-900 font-sans mb-1">{{ session.course?.course_name || 'Scheduled session' }}</h3>
-        <p class="text-xs text-slate-500 font-geist mb-3">Instructor: {{ session.teacher?.full_name || session.teacher_id }}</p>
+        <p class="text-xs text-slate-500 font-geist mb-3">{{ session.academic_year || session.course?.academic_year || 'Year not assigned' }} · {{ session.semester || session.course?.semester || 'Semester not assigned' }} · Instructor: {{ session.teacher?.full_name || session.teacher_id }}</p>
         <div class="space-y-1.5 text-xs text-slate-600 font-geist border-t border-slate-100 pt-3"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-base text-slate-400">schedule</span><span>{{ formatTime(session.start_time) }} — {{ formatTime(session.end_time) }}</span></div><div class="flex items-center gap-2"><span class="material-symbols-outlined text-base text-slate-400">room</span><span>{{ session.room?.room_name || session.room_id }}</span></div></div>
       </div>
     </div>
@@ -43,7 +45,8 @@ const loading = ref(true)
 const saving = ref(false)
 const showForm = ref(false)
 const errorMessage = ref('')
-const form = reactive({ course_id: '', teacher_id: '', room_id: '', start_time: '', end_time: '', recurrence_pattern: '' })
+const semesters = ['Semester 1', 'Semester 2']
+const form = reactive({ course_id: '', teacher_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' })
 const canManage = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
 const formatTime = (value) => value ? new Date(value).toLocaleString() : 'Not scheduled'
 
@@ -59,7 +62,7 @@ async function createNewSession() {
   saving.value = true
   const result = await createClassSession(authStore.token.value, form)
   if (!result.ok) errorMessage.value = result.error || 'Unable to create session.'
-  else { sessions.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', teacher_id: '', room_id: '', start_time: '', end_time: '', recurrence_pattern: '' }) }
+  else { sessions.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', teacher_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' }) }
   saving.value = false
 }
 async function removeSession(id) {

@@ -33,7 +33,7 @@ router.get('/children/:studentId', asyncRoute(async (req, res) => {
   await assertLinkedStudent(studentId, req.user.user_id)
   const [studentResult, enrollmentResult, attendanceResult, recordsResult, gradesResult, financeResult] = await Promise.all([
     supabase.from('student').select('student_id,full_name,dob,phone,address').eq('student_id', studentId).single(),
-    supabase.from('enrollment').select('enrollment_id,status,enrolled_at,course(course_id,course_code,course_name,term,credit_units)').eq('student_id', studentId).order('enrolled_at', { ascending: false }),
+    supabase.from('enrollment').select('enrollment_id,status,enrolled_at,course(course_id,course_code,course_name,academic_year,semester,credit_units)').eq('student_id', studentId).order('enrolled_at', { ascending: false }),
     supabase.from('attendance').select('attendance_id,session_date,status,session:class_session(session_id,start_time,course(course_code,course_name))').eq('student_id', studentId).order('session_date', { ascending: false }).limit(100),
     supabase.from('academic_record').select('record_id,score,grade,evaluation_date,published,assessment(assessment_id,title,assessment_type,max_score,weight,course(course_code,course_name))').eq('student_id', studentId).eq('published', true).order('updated_at', { ascending: false }),
     supabase.from('final_grade').select('final_grade_id,course_id,computed_score,letter_grade,gpa,course(course_code,course_name)').eq('student_id', studentId),

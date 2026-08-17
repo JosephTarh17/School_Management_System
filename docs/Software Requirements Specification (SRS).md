@@ -28,8 +28,8 @@ The School Management System is architected as a multi-tier, responsive web appl
 ### 2.1 Product Functions and Objectives
 The primary objective of the School Management System is to centralize academic management into a single, cohesive digital ecosystem. The core functions provided by the product include:
 * **Automated Attendance Tracking:** Recording daily and class-wise attendance with instant notification triggers for unexcused absences.
-* **Assessment Management:** Creating, grading, and reporting quizzes, assignments, midterms, and final exams with automated gradebook calculations.
-* **Class Session Scheduling:** Managing academic calendars, room allocations, recurring timetables, and substitute teacher assignments.
+* **Assessment Management:** Creating, grading, and reporting quizzes, assignments, midterms, and final exams within an academic year containing exactly two semesters: Semester 1 and Semester 2.
+* **Class Session Scheduling:** Managing academic calendars, room allocations, recurring timetables, substitute teacher assignments, and academic-year and semester-aware class sessions.
 * **Participation Monitoring:** Tracking qualitative and quantitative student engagement metrics during live class sessions and extracurricular activities.
 
 ### 2.2 User Characteristics and Community
@@ -81,9 +81,10 @@ The functional requirements specify the expected behavior of the system, definin
     * *Outputs:* Real-time gradebook viewable by authorized teachers, students, and administrators.
 
 ### 3.3 Class Session Management Module
-* **REQ-SES-01 (Priority: Medium):** The system shall enable administrators to schedule recurring and one-off class sessions, allocating classrooms, time slots, and assigned instructors without scheduling conflicts.
-    * *Inputs:* Course ID, Instructor ID, Room ID, Day of Week, Start Time, End Time, Term Date Range.
-    * *Data Source:* Administrator scheduling console.
+* **REQ-SES-01 (Priority: Medium):** The system shall enable administrators to schedule recurring and one-off class sessions, allocating classrooms, time slots, assigned instructors, academic years, and Semester 1 or Semester 2 without scheduling conflicts.
+* **REQ-SES-02 (Priority: High):** Teachers shall create class sessions from Teacher Attendance by selecting a course, room, academic year, semester, start time, and end time; the authenticated teacher shall be assigned automatically and the new session shall become available for attendance entry.
+    * *Inputs:* Course ID, Instructor ID, Room ID, Start Time, End Time, Academic Year, Semester (`Semester 1` or `Semester 2`).
+    * *Data Source:* Teacher Attendance workflow or administrator scheduling console.
     * *Valid Range:* Start Time < End Time; Room and Instructor must not have overlapping bookings during the specified time slot.
     * *Outputs:* Confirmed timetable entry; conflict error message if double-booking is detected.
 
@@ -121,7 +122,7 @@ The functional requirements specify the expected behavior of the system, definin
 
 ### 5.2 Dynamic Performance Requirements
 * **Response Time:** Standard page loads, API queries, and form submissions shall execute within a response time of $\le 1.5$ seconds under normal load conditions.
-* **Batch Processing:** Attendance report generation and end-of-term grade calculation batch jobs for an entire school body (up to 5,000 students) shall complete within $\le 30$ seconds.
+* **Batch Processing:** Attendance report generation and end-of-semester grade calculation batch jobs for an entire school body (up to 5,000 students) shall complete within $\le 30$ seconds.
 * **System Availability:** The platform shall maintain an uptime availability of $99.9\%$ during scheduled academic hours, excluding planned maintenance windows.
 * **Maximum Error Rate:** The system failure rate resulting in unhandled application exceptions shall not exceed $0.01\%$ of total daily transactions.
 

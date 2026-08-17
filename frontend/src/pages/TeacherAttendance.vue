@@ -6,6 +6,9 @@
         <p class="mt-1 text-xs text-slate-500 font-geist">Select one of your class sessions, mark the roster, and save the attendance record.</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
+        <button type="button" :disabled="loading || saving" @click="showCreatePanel = !showCreatePanel" class="rounded-eight border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50">
+          {{ showCreatePanel ? 'Close session form' : 'Create class session' }}
+        </button>
         <button
           type="button"
           :disabled="loading || saving || !roster.length"
@@ -25,6 +28,61 @@
         </button>
       </div>
     </div>
+
+    <form v-if="showCreatePanel" @submit.prevent="createSession" class="rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-xs">
+      <div class="mb-4">
+        <h2 class="text-base font-bold text-slate-900 font-sans">Create class session</h2>
+        <p class="mt-1 text-xs text-slate-600">Create a session for yourself, then use it immediately to record attendance.</p>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <label class="block text-xs font-semibold text-slate-700">
+          Course
+          <select v-model="newSession.course_id" required :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50">
+            <option value="">Select a course</option>
+            <option v-for="course in availableCourses" :key="course.course_id" :value="course.course_id">
+              {{ course.course_code }} — {{ course.course_name }}{{ course.semester ? ` · ${course.semester}` : '' }}
+            </option>
+          </select>
+        </label>
+        <label class="block text-xs font-semibold text-slate-700">
+          Room
+          <select v-model="newSession.room_id" required :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50">
+            <option value="">Select a room</option>
+            <option v-for="room in rooms" :key="room.room_id" :value="room.room_id">
+              {{ room.room_name }}{{ room.location ? ` · ${room.location}` : '' }}
+            </option>
+          </select>
+        </label>
+        <label class="block text-xs font-semibold text-slate-700">
+          Academic year
+          <input v-model.number="newSession.academic_year" type="number" min="2000" max="9999" required :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
+        </label>
+        <label class="block text-xs font-semibold text-slate-700">
+          Semester
+          <select v-model="newSession.semester" required :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50">
+            <option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option>
+          </select>
+        </label>
+        <label class="block text-xs font-semibold text-slate-700">
+          Start date and time
+          <input v-model="newSession.start_time" type="datetime-local" required :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
+        </label>
+        <label class="block text-xs font-semibold text-slate-700">
+          End date and time
+          <input v-model="newSession.end_time" type="datetime-local" required :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
+        </label>
+        <label class="block text-xs font-semibold text-slate-700">
+          Recurrence (optional)
+          <input v-model="newSession.recurrence_pattern" type="text" maxlength="120" placeholder="e.g. Weekly on Monday" :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
+        </label>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button type="submit" :disabled="loading || saving || !availableCourses.length || !rooms.length" class="rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+          {{ saving ? 'Creating…' : 'Create and select session' }}
+        </button>
+        <p v-if="!availableCourses.length || !rooms.length" class="text-xs text-amber-700">An administrator must configure at least one course and one room before a session can be created.</p>
+      </div>
+    </form>
 
     <div class="rounded-xl border border-border-subtle bg-white p-5 shadow-xs">
       <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
@@ -52,7 +110,7 @@
         </label>
       </div>
       <p v-if="selectedSession" class="mt-3 text-xs text-slate-500">
-        {{ selectedSession.course?.course_code || 'Course' }} · {{ selectedSession.room?.room_name || 'Room not assigned' }}
+        {{ selectedSession.course?.course_code || 'Course' }} · {{ selectedSession.academic_year || selectedSession.course?.academic_year || 'Year not assigned' }} · {{ selectedSession.semester || selectedSession.course?.semester || 'Semester not assigned' }} · {{ selectedSession.room?.room_name || 'Room not assigned' }}
       </p>
     </div>
 
@@ -77,8 +135,8 @@
         </div>
       </div>
 
-      <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading your sessions and student roster…</div>
-      <div v-else-if="!selectedSessionId" class="py-10 text-center text-sm text-slate-500">Select a class session to load attendance.</div>
+      <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading your sessions, courses, rooms, and student roster…</div>
+      <div v-else-if="!selectedSessionId" class="py-10 text-center text-sm text-slate-500">Select or create a class session to load attendance.</div>
       <div v-else-if="!roster.length" class="py-10 text-center text-sm text-slate-500">No students are available for this session.</div>
       <div v-else>
         <div class="space-y-3 md:hidden">
@@ -96,19 +154,24 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth.js'
-import { fetchAttendance, fetchClassSessions, fetchStudents, saveAttendanceBatch } from '../api.js'
+import { createClassSession, fetchAttendance, fetchClassSessionResources, fetchClassSessions, fetchStudents, saveAttendanceBatch } from '../api.js'
 
 const statuses = ['Present', 'Late', 'Absent', 'Excused']
+const semesters = ['Semester 1', 'Semester 2']
 const sessions = ref([])
+const availableCourses = ref([])
+const rooms = ref([])
 const roster = ref([])
 const selectedSessionId = ref('')
 const sessionDate = ref('')
 const loading = ref(true)
 const saving = ref(false)
+const showCreatePanel = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const newSession = reactive({ course_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' })
 
 const selectedSession = computed(() => sessions.value.find((session) => session.session_id === selectedSessionId.value) || null)
 
@@ -119,7 +182,7 @@ function dateOnly(value) {
 function sessionLabel(session) {
   const course = session.course?.course_code || session.course?.course_name || 'Class session'
   const start = session.start_time ? new Date(session.start_time).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Date unavailable'
-  return `${course} · ${start}`
+  return `${course} · ${session.academic_year || session.course?.academic_year || 'Year not assigned'} · ${session.semester || session.course?.semester || 'Semester not assigned'} · ${start}`
 }
 
 function countStatus(status) {
@@ -137,6 +200,10 @@ function getActiveStatusBtnClass(status) {
     Absent: 'border-rose-600 bg-rose-600 text-white',
     Excused: 'border-indigo-600 bg-indigo-600 text-white',
   }[status]
+}
+
+function resetNewSession() {
+  Object.assign(newSession, { course_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' })
 }
 
 async function loadRoster() {
@@ -162,10 +229,15 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const result = await fetchClassSessions(authStore.token.value)
-    if (!result.ok) throw new Error(result.error || 'Unable to load class sessions')
-    const userId = authStore.user.value?.user_id || authStore.user.value?.id
-    sessions.value = (result.data || []).filter((session) => session.teacher?.user_id === userId)
+    const [sessionsResult, resourcesResult] = await Promise.all([
+      fetchClassSessions(authStore.token.value),
+      fetchClassSessionResources(authStore.token.value),
+    ])
+    if (!sessionsResult.ok) throw new Error(sessionsResult.error || 'Unable to load class sessions')
+    if (!resourcesResult.ok) throw new Error(resourcesResult.error || 'Unable to load session resources')
+    sessions.value = (sessionsResult.data || []).sort((left, right) => new Date(left.start_time) - new Date(right.start_time))
+    availableCourses.value = resourcesResult.data?.courses || []
+    rooms.value = resourcesResult.data?.rooms || []
     if (sessions.value.length) {
       selectedSessionId.value = sessions.value[0].session_id
       sessionDate.value = dateOnly(sessions.value[0].start_time)
@@ -175,6 +247,31 @@ async function loadData() {
     errorMessage.value = error.message || 'Unable to load attendance data'
   } finally {
     loading.value = false
+  }
+}
+
+async function createSession() {
+  errorMessage.value = ''
+  successMessage.value = ''
+  saving.value = true
+  try {
+    const result = await createClassSession(authStore.token.value, {
+      ...newSession,
+      start_time: new Date(newSession.start_time).toISOString(),
+      end_time: new Date(newSession.end_time).toISOString(),
+    })
+    if (!result.ok) throw new Error(result.error || 'Unable to create class session')
+    sessions.value = [...sessions.value, result.data].sort((left, right) => new Date(left.start_time) - new Date(right.start_time))
+    selectedSessionId.value = result.data.session_id
+    sessionDate.value = dateOnly(result.data.start_time)
+    showCreatePanel.value = false
+    resetNewSession()
+    await loadRoster()
+    successMessage.value = 'Class session created and selected for attendance.'
+  } catch (error) {
+    errorMessage.value = error.message || 'Unable to create class session'
+  } finally {
+    saving.value = false
   }
 }
 
