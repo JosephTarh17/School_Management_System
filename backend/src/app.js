@@ -21,7 +21,6 @@ import { ApiError, errorHandler } from './lib/api.js'
 import { securityAuditMiddleware } from './lib/audit.js'
 import auditLogsRoutes from './routes/auditLogs.js'
 import translationsRoutes from './routes/translations.js'
-import cinetpayRoutes from './routes/cinetpay.js'
 import gradingRoutes from './routes/grading.js'
 import academicPeriodRoutes from './routes/academicPeriod.js'
 
@@ -53,7 +52,6 @@ app.use('/attendance-reports', attendanceReportsRoutes)
 app.use('/behavior-incidents', behaviorIncidentsRoutes)
 app.use('/audit-logs', auditLogsRoutes)
 app.use('/translations', translationsRoutes)
-app.use('/cinetpay', cinetpayRoutes)
 app.use('/grading', gradingRoutes)
 app.use('/academic-period', academicPeriodRoutes)
 
