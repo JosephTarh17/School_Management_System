@@ -6,6 +6,7 @@
         <span class="material-symbols-outlined shrink-0 text-2xl text-primary-container sm:text-3xl">school</span>
         <span class="truncate text-base font-bold tracking-tight text-primary-container sm:text-lg">Institutional Excellence</span>
       </router-link>
+      <LanguagePicker class="ml-auto mr-2 md:ml-0 md:mr-0" />
       <div class="hidden items-center gap-6 md:flex">
         <a class="text-sm font-medium text-slate-600 transition-colors hover:text-primary-container" href="#features">Features</a>
         <a class="text-sm font-medium text-slate-600 transition-colors hover:text-primary-container" href="#solutions">Solutions</a>
@@ -129,6 +130,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import LanguagePicker from '../components/LanguagePicker.vue'
 
 const mobileMenuOpen = ref(false)
 </script>

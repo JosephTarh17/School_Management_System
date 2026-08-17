@@ -6,126 +6,174 @@ const LANGUAGE_STORAGE_KEY = 'sms_language'
 const supportedLanguages = ['en', 'fr']
 const language = ref(localStorage.getItem(LANGUAGE_STORAGE_KEY) === 'fr' ? 'fr' : 'en')
 const translations = reactive({})
-const trackedTextNodes = new Set()
-const originalText = new WeakMap()
+const elementStates = new WeakMap()
+const attributeStates = new WeakMap()
 let observer = null
-let translationTimer = null
-const translating = ref(false)
+let scanTimer = null
+const isTranslating = ref(false)
+let translating = false
+let applying = false
 
-function isSupportedLanguage(value) {
-  return supportedLanguages.includes(value)
+const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'PRE', 'CODE'])
+const SKIPPED_CLASSES = ['material-symbols-outlined', 'iconify']
+const NUMERIC_OR_SYMBOL_ONLY = /^[-—\d\s.,:/+%#()]+$/
+const UPPERCASE_CODE = /^[A-Z]{2,}[\d_-]*$/
+const EMAIL_VALUE = /^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$/i
+const UUID_VALUE = /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i
+
+function shouldSkipValue(value) {
+  const text = String(value || '').trim()
+  return !text || NUMERIC_OR_SYMBOL_ONLY.test(text) || UPPERCASE_CODE.test(text) || EMAIL_VALUE.test(text) || UUID_VALUE.test(text) || text.length > 2000
 }
 
-function shouldSkipTextNode(node) {
-  const parent = node.parentElement
-  if (!parent || !node.isConnected) return true
-  if (parent.closest('[data-no-translate], script, style, noscript, textarea, pre, code')) return true
-  const text = node.nodeValue?.trim() || ''
-  if (!text || /^[-—\d\s.,:/+%#()]+$/.test(text)) return true
-  if (/^[A-Z]{2,}[\d_-]*$/.test(text) || /^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(text)) return true
-  return false
+function isTranslatableElement(element) {
+  if (!element || SKIPPED_TAGS.has(element.tagName)) return false
+  if (element.dataset.noTranslate === 'true' || element.closest('[data-no-translate="true"]')) return false
+  if (SKIPPED_CLASSES.some((className) => element.classList.contains(className))) return false
+  if (element.children.length > 0) return false
+  return !shouldSkipValue(element.textContent)
 }
 
-function registerTextNodes(root = document.body) {
-  if (!root) return
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  let node
-  while ((node = walker.nextNode())) {
-    if (shouldSkipTextNode(node)) continue
-    if (!originalText.has(node)) originalText.set(node, node.nodeValue.trim())
-    trackedTextNodes.add(node)
+function captureElements(root = document.body) {
+  if (!root || typeof document === 'undefined') return
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+  let element
+  while ((element = walker.nextNode())) {
+    if (isTranslatableElement(element)) {
+      const current = element.textContent.trim()
+      const state = elementStates.get(element)
+      if (!state) elementStates.set(element, { source: current, applied: null })
+      else {
+        const knownTranslation = translations[state.source]
+        const isExpectedValue = current === state.source || (knownTranslation && current === knownTranslation)
+        if (!isExpectedValue && state.applied !== current) {
+          state.source = current
+          state.applied = null
+        }
+      }
+    }
+
+    for (const attribute of ['placeholder', 'title', 'aria-label']) {
+      const value = element.getAttribute(attribute)
+      if (!value || shouldSkipValue(value) || element.dataset.noTranslate === 'true') continue
+      const state = attributeStates.get(element) || {}
+      if (!state[attribute]) state[attribute] = { source: value, applied: null, attribute }
+      else {
+        const attributeState = state[attribute]
+        const knownTranslation = translations[attributeState.source]
+        const isExpectedValue = value === attributeState.source || (knownTranslation && value === knownTranslation)
+        if (!isExpectedValue && attributeState.applied !== value) {
+          attributeState.source = value
+          attributeState.applied = null
+        }
+      }
+      attributeStates.set(element, state)
+    }
   }
 }
 
-function activeSources() {
+function collectMissingSources() {
   const sources = []
-  for (const node of trackedTextNodes) {
-    if (!node.isConnected || shouldSkipTextNode(node)) continue
-    const source = originalText.get(node)
+  const collect = (source) => {
     if (source && !translations[source]) sources.push(source)
   }
+
+  document.querySelectorAll('*').forEach((element) => {
+    const state = elementStates.get(element)
+    if (state && element.isConnected && state.applied !== element.textContent.trim()) collect(state.source)
+    const attributes = attributeStates.get(element)
+    if (attributes) Object.values(attributes).forEach((state) => {
+      if (state && element.isConnected && state.applied !== element.getAttribute(state.attribute)) collect(state.source)
+    })
+  })
+
   return [...new Set(sources)]
 }
 
-function applyTranslations() {
-  for (const node of trackedTextNodes) {
-    if (!node.isConnected) continue
-    const source = originalText.get(node)
-    if (!source) continue
-    node.nodeValue = language.value === 'fr' ? (translations[source] || source) : source
+function applyLanguage() {
+  applying = true
+  try {
+    document.querySelectorAll('*').forEach((element) => {
+      const state = elementStates.get(element)
+      if (state && element.isConnected) {
+        const desired = language.value === 'fr' ? (translations[state.source] || state.source) : state.source
+        if (element.textContent.trim() !== desired) element.textContent = desired
+        state.applied = desired
+      }
+
+      const attributes = attributeStates.get(element)
+      if (attributes && element.isConnected) {
+        Object.entries(attributes).forEach(([attribute, state]) => {
+          const desired = language.value === 'fr' ? (translations[state.source] || state.source) : state.source
+          if (element.getAttribute(attribute) !== desired) element.setAttribute(attribute, desired)
+          state.applied = desired
+          state.attribute = attribute
+        })
+      }
+    })
+    document.documentElement.lang = language.value
+  } finally {
+    applying = false
   }
-  if (document.documentElement) document.documentElement.lang = language.value
 }
 
-async function translateRegisteredText() {
-  if (language.value !== 'fr' || translating.value) return
-  const token = authStore.token.value
-  if (!token) return
-  registerTextNodes()
-  const sources = activeSources()
+async function translateMissingSources() {
+  if (language.value !== 'fr' || translating || typeof document === 'undefined') return
+  captureElements()
+  const sources = collectMissingSources()
   if (!sources.length) {
-    applyTranslations()
+    applyLanguage()
     return
   }
 
-  translating.value = true
+  translating = true
+  isTranslating.value = true
   try {
     for (let index = 0; index < sources.length; index += 40) {
-      const batch = sources.slice(index, index + 40)
-      const result = await fetchTranslations(token, batch, 'fr')
+      const result = await fetchTranslations(authStore.token.value || undefined, sources.slice(index, index + 40), 'fr')
       if (result.ok && result.data?.translations) Object.assign(translations, result.data.translations)
     }
   } finally {
-    translating.value = false
-    applyTranslations()
+    translating = false
+    isTranslating.value = false
+    applyLanguage()
   }
 }
 
 function scheduleTranslation() {
-  if (translationTimer) window.clearTimeout(translationTimer)
-  translationTimer = window.setTimeout(() => {
-    translationTimer = null
-    translateRegisteredText()
-  }, 120)
+  if (scanTimer) window.clearTimeout(scanTimer)
+  scanTimer = window.setTimeout(() => {
+    scanTimer = null
+    translateMissingSources()
+  }, 180)
 }
 
 export function setLanguage(value) {
-  if (!isSupportedLanguage(value) || language.value === value) return
+  if (!supportedLanguages.includes(value) || language.value === value) return
   language.value = value
   localStorage.setItem(LANGUAGE_STORAGE_KEY, value)
-  if (value === 'en') applyTranslations()
+  if (value === 'en') applyLanguage()
   else scheduleTranslation()
 }
 
 export function useLanguage() {
-  return {
-    language,
-    translations,
-    setLanguage,
-    supportedLanguages,
-    isTranslating: translating,
-  }
+  return { language, translations, setLanguage, supportedLanguages, isTranslating }
 }
 
 export function installLanguageTranslation() {
   if (observer || typeof document === 'undefined') return
-  registerTextNodes()
+  captureElements()
   observer = new MutationObserver(() => {
-    if (translating.value) return
-    registerTextNodes()
+    if (applying) return
+    captureElements()
     if (language.value === 'fr') scheduleTranslation()
   })
   observer.observe(document.body, { childList: true, subtree: true })
-  applyTranslations()
+  document.documentElement.lang = language.value
   if (language.value === 'fr') scheduleTranslation()
 }
 
 watch(language, (value) => {
   localStorage.setItem(LANGUAGE_STORAGE_KEY, value)
-  if (value === 'en') applyTranslations()
-  else scheduleTranslation()
-})
-
-watch(authStore.token, (value) => {
-  if (value && language.value === 'fr') scheduleTranslation()
+  document.documentElement.lang = value
 })

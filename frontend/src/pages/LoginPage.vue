@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 relative font-sans">
+    <LanguagePicker class="absolute right-4 top-4 sm:right-6 sm:top-6" />
     <div class="w-full max-w-md bg-white rounded-xl shadow-lg border border-border-subtle p-8 z-10">
       <div class="flex flex-col items-center mb-6">
         <div class="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-primary-container mb-3 shadow-xs">
@@ -67,6 +68,7 @@ import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authStore } from '../store/auth'
 import { email as validateEmail, firstError, password as validatePassword, required, validate } from '../lib/validation.js'
+import LanguagePicker from '../components/LanguagePicker.vue'
 
 const router = useRouter()
 const route = useRoute()

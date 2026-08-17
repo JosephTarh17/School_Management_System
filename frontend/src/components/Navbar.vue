@@ -29,12 +29,7 @@
         {{ currentUser.role }} Portal
       </span>
 
-      <label v-if="currentUser" class="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 sm:flex" aria-label="Language">
-        <span class="material-symbols-outlined text-sm text-indigo-600">translate</span>
-        <select :value="language" @change="setLanguage($event.target.value)" class="bg-transparent text-[11px] font-semibold outline-none" :disabled="isTranslating">
-          <option v-for="value in supportedLanguages" :key="value" :value="value">{{ value.toUpperCase() }}</option>
-        </select>
-      </label>
+      <LanguagePicker v-if="currentUser" class="hidden sm:inline-flex" />
 
       <!-- Notifications -->
       <button class="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full relative transition-colors">
@@ -72,12 +67,11 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { authStore } from '../store/auth'
-import { useLanguage } from '../store/language.js'
+import LanguagePicker from './LanguagePicker.vue'
 
 const router = useRouter()
 const emit = defineEmits(['toggle-menu'])
 const currentUser = computed(() => authStore.user.value)
-const { language, setLanguage, supportedLanguages, isTranslating } = useLanguage()
 
 const handleLogout = async () => {
   await authStore.logout()

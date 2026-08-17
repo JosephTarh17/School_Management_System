@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 relative font-sans">
+    <LanguagePicker class="absolute right-4 top-4 sm:right-6 sm:top-6" />
     <div class="w-full max-w-md bg-white rounded-xl shadow-lg border border-border-subtle p-8 z-10 text-center">
       <div class="flex flex-col items-center mb-6">
         <div class="w-16 h-16 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-secondary-container mb-3 shadow-xs">
@@ -18,3 +19,7 @@
     </div>
   </div>
 </template>
+
+<script setup>
+import LanguagePicker from '../components/LanguagePicker.vue'
+</script>
