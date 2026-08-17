@@ -10,11 +10,11 @@ const elementStates = new WeakMap()
 const attributeStates = new WeakMap()
 let observer = null
 let scanTimer = null
-const isTranslating = ref(false)
 let translating = false
 let applying = false
+const isTranslating = ref(false)
 
-const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'PRE', 'CODE'])
+const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT', 'PRE', 'CODE'])
 const SKIPPED_CLASSES = ['material-symbols-outlined', 'iconify']
 const NUMERIC_OR_SYMBOL_ONLY = /^[-—\d\s.,:/+%#()]+$/
 const UPPERCASE_CODE = /^[A-Z]{2,}[\d_-]*$/
@@ -26,12 +26,38 @@ function shouldSkipValue(value) {
   return !text || NUMERIC_OR_SYMBOL_ONLY.test(text) || UPPERCASE_CODE.test(text) || EMAIL_VALUE.test(text) || UUID_VALUE.test(text) || text.length > 2000
 }
 
-function isTranslatableElement(element) {
-  if (!element || SKIPPED_TAGS.has(element.tagName)) return false
-  if (element.dataset.noTranslate === 'true' || element.closest('[data-no-translate="true"]')) return false
-  if (SKIPPED_CLASSES.some((className) => element.classList.contains(className))) return false
-  if (element.children.length > 0) return false
-  return !shouldSkipValue(element.textContent)
+function isSkippedElement(element) {
+  return !element || SKIPPED_TAGS.has(element.tagName) || SKIPPED_CLASSES.some((className) => element.classList.contains(className)) || element.dataset.noTranslate === 'true' || Boolean(element.closest('[data-no-translate="true"]'))
+}
+
+function isSkippedAttributeElement(element) {
+  return !element || ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName) || element.dataset.noTranslate === 'true' || Boolean(element.closest('[data-no-translate="true"]'))
+}
+
+function collectTextTargets(element) {
+  const targets = []
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (node.textContent.trim()) targets.push(node)
+      return
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE || isSkippedElement(node)) return
+    node.childNodes.forEach(walk)
+  }
+  element.childNodes.forEach(walk)
+  return targets
+}
+
+function normalizeTextTargets(targets) {
+  return targets.map((target) => target.textContent.trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+}
+
+function isSemanticElement(element) {
+  if (isSkippedElement(element)) return false
+  const meaningfulChildren = [...element.children].filter((child) => !isSkippedElement(child))
+  if (meaningfulChildren.length > 1) return false
+  const targets = collectTextTargets(element)
+  return targets.length === 1 && !shouldSkipValue(normalizeTextTargets(targets))
 }
 
 function captureElements(root = document.body) {
@@ -39,10 +65,11 @@ function captureElements(root = document.body) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
   let element
   while ((element = walker.nextNode())) {
-    if (isTranslatableElement(element)) {
-      const current = element.textContent.trim()
+    if (isSemanticElement(element)) {
+      const targets = collectTextTargets(element)
+      const current = normalizeTextTargets(targets)
       const state = elementStates.get(element)
-      if (!state) elementStates.set(element, { source: current, applied: null })
+      if (!state) elementStates.set(element, { source: current, applied: null, targets })
       else {
         const knownTranslation = translations[state.source]
         const isExpectedValue = current === state.source || (knownTranslation && current === knownTranslation)
@@ -50,12 +77,13 @@ function captureElements(root = document.body) {
           state.source = current
           state.applied = null
         }
+        state.targets = targets
       }
     }
 
     for (const attribute of ['placeholder', 'title', 'aria-label']) {
       const value = element.getAttribute(attribute)
-      if (!value || shouldSkipValue(value) || element.dataset.noTranslate === 'true') continue
+      if (!value || shouldSkipValue(value) || isSkippedAttributeElement(element)) continue
       const state = attributeStates.get(element) || {}
       if (!state[attribute]) state[attribute] = { source: value, applied: null, attribute }
       else {
@@ -80,10 +108,10 @@ function collectMissingSources() {
 
   document.querySelectorAll('*').forEach((element) => {
     const state = elementStates.get(element)
-    if (state && element.isConnected && state.applied !== element.textContent.trim()) collect(state.source)
+    if (state && element.isConnected && state.targets?.some((target) => target.isConnected) && state.applied !== normalizeTextTargets(state.targets)) collect(state.source)
     const attributes = attributeStates.get(element)
-    if (attributes) Object.values(attributes).forEach((state) => {
-      if (state && element.isConnected && state.applied !== element.getAttribute(state.attribute)) collect(state.source)
+    if (attributes) Object.values(attributes).forEach((attributeState) => {
+      if (attributeState && element.isConnected && attributeState.applied !== element.getAttribute(attributeState.attribute)) collect(attributeState.source)
     })
   })
 
@@ -95,19 +123,19 @@ function applyLanguage() {
   try {
     document.querySelectorAll('*').forEach((element) => {
       const state = elementStates.get(element)
-      if (state && element.isConnected) {
+      if (state && element.isConnected && state.targets?.length === 1) {
         const desired = language.value === 'fr' ? (translations[state.source] || state.source) : state.source
-        if (element.textContent.trim() !== desired) element.textContent = desired
+        if (state.targets[0].textContent.trim() !== desired) state.targets[0].textContent = desired
         state.applied = desired
       }
 
       const attributes = attributeStates.get(element)
       if (attributes && element.isConnected) {
-        Object.entries(attributes).forEach(([attribute, state]) => {
-          const desired = language.value === 'fr' ? (translations[state.source] || state.source) : state.source
+        Object.entries(attributes).forEach(([attribute, attributeState]) => {
+          const desired = language.value === 'fr' ? (translations[attributeState.source] || attributeState.source) : attributeState.source
           if (element.getAttribute(attribute) !== desired) element.setAttribute(attribute, desired)
-          state.applied = desired
-          state.attribute = attribute
+          attributeState.applied = desired
+          attributeState.attribute = attribute
         })
       }
     })
@@ -160,6 +188,12 @@ export function useLanguage() {
   return { language, translations, setLanguage, supportedLanguages, isTranslating }
 }
 
+export function refreshLanguageTranslation() {
+  if (typeof document === 'undefined') return
+  captureElements()
+  if (language.value === 'fr') scheduleTranslation()
+}
+
 export function installLanguageTranslation() {
   if (observer || typeof document === 'undefined') return
   captureElements()
@@ -170,7 +204,7 @@ export function installLanguageTranslation() {
   })
   observer.observe(document.body, { childList: true, subtree: true })
   document.documentElement.lang = language.value
-  if (language.value === 'fr') scheduleTranslation()
+  refreshLanguageTranslation()
 }
 
 watch(language, (value) => {

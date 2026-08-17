@@ -35,12 +35,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import Navbar from './components/Navbar.vue'
 import RequestLoadingOverlay from './components/RequestLoadingOverlay.vue'
-import { installLanguageTranslation } from './store/language.js'
+import { installLanguageTranslation, refreshLanguageTranslation } from './store/language.js'
+import { useRoute } from 'vue-router'
 
 const mobileMenuOpen = ref(false)
+const route = useRoute()
 installLanguageTranslation()
+onMounted(() => refreshLanguageTranslation())
+watch(() => route.fullPath, () => nextTick(() => refreshLanguageTranslation()))
 </script>
