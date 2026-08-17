@@ -2,7 +2,7 @@
 
 ## Overview
 
-The School Management System now supports a controlled university course-registration workflow. Students select courses for an academic year and semester and submit a request for administrator review. A request does not become an official enrollment until an administrator approves it.
+The School Management System now supports a controlled university course-registration workflow. Administrators create catalog courses, teachers offer those courses for an academic year and semester, and students select only courses with an active teacher offering before submitting a request for administrator review. A request does not become an official enrollment until an administrator approves it.
 
 ## Lifecycle
 
@@ -17,7 +17,7 @@ The existing `enrollment` table remains the official record of courses taken. Re
 
 ## Credit enforcement
 
-The server derives the student identity from the authenticated session. On submission and again on approval, it verifies the requested courses, duplicate selections, existing enrollment records, academic-year and semester compatibility, and the administrator-defined `max_credits` value for the student's Freshman, Sophomore, or Junior class level. All numeric credit values are non-negative.
+The server derives the student identity from the authenticated session. On submission and again on approval, it verifies the requested courses, active teacher offerings, duplicate selections, existing enrollment records for the same academic year and semester, and the administrator-defined `max_credits` value for the student's Freshman, Sophomore, or Junior class level. All numeric credit values are non-negative. A later semester can contain a separate retake enrollment for the same course.
 
 ## Roles
 
@@ -25,7 +25,7 @@ Students can view the catalog, submit one pending request per academic year and 
 
 ## Database application
 
-Apply `backend/db/migrations/012_course_registration_requests.sql` in Supabase after migration 011. Then apply `backend/db/migrations/020_academic_year_and_semesters.sql` after migrations 017, 018, and 019. The registration migration creates the request and item tables and transactional submission and approval functions; migration 020 transforms legacy values into `academic_year` plus `semester`, preserves a backup of original values, and recreates uniqueness using the composite academic period.
+Apply `backend/db/migrations/012_course_registration_requests.sql` in Supabase after migration 011. Then apply `backend/db/migrations/020_academic_year_and_semesters.sql`, `021_teacher_course_offerings_and_retakes.sql`, and `022_current_academic_period.sql` after migrations 017, 018, and 019. Migration 020 transforms legacy values into `academic_year` plus `semester`; migration 021 creates one-teacher-per-course-period offerings and retake-safe enrollments; migration 022 provides the administrator-controlled current period used as the default throughout the active workflow.
 
 ## API endpoints
 

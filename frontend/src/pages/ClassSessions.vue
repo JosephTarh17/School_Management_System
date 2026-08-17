@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Class Sessions & Scheduling</h1>
-        <p class="text-xs text-slate-500 font-geist mt-1">Schedules loaded from the institutional database.</p>
+        <p class="text-xs text-slate-500 font-geist mt-1">Schedules loaded from the institutional database. Teachers create their own sessions through Teacher Attendance.</p>
       </div>
       <button v-if="canManage" @click="showForm = !showForm" class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-eight shadow-xs font-geist">{{ showForm ? 'Close Form' : '+ Schedule Session' }}</button>
     </div>
@@ -37,7 +37,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { authStore } from '../store/auth'
-import { createClassSession, deleteClassSession, fetchClassSessions, fetchCourses } from '../api.js'
+import { createClassSession, deleteClassSession, fetchClassSessions, fetchCourses, fetchCurrentAcademicPeriod } from '../api.js'
 
 const sessions = ref([])
 const courses = ref([])
@@ -47,7 +47,7 @@ const showForm = ref(false)
 const errorMessage = ref('')
 const semesters = ['Semester 1', 'Semester 2']
 const form = reactive({ course_id: '', teacher_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' })
-const canManage = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
+const canManage = computed(() => authStore.userRole.value === 'administrator')
 const formatTime = (value) => value ? new Date(value).toLocaleString() : 'Not scheduled'
 
 async function load() {
@@ -62,7 +62,7 @@ async function createNewSession() {
   saving.value = true
   const result = await createClassSession(authStore.token.value, form)
   if (!result.ok) errorMessage.value = result.error || 'Unable to create session.'
-  else { sessions.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', teacher_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' }) }
+  else { sessions.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', teacher_id: '', room_id: '', academic_year: form.academic_year, semester: form.semester, start_time: '', end_time: '', recurrence_pattern: '' }) }
   saving.value = false
 }
 async function removeSession(id) {
@@ -71,5 +71,14 @@ async function removeSession(id) {
   if (!result.ok) errorMessage.value = result.error || 'Unable to delete session.'
   else sessions.value = sessions.value.filter((session) => session.session_id !== id)
 }
-onMounted(load)
+async function initialize() {
+  const periodResult = await fetchCurrentAcademicPeriod(authStore.token.value)
+  if (periodResult.ok) {
+    form.academic_year = periodResult.data.academic_year
+    form.semester = periodResult.data.semester
+  } else errorMessage.value = periodResult.error || 'Unable to load the current academic period.'
+  await load()
+}
+
+onMounted(initialize)
 </script>

@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asAcademicYear, asDate, asEnum, asNumber, asSemester, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { assertTeacherOwnsCourse } from '../lib/ownership.js'
+import { resolveAcademicPeriod } from '../lib/academicPeriod.js'
 import { studentCourseIdsForUser, teacherCourseIdsForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
@@ -20,13 +21,14 @@ function exposeAssessment(assessment) {
 }
 
 router.get('/', asyncRoute(async (req, res) => {
-  let query = supabase.from('assessment').select('*, course(*)').order('due_date', { ascending: true, nullsFirst: false })
+  const { academic_year, semester } = await resolveAcademicPeriod(req.query)
+  let query = supabase.from('assessment').select('*, course(*)').eq('academic_year', academic_year).eq('semester', semester).order('due_date', { ascending: true, nullsFirst: false })
   if (req.user.role === 'student') {
-    const courseIds = await studentCourseIdsForUser(req.user.user_id)
+    const courseIds = await studentCourseIdsForUser(req.user.user_id, { academic_year, semester })
     if (!courseIds.length) return sendData(res, [])
     query = query.in('course_id', courseIds)
   } else if (req.user.role === 'teacher') {
-    const courseIds = await teacherCourseIdsForUser(req.user.user_id)
+    const courseIds = await teacherCourseIdsForUser(req.user.user_id, { academic_year, semester })
     if (!courseIds.length) return sendData(res, [])
     query = query.in('course_id', courseIds)
   }
@@ -41,11 +43,12 @@ router.get('/:assessmentId', asyncRoute(async (req, res) => {
   const { data, error } = await supabase.from('assessment').select('*, course(*)').eq('assessment_id', assessmentId).maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError(404, 'Assessment not found')
+  const period = { academic_year: data.academic_year, semester: data.semester }
   if (req.user.role === 'student') {
-    const courseIds = await studentCourseIdsForUser(req.user.user_id)
+    const courseIds = await studentCourseIdsForUser(req.user.user_id, period)
     if (!courseIds.includes(data.course_id)) throw new ApiError(403, 'You do not have permission to view this assessment')
   } else if (req.user.role === 'teacher') {
-    const courseIds = await teacherCourseIdsForUser(req.user.user_id)
+    const courseIds = await teacherCourseIdsForUser(req.user.user_id, period)
     if (!courseIds.includes(data.course_id)) throw new ApiError(403, 'You do not have permission to view this assessment')
   }
   return sendData(res, exposeAssessment(data))
@@ -56,14 +59,13 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const title = asText(req.body?.title, 'title', { max: 200 })
   const assessment_type = asEnum(req.body?.assessment_type, 'assessment_type', ENUMS.assessmentType)
   const max_score = asNumber(req.body?.max_score ?? 100, 'max_score', { min: 0.01, max: 999999 })
-  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
-  const semester = asSemester(req.body?.semester, 'semester')
+  const { academic_year, semester } = await resolveAcademicPeriod(req.body)
   const assessment_number = req.body?.assessment_number == null || req.body?.assessment_number === '' ? null : asNumber(req.body.assessment_number, 'assessment_number', { min: 1, max: 3, integer: true })
   if (assessment_type === 'Test' && assessment_number == null) throw new ApiError(400, 'assessment_number is required for Test assessments')
   if (assessment_type !== 'Test' && assessment_number != null) throw new ApiError(400, 'assessment_number is only valid for Test assessments')
   const weight = assessment_type === 'Test' ? 20 : assessment_type === 'Final' ? 40 : asNumber(req.body?.weight, 'weight', { min: 0, max: 100 })
   const due_date = asDate(req.body?.due_date, 'due_date', { optional: true })
-  await assertTeacherOwnsCourse(course_id, req)
+  await assertTeacherOwnsCourse(course_id, req, { academic_year, semester })
   const { data, error } = await supabase.from('assessment').insert({ course_id, academic_year, semester, title, assessment_type, assessment_number, max_score, weight, due_date }).select('*, course(*)').single()
   if (error) throw error
   return sendData(res, exposeAssessment(data), 201)
@@ -71,19 +73,17 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
 
 router.patch('/:assessmentId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const assessmentId = asUuid(req.params.assessmentId, 'assessmentId')
-  const { data: current, error: currentError } = await supabase.from('assessment').select('assessment_id,course_id').eq('assessment_id', assessmentId).maybeSingle()
+  const { data: current, error: currentError } = await supabase.from('assessment').select('assessment_id,course_id,academic_year,semester').eq('assessment_id', assessmentId).maybeSingle()
   if (currentError) throw currentError
   if (!current) throw new ApiError(404, 'Assessment not found')
-  await assertTeacherOwnsCourse(current.course_id, req)
+  await assertTeacherOwnsCourse(current.course_id, req, { academic_year: current.academic_year, semester: current.semester })
   const updates = {}
-  if (req.body?.course_id !== undefined) {
-    updates.course_id = asUuid(req.body.course_id, 'course_id')
-    await assertTeacherOwnsCourse(updates.course_id, req)
-  }
+  if (req.body?.course_id !== undefined) updates.course_id = asUuid(req.body.course_id, 'course_id')
   if (req.body?.title !== undefined) updates.title = asText(req.body.title, 'title', { max: 200 })
   if (req.body?.assessment_type !== undefined) updates.assessment_type = asEnum(req.body.assessment_type, 'assessment_type', ENUMS.assessmentType)
   if (req.body?.academic_year !== undefined || req.body?.year !== undefined) updates.academic_year = asAcademicYear(req.body.academic_year ?? req.body.year, 'academic_year')
   if (req.body?.semester !== undefined) updates.semester = asSemester(req.body.semester, 'semester')
+  if (req.user.role === 'teacher') await assertTeacherOwnsCourse(updates.course_id ?? current.course_id, req, { academic_year: updates.academic_year ?? current.academic_year, semester: updates.semester ?? current.semester })
   if (req.body?.assessment_number !== undefined) updates.assessment_number = req.body.assessment_number == null || req.body.assessment_number === '' ? null : asNumber(req.body.assessment_number, 'assessment_number', { min: 1, max: 3, integer: true })
   if (req.body?.max_score !== undefined) updates.max_score = asNumber(req.body.max_score, 'max_score', { min: 0.01, max: 999999 })
   if (req.body?.assessment_type === 'Test') updates.weight = 20
@@ -98,10 +98,10 @@ router.patch('/:assessmentId', requireRole('teacher', 'administrator'), asyncRou
 
 router.delete('/:assessmentId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const assessmentId = asUuid(req.params.assessmentId, 'assessmentId')
-  const { data: current, error: currentError } = await supabase.from('assessment').select('course_id').eq('assessment_id', assessmentId).maybeSingle()
+  const { data: current, error: currentError } = await supabase.from('assessment').select('course_id,academic_year,semester').eq('assessment_id', assessmentId).maybeSingle()
   if (currentError) throw currentError
   if (!current) throw new ApiError(404, 'Assessment not found')
-  await assertTeacherOwnsCourse(current.course_id, req)
+  await assertTeacherOwnsCourse(current.course_id, req, { academic_year: current.academic_year, semester: current.semester })
   const { error } = await supabase.from('assessment').delete().eq('assessment_id', assessmentId)
   if (error) throw error
   return res.status(204).send()

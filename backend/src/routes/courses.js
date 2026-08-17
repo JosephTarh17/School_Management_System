@@ -1,7 +1,7 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ApiError, asAcademicYear, asNumber, asSemester, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ApiError, asNumber, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { studentCourseIdsForUser, teacherCourseIdsForUser } from '../lib/enrollmentScope.js'
 
 const router = express.Router()
@@ -19,7 +19,7 @@ router.get('/', asyncRoute(async (req, res) => {
     const courseIds = await studentCourseIdsForUser(req.user.user_id)
     if (!courseIds.length) return sendData(res, [])
     query = query.in('course_id', courseIds)
-  } else if (req.user.role === 'teacher' && req.query.purpose !== 'session_creation') {
+  } else if (req.user.role === 'teacher') {
     const courseIds = await teacherCourseIdsForUser(req.user.user_id)
     if (!courseIds.length) return sendData(res, [])
     query = query.in('course_id', courseIds)
@@ -45,24 +45,20 @@ router.get('/:courseId', asyncRoute(async (req, res) => {
   return sendData(res, exposeCourse(data))
 }))
 
-router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
+router.post('/', requireRole('administrator'), asyncRoute(async (req, res) => {
   const course_name = asText(req.body?.course_name, 'course_name', { max: 160 })
   const course_code = asText(req.body?.course_code, 'course_code', { max: 40 }).toUpperCase()
-  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
-  const semester = asSemester(req.body?.semester, 'semester')
   const credit_units = asNumber(req.body?.credit_units, 'credit_units', { optional: true, min: 0, max: 100, integer: true })
-  const { data, error } = await supabase.from('course').insert({ course_name, course_code, academic_year, semester, credit_units }).select(select).single()
+  const { data, error } = await supabase.from('course').insert({ course_name, course_code, credit_units }).select(select).single()
   if (error) throw error
   return sendData(res, exposeCourse(data), 201)
 }))
 
-router.patch('/:courseId', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
+router.patch('/:courseId', requireRole('administrator'), asyncRoute(async (req, res) => {
   const courseId = asUuid(req.params.courseId, 'courseId')
   const updates = {}
   if (req.body?.course_name !== undefined) updates.course_name = asText(req.body.course_name, 'course_name', { max: 160 })
   if (req.body?.course_code !== undefined) updates.course_code = asText(req.body.course_code, 'course_code', { max: 40 }).toUpperCase()
-  if (req.body?.academic_year !== undefined || req.body?.year !== undefined) updates.academic_year = asAcademicYear(req.body.academic_year ?? req.body.year, 'academic_year')
-  if (req.body?.semester !== undefined) updates.semester = asSemester(req.body.semester, 'semester')
   if (req.body?.credit_units !== undefined) updates.credit_units = asNumber(req.body.credit_units, 'credit_units', { optional: true, min: 0, max: 100, integer: true })
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('course').update(updates).eq('course_id', courseId).select(select).single()

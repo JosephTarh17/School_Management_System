@@ -88,7 +88,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
-import { cancelCourseRegistration, fetchCourseRegistrationRequests, fetchRegistrationCatalog, fetchRegistrationEligibility, submitCourseRegistration } from '../api.js'
+import { cancelCourseRegistration, fetchCourseRegistrationRequests, fetchCurrentAcademicPeriod, fetchRegistrationCatalog, fetchRegistrationEligibility, submitCourseRegistration } from '../api.js'
 import { countLabel } from '../lib/formatters.js'
 
 const semesters = ['Semester 1', 'Semester 2']
@@ -120,7 +120,7 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   const token = authStore.token.value
-  const [catalogResult, eligibilityResult] = await Promise.all([fetchRegistrationCatalog(token, { academic_year: academicYear.value, semester: semester.value }), fetchRegistrationEligibility(token)])
+  const [catalogResult, eligibilityResult] = await Promise.all([fetchRegistrationCatalog(token, { academic_year: academicYear.value, semester: semester.value }), fetchRegistrationEligibility(token, { academic_year: academicYear.value, semester: semester.value })])
   if (catalogResult.ok) catalog.value = catalogResult.data || []
   else errorMessage.value = catalogResult.error || 'Unable to load course catalog.'
   if (eligibilityResult.ok) eligibility.value = eligibilityResult.data || eligibility.value
@@ -145,6 +145,15 @@ async function cancelRequest(requestId) {
   else await loadRequests()
 }
 
-onMounted(loadData)
+async function initialize() {
+  const result = await fetchCurrentAcademicPeriod(authStore.token.value)
+  if (result.ok) {
+    academicYear.value = result.data.academic_year
+    semester.value = result.data.semester
+  } else errorMessage.value = result.error || 'Unable to load the current academic period.'
+  await loadData()
+}
+
+onMounted(initialize)
 watch([academicYear, semester], loadData)
 </script>

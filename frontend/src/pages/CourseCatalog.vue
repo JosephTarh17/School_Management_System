@@ -3,18 +3,16 @@
     <div class="flex items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Academic Course Catalog</h1>
-        <p class="text-xs text-slate-500 font-geist mt-1">Courses currently available from the institutional database.</p>
+        <p class="text-xs text-slate-500 font-geist mt-1">Courses are created by administrators and selected by teachers for their academic-period offering.</p>
       </div>
       <button v-if="canManage" @click="showForm = !showForm" class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-eight shadow-xs font-geist">{{ showForm ? 'Close Form' : 'Add Course' }}</button>
     </div>
 
-    <form v-if="showForm" @submit.prevent="createNewCourse" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs grid grid-cols-1 md:grid-cols-4 gap-3">
+    <form v-if="showForm" @submit.prevent="createNewCourse" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-3">
       <input v-model="form.course_name" required placeholder="Course name" class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model="form.course_code" required placeholder="Course code" class="px-3 py-2 border rounded-lg text-sm" />
-      <input v-model.number="form.academic_year" type="number" min="2000" max="9999" required placeholder="Academic year e.g. 2026" class="px-3 py-2 border rounded-lg text-sm" />
-      <select v-model="form.semester" required class="px-3 py-2 border rounded-lg text-sm"><option value="">Select semester</option><option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option></select>
       <input v-model.number="form.credit_units" type="number" min="0" placeholder="Credits" class="px-3 py-2 border rounded-lg text-sm" />
-      <button :disabled="saving" class="md:col-span-4 justify-self-start px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Course' }}</button>
+      <button :disabled="saving" class="md:col-span-3 justify-self-start px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Course' }}</button>
     </form>
 
     <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
@@ -28,7 +26,7 @@
             <span class="text-xs font-semibold text-slate-600 font-geist">{{ c.credit_units ?? '—' }} Credits</span>
           </div>
           <h3 class="text-base font-bold text-slate-900 font-sans mb-1">{{ c.course_name }}</h3>
-          <p class="text-xs text-slate-600 font-sans mb-3">Academic period: {{ c.academic_year || 'Year not assigned' }} · {{ c.semester || 'Semester not assigned' }}</p>
+          <p class="text-xs text-slate-600 font-sans mb-3">Catalog course · academic period selected when a teacher takes the course</p>
           <div v-if="canDelete" class="border-t border-slate-200 pt-3"><button @click="removeCourse(c.course_id)" class="text-xs text-red-700 font-semibold">Delete course</button></div>
         </div>
       </div>
@@ -42,13 +40,12 @@ import { authStore } from '../store/auth'
 import { createCourse, deleteCourse, fetchCourses } from '../api.js'
 
 const catalog = ref([])
-const semesters = ['Semester 1', 'Semester 2']
 const loading = ref(true)
 const saving = ref(false)
 const showForm = ref(false)
 const errorMessage = ref('')
-const form = reactive({ course_name: '', course_code: '', academic_year: 2026, semester: '', credit_units: null })
-const canManage = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
+const form = reactive({ course_name: '', course_code: '', credit_units: null })
+const canManage = computed(() => authStore.userRole.value === 'administrator')
 const canDelete = computed(() => authStore.userRole.value === 'administrator')
 
 async function loadCourses() {
@@ -67,7 +64,7 @@ async function createNewCourse() {
   if (!result.ok) errorMessage.value = result.error || 'Unable to create course.'
   else {
     catalog.value.push(result.data)
-    Object.assign(form, { course_name: '', course_code: '', academic_year: 2026, semester: '', credit_units: null })
+    Object.assign(form, { course_name: '', course_code: '', credit_units: null })
     showForm.value = false
   }
   saving.value = false

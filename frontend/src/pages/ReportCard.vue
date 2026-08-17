@@ -17,7 +17,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
-import { fetchGuardianChildren, fetchReportCard } from '../api.js'
+import { fetchCurrentAcademicPeriod, fetchGuardianChildren, fetchReportCard } from '../api.js'
 
 const currentUser = computed(() => authStore.user.value)
 const isGuardian = computed(() => authStore.userRole.value === 'guardian')
@@ -39,6 +39,16 @@ async function load() {
   else if (result.data?.report_cards?.length) reportCard.value = { ...result.data.calculation, ...result.data.report_cards[0] }
 }
 function printReport() { window.print() }
-onMounted(async () => { if (isGuardian.value) { const result = await fetchGuardianChildren(authStore.token.value); if (result.ok) { children.value = result.data || []; selectedStudentId.value = children.value[0]?.student_id || '' } } else await load() })
+onMounted(async () => {
+  const periodResult = await fetchCurrentAcademicPeriod(authStore.token.value)
+  if (periodResult.ok) {
+    academicYear.value = periodResult.data.academic_year
+    semester.value = periodResult.data.semester
+  } else errorMessage.value = periodResult.error || 'Unable to load the current academic period.'
+  if (isGuardian.value) {
+    const result = await fetchGuardianChildren(authStore.token.value)
+    if (result.ok) { children.value = result.data || []; selectedStudentId.value = children.value[0]?.student_id || '' }
+  } else await load()
+})
 watch(selectedStudentId, load)
 </script>

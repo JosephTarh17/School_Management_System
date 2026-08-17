@@ -20,7 +20,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { authStore } from '../store/auth'
-import { fetchGradingReview, fetchStudents, publishGradingAssessment, generateReportCard, publishReportCard } from '../api.js'
+import { fetchCurrentAcademicPeriod, fetchGradingReview, fetchStudents, publishGradingAssessment, generateReportCard, publishReportCard } from '../api.js'
 
 const token = () => authStore.token.value
 const semesters = ['Semester 1', 'Semester 2']
@@ -43,5 +43,14 @@ async function load() { errorMessage.value = ''; message.value = ''; const resul
 async function publishAssessment(assessment) { busy.value = true; errorMessage.value = ''; message.value = ''; try { const result = await publishGradingAssessment(token(), assessment.assessment_id); if (!result.ok) throw new Error(result.error); message.value = `${assessmentLabel(assessment)} published successfully.`; await load() } catch (error) { errorMessage.value = error.message || 'Unable to publish assessment.' } finally { busy.value = false } }
 async function generateCard() { busy.value = true; errorMessage.value = ''; try { const result = await generateReportCard(token(), selectedStudentId.value, { academic_year: academicYear.value, semester: semester.value }); if (!result.ok) throw new Error(result.error); cardSummary.value = result.data?.report_card || null; message.value = 'Report card generated for administrator review.' } catch (error) { errorMessage.value = error.message || 'Unable to generate report card.' } finally { busy.value = false } }
 async function publishCard() { busy.value = true; errorMessage.value = ''; try { const result = await publishReportCard(token(), selectedStudentId.value, { academic_year: academicYear.value, semester: semester.value }); if (!result.ok) throw new Error(result.error); cardSummary.value = result.data?.report_card || null; message.value = 'Final report card published.' } catch (error) { errorMessage.value = error.message || 'Unable to publish report card.' } finally { busy.value = false } }
-onMounted(async () => { const studentsResult = await fetchStudents(token()); if (studentsResult.ok) students.value = studentsResult.data || []; await load() })
+onMounted(async () => {
+  const periodResult = await fetchCurrentAcademicPeriod(token())
+  if (periodResult.ok) {
+    academicYear.value = periodResult.data.academic_year
+    semester.value = periodResult.data.semester
+  } else errorMessage.value = periodResult.error || 'Unable to load the current academic period.'
+  const studentsResult = await fetchStudents(token())
+  if (studentsResult.ok) students.value = studentsResult.data || []
+  await load()
+})
 </script>

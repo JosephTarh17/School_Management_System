@@ -156,7 +156,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth.js'
-import { createClassSession, fetchAttendance, fetchClassSessionResources, fetchClassSessions, fetchStudents, saveAttendanceBatch } from '../api.js'
+import { createClassSession, fetchAttendance, fetchClassSessionResources, fetchClassSessions, fetchCurrentAcademicPeriod, fetchStudents, saveAttendanceBatch } from '../api.js'
 
 const statuses = ['Present', 'Late', 'Absent', 'Excused']
 const semesters = ['Semester 1', 'Semester 2']
@@ -171,6 +171,7 @@ const saving = ref(false)
 const showCreatePanel = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const currentPeriod = reactive({ academic_year: 2026, semester: 'Semester 1' })
 const newSession = reactive({ course_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' })
 
 const selectedSession = computed(() => sessions.value.find((session) => session.session_id === selectedSessionId.value) || null)
@@ -203,7 +204,7 @@ function getActiveStatusBtnClass(status) {
 }
 
 function resetNewSession() {
-  Object.assign(newSession, { course_id: '', room_id: '', academic_year: 2026, semester: 'Semester 1', start_time: '', end_time: '', recurrence_pattern: '' })
+  Object.assign(newSession, { course_id: '', room_id: '', academic_year: currentPeriod.academic_year, semester: currentPeriod.semester, start_time: '', end_time: '', recurrence_pattern: '' })
 }
 
 async function loadRoster() {
@@ -225,13 +226,21 @@ async function loadRoster() {
   }))
 }
 
+async function loadResourcesForPeriod() {
+  const result = await fetchClassSessionResources(authStore.token.value, { academic_year: newSession.academic_year, semester: newSession.semester })
+  if (!result.ok) throw new Error(result.error || 'Unable to load available courses')
+  availableCourses.value = result.data?.courses || []
+  rooms.value = result.data?.rooms || rooms.value
+  if (!availableCourses.value.some((course) => course.course_id === newSession.course_id)) newSession.course_id = ''
+}
+
 async function loadData() {
   loading.value = true
   errorMessage.value = ''
   try {
     const [sessionsResult, resourcesResult] = await Promise.all([
       fetchClassSessions(authStore.token.value),
-      fetchClassSessionResources(authStore.token.value),
+      fetchClassSessionResources(authStore.token.value, { academic_year: newSession.academic_year, semester: newSession.semester }),
     ])
     if (!sessionsResult.ok) throw new Error(sessionsResult.error || 'Unable to load class sessions')
     if (!resourcesResult.ok) throw new Error(resourcesResult.error || 'Unable to load session resources')
@@ -317,5 +326,25 @@ watch([selectedSessionId, sessionDate], async ([sessionId, date], [previousSessi
   }
 })
 
-onMounted(loadData)
+async function initialize() {
+  const periodResult = await fetchCurrentAcademicPeriod(authStore.token.value)
+  if (periodResult.ok) {
+    Object.assign(currentPeriod, periodResult.data || {})
+    newSession.academic_year = currentPeriod.academic_year
+    newSession.semester = currentPeriod.semester
+  } else {
+    errorMessage.value = periodResult.error || 'Unable to load the current academic period.'
+  }
+  await loadData()
+}
+
+onMounted(initialize)
+watch([() => newSession.academic_year, () => newSession.semester], async () => {
+  if (loading.value || saving.value) return
+  try {
+    await loadResourcesForPeriod()
+  } catch (error) {
+    errorMessage.value = error.message || 'Unable to load available courses'
+  }
+})
 </script>

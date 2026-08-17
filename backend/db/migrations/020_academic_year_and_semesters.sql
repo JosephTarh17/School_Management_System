@@ -67,14 +67,6 @@ DECLARE
   invalid_value text;
 BEGIN
   SELECT coalesce(term, '<NULL>') INTO invalid_value
-  FROM course
-  WHERE term IS NULL OR sms_migration_020_year(term) IS NULL OR sms_migration_020_semester(term) IS NULL
-  LIMIT 1;
-  IF invalid_value IS NOT NULL THEN
-    RAISE EXCEPTION 'Migration 020 stopped: course.term value % cannot be mapped. Correct the course row first.', invalid_value;
-  END IF;
-
-  SELECT coalesce(term, '<NULL>') INTO invalid_value
   FROM assessment
   WHERE term IS NOT NULL AND (sms_migration_020_year(term) IS NULL OR sms_migration_020_semester(term) IS NULL)
   LIMIT 1;
@@ -136,13 +128,13 @@ INSERT INTO academic_period_legacy_term_backup (source_table, source_id, legacy_
 SELECT 'report_card', report_card_id, term FROM report_card
 ON CONFLICT (source_table, source_id) DO NOTHING;
 
-UPDATE course
-SET academic_year = sms_migration_020_year(term),
-    semester = sms_migration_020_semester(term);
+-- Catalog courses are not tied to one period. Preserve their legacy values only
+-- in the backup table; the teacher offering assigns the academic period later.
+UPDATE course SET academic_year = NULL, semester = NULL;
 
 UPDATE assessment a
-SET academic_year = coalesce(sms_migration_020_year(a.term), c.academic_year),
-    semester = coalesce(sms_migration_020_semester(a.term), c.semester)
+SET academic_year = coalesce(sms_migration_020_year(a.term), sms_migration_020_year(c.term)),
+    semester = coalesce(sms_migration_020_semester(a.term), sms_migration_020_semester(c.term))
 FROM course c
 WHERE c.course_id = a.course_id;
 
@@ -155,16 +147,13 @@ SET academic_year = sms_migration_020_year(term),
     semester = sms_migration_020_semester(term);
 
 UPDATE class_session cs
-SET academic_year = c.academic_year,
-    semester = c.semester
+SET academic_year = sms_migration_020_year(c.term),
+    semester = sms_migration_020_semester(c.term)
 FROM course c
 WHERE c.course_id = cs.course_id;
 
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM course WHERE academic_year IS NULL OR semester IS NULL) THEN
-    RAISE EXCEPTION 'Migration 020 stopped: one or more courses could not receive an academic year and semester.';
-  END IF;
   IF EXISTS (SELECT 1 FROM assessment WHERE academic_year IS NULL OR semester IS NULL) THEN
     RAISE EXCEPTION 'Migration 020 stopped: one or more assessments could not receive an academic year and semester.';
   END IF;
@@ -210,8 +199,8 @@ ALTER TABLE assessment DROP COLUMN IF EXISTS term;
 ALTER TABLE course_registration_request DROP COLUMN IF EXISTS term;
 ALTER TABLE report_card DROP COLUMN IF EXISTS term;
 
-ALTER TABLE course ALTER COLUMN academic_year SET NOT NULL;
-ALTER TABLE course ALTER COLUMN semester SET NOT NULL;
+ALTER TABLE course ALTER COLUMN academic_year DROP NOT NULL;
+ALTER TABLE course ALTER COLUMN semester DROP NOT NULL;
 ALTER TABLE assessment ALTER COLUMN academic_year SET NOT NULL;
 ALTER TABLE assessment ALTER COLUMN semester SET NOT NULL;
 ALTER TABLE course_registration_request ALTER COLUMN academic_year SET NOT NULL;
@@ -226,10 +215,10 @@ ALTER TABLE class_session ALTER COLUMN semester SET NOT NULL;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'course_academic_year_check') THEN
-    ALTER TABLE course ADD CONSTRAINT course_academic_year_check CHECK (academic_year BETWEEN 2000 AND 9999);
+    ALTER TABLE course ADD CONSTRAINT course_academic_year_check CHECK (academic_year IS NULL OR academic_year BETWEEN 2000 AND 9999);
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'course_semester_check') THEN
-    ALTER TABLE course ADD CONSTRAINT course_semester_check CHECK (semester IN ('Semester 1', 'Semester 2'));
+    ALTER TABLE course ADD CONSTRAINT course_semester_check CHECK (semester IS NULL OR semester IN ('Semester 1', 'Semester 2'));
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'assessment_academic_year_check') THEN
     ALTER TABLE assessment ADD CONSTRAINT assessment_academic_year_check CHECK (academic_year BETWEEN 2000 AND 9999);
@@ -329,8 +318,6 @@ BEGIN
     FROM unnest(p_course_ids) AS selected(course_id)
     LEFT JOIN course c ON c.course_id = selected.course_id
     WHERE c.course_id IS NULL
-       OR c.academic_year <> p_academic_year
-       OR c.semester <> trim(p_semester)
   ) THEN
     RAISE EXCEPTION 'One or more selected courses are unavailable for this academic period' USING ERRCODE = 'P0001';
   END IF;
@@ -401,16 +388,6 @@ BEGIN
   END IF;
 
   IF EXISTS (
-    SELECT 1
-    FROM course_registration_item ri
-    JOIN course c ON c.course_id = ri.course_id
-    WHERE ri.registration_request_id = p_request_id
-      AND (c.academic_year <> v_request.academic_year OR c.semester <> v_request.semester)
-  ) THEN
-    RAISE EXCEPTION 'One or more requested courses are no longer available for this academic period' USING ERRCODE = 'P0001';
-  END IF;
-
-  IF EXISTS (
     SELECT 1 FROM course_registration_item ri
     JOIN enrollment e ON e.course_id = ri.course_id AND e.student_id = v_request.student_id
   ) THEN
@@ -439,8 +416,8 @@ $$;
 GRANT EXECUTE ON FUNCTION submit_course_registration(uuid, integer, text, uuid[]) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION approve_course_registration(uuid, uuid, text) TO anon, authenticated, service_role;
 
-COMMENT ON COLUMN course.academic_year IS 'Academic year, for example 2026.';
-COMMENT ON COLUMN course.semester IS 'Academic semester: Semester 1 or Semester 2.';
+COMMENT ON COLUMN course.academic_year IS 'Deprecated nullable compatibility field; academic year belongs to teacher_course_assignment and enrollment.';
+COMMENT ON COLUMN course.semester IS 'Deprecated nullable compatibility field; semester belongs to teacher_course_assignment and enrollment.';
 COMMENT ON COLUMN assessment.academic_year IS 'Academic year inherited from the course period.';
 COMMENT ON COLUMN assessment.semester IS 'Academic semester inherited from the course period.';
 COMMENT ON COLUMN course_registration_request.academic_year IS 'Academic year selected for the registration request.';

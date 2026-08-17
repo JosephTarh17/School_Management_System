@@ -23,6 +23,7 @@ import auditLogsRoutes from './routes/auditLogs.js'
 import translationsRoutes from './routes/translations.js'
 import cinetpayRoutes from './routes/cinetpay.js'
 import gradingRoutes from './routes/grading.js'
+import academicPeriodRoutes from './routes/academicPeriod.js'
 
 dotenv.config()
 
@@ -54,6 +55,7 @@ app.use('/audit-logs', auditLogsRoutes)
 app.use('/translations', translationsRoutes)
 app.use('/cinetpay', cinetpayRoutes)
 app.use('/grading', gradingRoutes)
+app.use('/academic-period', academicPeriodRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))

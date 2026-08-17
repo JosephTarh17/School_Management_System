@@ -40,7 +40,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { authStore } from '../store/auth'
-import { createAssessment, deleteAssessment, fetchAssessments, fetchCourses } from '../api.js'
+import { createAssessment, deleteAssessment, fetchAssessments, fetchCourses, fetchCurrentAcademicPeriod } from '../api.js'
 
 const assessments = ref([])
 const courses = ref([])
@@ -55,7 +55,7 @@ const canDelete = computed(() => ['teacher', 'administrator'].includes(authStore
 
 async function load() {
   loading.value = true
-  const [assessmentResult, courseResult] = await Promise.all([fetchAssessments(authStore.token.value), fetchCourses(authStore.token.value)])
+  const [assessmentResult, courseResult] = await Promise.all([fetchAssessments(authStore.token.value, { academic_year: form.academic_year, semester: form.semester }), fetchCourses(authStore.token.value, { academic_year: form.academic_year, semester: form.semester })])
   if (!assessmentResult.ok) errorMessage.value = assessmentResult.error || 'Unable to load assessments.'
   else assessments.value = assessmentResult.data || []
   if (courseResult.ok) courses.value = courseResult.data || []
@@ -65,7 +65,7 @@ async function createNewAssessment() {
   saving.value = true
   const result = await createAssessment(authStore.token.value, form)
   if (!result.ok) errorMessage.value = result.error || 'Unable to create assessment.'
-  else { assessments.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, academic_year: 2026, semester: 'Semester 1', max_score: 100, weight: 20, due_date: '' }) }
+  else { assessments.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, academic_year: form.academic_year, semester: form.semester, max_score: 100, weight: 20, due_date: '' }) }
   saving.value = false
 }
 async function removeAssessment(id) {
@@ -74,5 +74,14 @@ async function removeAssessment(id) {
   if (!result.ok) errorMessage.value = result.error || 'Unable to delete assessment.'
   else assessments.value = assessments.value.filter((item) => item.assessment_id !== id)
 }
-onMounted(load)
+async function initialize() {
+  const periodResult = await fetchCurrentAcademicPeriod(authStore.token.value)
+  if (periodResult.ok) {
+    form.academic_year = periodResult.data.academic_year
+    form.semester = periodResult.data.semester
+  } else errorMessage.value = periodResult.error || 'Unable to load the current academic period.'
+  await load()
+}
+
+onMounted(initialize)
 </script>

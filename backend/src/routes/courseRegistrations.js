@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ApiError, asAcademicYear, asEnum, asSemester, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { studentIdForUser } from '../lib/enrollmentScope.js'
+import { resolveAcademicPeriod } from '../lib/academicPeriod.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -58,26 +59,38 @@ router.get('/eligibility', requireRole('student'), asyncRoute(async (req, res) =
   if (!student) throw new ApiError(404, 'Student profile not found')
   const { data: setting, error: settingError } = await supabase.from('class_fee_setting').select('class_level,max_credits').eq('class_level', student.class_level).maybeSingle()
   if (settingError) throw settingError
-  const { data: enrollments, error: enrollmentError } = await supabase.from('enrollment').select('course(credit_units)').eq('student_id', studentId)
+  const { academic_year, semester } = await resolveAcademicPeriod(req.query)
+  let enrollmentQuery = supabase.from('enrollment').select('course(credit_units)').eq('student_id', studentId)
+  if (academic_year !== undefined) enrollmentQuery = enrollmentQuery.eq('academic_year', academic_year)
+  if (semester) enrollmentQuery = enrollmentQuery.eq('semester', semester)
+  const { data: enrollments, error: enrollmentError } = await enrollmentQuery
   if (enrollmentError) throw enrollmentError
   const enrolledCredits = (enrollments || []).reduce((sum, enrollment) => sum + Number(enrollment.course?.credit_units || 0), 0)
   return sendData(res, {
     student_id: studentId,
     class_level: student.class_level,
+    academic_year,
+    semester,
     max_credits: Number(setting?.max_credits || 0),
     enrolled_credits: enrolledCredits,
   })
 }))
 
 router.get('/catalog', asyncRoute(async (req, res) => {
-  const academic_year = req.query.academic_year || req.query.year ? asAcademicYear(req.query.academic_year ?? req.query.year, 'academic_year') : undefined
-  const semester = req.query.semester ? asSemester(req.query.semester, 'semester') : undefined
-  let query = supabase.from('course').select('course_id,course_name,course_code,academic_year,semester,credit_units').order('course_code')
-  if (academic_year !== undefined) query = query.eq('academic_year', academic_year)
-  if (semester) query = query.eq('semester', semester)
-  const { data, error } = await query
+  const { academic_year, semester } = await resolveAcademicPeriod(req.query)
+  const { data, error } = await supabase.from('teacher_course_assignment')
+    .select('course(course_id,course_name,course_code,credit_units),academic_year,semester,status')
+    .eq('academic_year', academic_year)
+    .eq('semester', semester)
+    .eq('status', 'active')
+    .order('course_id')
   if (error) throw error
-  return sendData(res, (data || []).map(exposeCourse))
+  const courses = (data || []).map((offering) => ({
+    ...(offering.course || {}),
+    academic_year: offering.academic_year,
+    semester: offering.semester,
+  }))
+  return sendData(res, courses.map(exposeCourse))
 }))
 
 router.get('/', asyncRoute(async (req, res) => {
@@ -100,8 +113,7 @@ router.get('/', asyncRoute(async (req, res) => {
 router.post('/', requireRole('student'), asyncRoute(async (req, res) => {
   const studentId = await studentIdForUser(req.user.user_id)
   if (!studentId) throw new ApiError(403, 'Student profile is not configured')
-  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
-  const semester = asSemester(req.body?.semester, 'semester')
+  const { academic_year, semester } = await resolveAcademicPeriod(req.body)
   const courseIds = courseIdsFromBody(req.body?.course_ids)
   const { data, error } = await supabase.rpc('submit_course_registration', {
     p_student_id: studentId,

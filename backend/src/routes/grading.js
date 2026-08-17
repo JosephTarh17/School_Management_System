@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asAcademicYear, asDate, asEnum, asNumber, asSemester, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { assertTeacherOwnsCourse } from '../lib/ownership.js'
 import { studentIdForUser, studentCourseIdsForUser, teacherCourseIdsForUser } from '../lib/enrollmentScope.js'
+import { resolveAcademicPeriod } from '../lib/academicPeriod.js'
 import { PASS_PERCENT, PASS_GPA, TEST_WEIGHT, FINAL_WEIGHT, assessmentWeight, calculateCourseResult, gpaForScore, letterGrade, round2, statusForRecord } from '../lib/grading.js'
 
 const router = express.Router()
@@ -23,13 +24,16 @@ async function assessmentFor(assessmentId) {
   return data
 }
 
-async function assertTeacherCanUseCourse(req, courseId) {
-  await assertTeacherOwnsCourse(courseId, req)
+async function assertTeacherCanUseCourse(req, courseId, period = {}) {
+  await assertTeacherOwnsCourse(courseId, req, period)
   return courseFor(courseId)
 }
 
-async function activeStudentsForCourse(courseId) {
-  const { data, error } = await supabase.from('enrollment').select('student_id,student(student_id,full_name)').eq('course_id', courseId).eq('status', 'active').order('student_id')
+async function activeStudentsForCourse(courseId, period = {}) {
+  let query = supabase.from('enrollment').select('student_id,student(student_id,full_name)').eq('course_id', courseId).eq('status', 'active').order('student_id')
+  if (period.academic_year !== undefined) query = query.eq('academic_year', period.academic_year)
+  if (period.semester) query = query.eq('semester', period.semester)
+  const { data, error } = await query
   if (error) throw error
   return data || []
 }
@@ -44,9 +48,12 @@ async function assessmentsForCourse(courseId, academic_year, semester) {
 }
 
 async function calculateStudentSemester(studentId, academic_year, semester, { publishedOnly = false } = {}) {
-  const { data: enrollments, error: enrollmentError } = await supabase.from('enrollment').select('course_id,course(*)').eq('student_id', studentId).eq('status', 'active')
+  let enrollmentQuery = supabase.from('enrollment').select('course_id,academic_year,semester,course(*)').eq('student_id', studentId).eq('status', 'active')
+  if (academic_year) enrollmentQuery = enrollmentQuery.eq('academic_year', academic_year)
+  if (semester) enrollmentQuery = enrollmentQuery.eq('semester', semester)
+  const { data: enrollments, error: enrollmentError } = await enrollmentQuery
   if (enrollmentError) throw enrollmentError
-  const courses = (enrollments || []).map((row) => row.course).filter(Boolean).filter((course) => (!academic_year || course.academic_year === academic_year) && (!semester || course.semester === semester))
+  const courses = (enrollments || []).map((row) => row.course ? { ...row.course, academic_year: row.academic_year, semester: row.semester } : null).filter(Boolean)
   const results = []
   for (const course of courses) {
     const assessments = await assessmentsForCourse(course.course_id, academic_year, semester)
@@ -72,8 +79,11 @@ async function calculateStudentSemester(studentId, academic_year, semester, { pu
   return { student_id: studentId, academic_year, semester, courses: results, overall_average: weightedScore, gpa, total_credits: totalCredits, earned_credits: passedCourses ? results.filter((result) => result.passed).reduce((sum, result) => sum + result.credit_units, 0) : 0, passed_courses: passedCourses, failed_courses: failedCourses, promotion_status: promotionStatus }
 }
 
-async function assertStudentCourseAccess(studentId, courseId) {
-  const { data, error } = await supabase.from('enrollment').select('enrollment_id').eq('student_id', studentId).eq('course_id', courseId).eq('status', 'active').maybeSingle()
+async function assertStudentCourseAccess(studentId, courseId, period = {}) {
+  let query = supabase.from('enrollment').select('enrollment_id').eq('student_id', studentId).eq('course_id', courseId).eq('status', 'active')
+  if (period.academic_year !== undefined) query = query.eq('academic_year', period.academic_year)
+  if (period.semester) query = query.eq('semester', period.semester)
+  const { data, error } = await query.maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError(400, 'The student is not actively registered for this course')
 }
@@ -89,17 +99,14 @@ async function assertGuardianStudent(guardianUserId, studentId) {
 
 router.get('/gradebook', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const courseId = asUuid(req.query.course_id, 'course_id')
-  const requestedAcademicYear = req.query.academic_year || req.query.year ? asAcademicYear(req.query.academic_year ?? req.query.year) : null
-  const requestedSemester = req.query.semester ? asSemester(req.query.semester) : null
+  const { academic_year, semester } = await resolveAcademicPeriod(req.query)
   const assessmentId = req.query.assessment_id ? asUuid(req.query.assessment_id, 'assessment_id') : null
-  if (req.user.role === 'teacher') await assertTeacherCanUseCourse(req, courseId)
-  const course = await courseFor(courseId)
-  const academic_year = requestedAcademicYear || course.academic_year
-  const semester = requestedSemester || course.semester
+  if (req.user.role === 'teacher') await assertTeacherCanUseCourse(req, courseId, { academic_year, semester })
+  const course = { ...(await courseFor(courseId)), academic_year, semester }
   const assessments = await assessmentsForCourse(courseId, academic_year, semester)
   const selectedAssessment = assessmentId ? assessments.find((assessment) => assessment.assessment_id === assessmentId) : assessments[0]
   if (assessmentId && !selectedAssessment) throw new ApiError(404, 'Assessment not found for this course and semester')
-  const students = await activeStudentsForCourse(courseId)
+  const students = await activeStudentsForCourse(courseId, { academic_year, semester })
   const selectedIds = selectedAssessment ? [selectedAssessment.assessment_id] : []
   let records = []
   if (selectedIds.length && students.length) {
@@ -122,8 +129,8 @@ router.post('/marks', requireRole('teacher'), asyncRoute(async (req, res) => {
   const student_id = asUuid(req.body?.student_id, 'student_id')
   const assessment_id = asUuid(req.body?.assessment_id, 'assessment_id')
   const assessment = await assessmentFor(assessment_id)
-  await assertTeacherCanUseCourse(req, assessment.course_id)
-  await assertStudentCourseAccess(student_id, assessment.course_id)
+  await assertTeacherCanUseCourse(req, assessment.course_id, { academic_year: assessment.academic_year, semester: assessment.semester })
+  await assertStudentCourseAccess(student_id, assessment.course_id, { academic_year: assessment.academic_year, semester: assessment.semester })
   if (assessment.published) throw new ApiError(400, 'This assessment has already been published and cannot be edited')
   const record_status = asEnum(req.body?.record_status || 'GRADED', 'record_status', ['GRADED', 'ABSENT_UNJUSTIFIED', 'ABSENT_JUSTIFIED'])
   const absence_reason = req.body?.absence_reason == null ? null : asText(req.body.absence_reason, 'absence_reason', { max: 1000 })
@@ -141,9 +148,9 @@ router.post('/marks', requireRole('teacher'), asyncRoute(async (req, res) => {
 
 router.post('/assessments/:assessmentId/confirm', requireRole('teacher'), asyncRoute(async (req, res) => {
   const assessment = await assessmentFor(asUuid(req.params.assessmentId, 'assessmentId'))
-  await assertTeacherCanUseCourse(req, assessment.course_id)
+  await assertTeacherCanUseCourse(req, assessment.course_id, { academic_year: assessment.academic_year, semester: assessment.semester })
   if (assessment.published) throw new ApiError(400, 'This assessment has already been published')
-  const students = await activeStudentsForCourse(assessment.course_id)
+  const students = await activeStudentsForCourse(assessment.course_id, { academic_year: assessment.academic_year, semester: assessment.semester })
   const { data: records, error: recordsError } = await supabase.from('academic_record').select('student_id,record_status').eq('assessment_id', assessment.assessment_id)
   if (recordsError) throw recordsError
   const recordIds = new Set((records || []).map((record) => record.student_id))
@@ -156,11 +163,8 @@ router.post('/assessments/:assessmentId/confirm', requireRole('teacher'), asyncR
 }))
 
 router.get('/review', requireRole('administrator'), asyncRoute(async (req, res) => {
-  const academic_year = req.query.academic_year || req.query.year ? asAcademicYear(req.query.academic_year ?? req.query.year) : null
-  const semester = req.query.semester ? asSemester(req.query.semester) : null
-  let query = supabase.from('assessment').select('*,course(course_id,course_code,course_name,academic_year,semester,credit_units)').order('course_id').order('assessment_type').order('assessment_number')
-  if (academic_year) query = query.eq('academic_year', academic_year)
-  if (semester) query = query.eq('semester', semester)
+  const { academic_year, semester } = await resolveAcademicPeriod(req.query)
+  let query = supabase.from('assessment').select('*,course(course_id,course_code,course_name,academic_year,semester,credit_units)').eq('academic_year', academic_year).eq('semester', semester).order('course_id').order('assessment_type').order('assessment_number')
   const { data: assessments, error: assessmentError } = await query
   if (assessmentError) throw assessmentError
   const assessmentIds = (assessments || []).map((assessment) => assessment.assessment_id)
@@ -198,18 +202,17 @@ router.post('/assessments/:assessmentId/unpublish', requireRole('administrator')
 
 router.get('/report-cards/:studentId', asyncRoute(async (req, res) => {
   const studentId = asUuid(req.params.studentId, 'studentId')
+  const { academic_year, semester } = await resolveAcademicPeriod(req.query)
   if (req.user.role === 'student') {
     const ownId = await studentIdForUser(req.user.user_id)
     if (ownId !== studentId) throw new ApiError(403, 'You do not have permission to view this report card')
   } else if (req.user.role === 'guardian') await assertGuardianStudent(req.user.user_id, studentId)
   else if (req.user.role === 'teacher') {
-    const courseIds = await teacherCourseIdsForUser(req.user.user_id)
-    const { data: enrollments, error } = await supabase.from('enrollment').select('course_id').eq('student_id', studentId).eq('status', 'active').in('course_id', courseIds)
+    const courseIds = await teacherCourseIdsForUser(req.user.user_id, { academic_year, semester })
+    const { data: enrollments, error } = await supabase.from('enrollment').select('course_id').eq('student_id', studentId).eq('academic_year', academic_year).eq('semester', semester).eq('status', 'active').in('course_id', courseIds)
     if (error) throw error
     if (!enrollments?.length) throw new ApiError(403, 'You do not have permission to view this report card')
   }
-  const academic_year = req.query.academic_year || req.query.year ? asAcademicYear(req.query.academic_year ?? req.query.year) : null
-  const semester = req.query.semester ? asSemester(req.query.semester) : null
   const calculation = await calculateStudentSemester(studentId, academic_year, semester, { publishedOnly: req.user.role === 'student' || req.user.role === 'guardian' })
   let cardQuery = supabase.from('report_card').select('*').eq('student_id', studentId)
   if (academic_year) cardQuery = cardQuery.eq('academic_year', academic_year)
@@ -223,8 +226,7 @@ router.get('/report-cards/:studentId', asyncRoute(async (req, res) => {
 
 router.post('/report-cards/:studentId/generate', requireRole('administrator'), asyncRoute(async (req, res) => {
   const studentId = asUuid(req.params.studentId, 'studentId')
-  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
-  const semester = asSemester(req.body?.semester, 'semester')
+  const { academic_year, semester } = await resolveAcademicPeriod(req.body)
   const calculation = await calculateStudentSemester(studentId, academic_year, semester)
   const { data, error } = await supabase.from('report_card').upsert({ student_id: studentId, academic_year, semester, status: 'ADMIN_REVIEW',
  overall_average: calculation.overall_average, gpa: calculation.gpa, total_credits: calculation.total_credits, earned_credits: calculation.earned_credits, passed_courses: calculation.passed_courses, failed_courses: calculation.failed_courses, promotion_status: calculation.promotion_status, administrator_comments: req.body?.administrator_comments ? asText(req.body.administrator_comments, 'administrator_comments', { max: 2000 }) : null, reviewed_by: req.user.user_id, reviewed_at: new Date().toISOString() }, { onConflict: 'student_id,academic_year,semester' }).select('*').single()
@@ -234,8 +236,7 @@ router.post('/report-cards/:studentId/generate', requireRole('administrator'), a
 
 router.post('/report-cards/:studentId/publish', requireRole('administrator'), asyncRoute(async (req, res) => {
   const studentId = asUuid(req.params.studentId, 'studentId')
-  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
-  const semester = asSemester(req.body?.semester, 'semester')
+  const { academic_year, semester } = await resolveAcademicPeriod(req.body)
   const calculation = await calculateStudentSemester(studentId, academic_year, semester)
   if (calculation.promotion_status === 'Incomplete') throw new ApiError(400, 'The report card cannot be published until all registered-course assessments have a mark or absence decision')
   if (calculation.courses.some((course) => course.assessments.some((item) => !item.published))) throw new ApiError(400, 'Every individual assessment must be reviewed and published before the final report card')
@@ -248,8 +249,7 @@ router.post('/report-cards/:studentId/publish', requireRole('administrator'), as
 
 router.post('/report-cards/:studentId/unpublish', requireRole('administrator'), asyncRoute(async (req, res) => {
   const studentId = asUuid(req.params.studentId, 'studentId')
-  const academic_year = asAcademicYear(req.body?.academic_year ?? req.body?.year, 'academic_year')
-  const semester = asSemester(req.body?.semester, 'semester')
+  const { academic_year, semester } = await resolveAcademicPeriod(req.body)
   const { data, error } = await supabase.from('report_card').update({ status: 'ADMIN_REVIEW', published_by: null, published_at: null }).eq('student_id', studentId).eq('academic_year', academic_year).eq('semester', semester).select('*').single()
   if (error) throw error
   return sendData(res, data)

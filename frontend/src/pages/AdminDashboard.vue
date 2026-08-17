@@ -19,6 +19,22 @@
       <StatCard title="Attendance Rate" :value="loading ? '…' : `${metrics.attendanceRate}%`" change="Recorded attendance" :changeIsPositive="metrics.attendanceRate >= 75" icon="fact_check" variant="amber" />
     </div>
 
+    <section class="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 shadow-xs sm:p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">Academic configuration</p>
+          <h2 class="mt-1 text-base font-bold text-slate-900 font-sans">Current academic period</h2>
+          <p class="mt-1 max-w-2xl text-xs leading-5 text-slate-600">This period is the default for teacher offerings, class sessions, registrations, assessments, enrollment, and grading. Historical periods remain available when explicitly selected.</p>
+        </div>
+        <form class="grid grid-cols-1 gap-3 sm:grid-cols-3" @submit.prevent="saveCurrentPeriod">
+          <label class="text-xs font-semibold text-slate-700">Academic year<input v-model.number="currentPeriod.academic_year" type="number" min="2000" max="9999" required class="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal" /></label>
+          <label class="text-xs font-semibold text-slate-700">Semester<select v-model="currentPeriod.semester" required class="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal"><option v-for="option in semesters" :key="option" :value="option">{{ option }}</option></select></label>
+          <button type="submit" :disabled="periodSaving" class="self-end rounded-eight bg-indigo-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{{ periodSaving ? 'Saving…' : 'Set current period' }}</button>
+        </form>
+      </div>
+      <p v-if="periodMessage" class="mt-3 text-xs font-semibold text-indigo-800" role="status">{{ periodMessage }}</p>
+    </section>
+
     <section class="rounded-xl border border-border-subtle bg-white p-4 shadow-xs sm:p-6">
       <div class="mb-4">
         <h2 class="text-base font-bold text-slate-900 font-sans">Add guardian account</h2>
@@ -83,7 +99,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import StatCard from '../components/StatCard.vue'
-import { createGuardian, fetchDashboardMetrics } from '../api.js'
+import { createGuardian, fetchCurrentAcademicPeriod, fetchDashboardMetrics, updateCurrentAcademicPeriod } from '../api.js'
 import { authStore } from '../store/auth.js'
 import { countLabel, pluralize } from '../lib/formatters.js'
 
@@ -93,6 +109,10 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const guardianForm = reactive({ full_name: '', email: '', password: '', phone: '', relationship: '' })
 const metrics = reactive({ students: 0, faculty: 0, courses: 0, attendanceRate: 0, sessions: 0, assessments: 0, attendanceRecords: 0, lastUpdated: '' })
+const semesters = ['Semester 1', 'Semester 2']
+const currentPeriod = reactive({ academic_year: 2026, semester: 'Semester 1' })
+const periodSaving = ref(false)
+const periodMessage = ref('')
 
 function formatNumber(value) {
   return new Intl.NumberFormat().format(Number(value) || 0)
@@ -114,6 +134,24 @@ async function loadMetrics() {
   loading.value = false
 }
 
+async function loadCurrentPeriod() {
+  const result = await fetchCurrentAcademicPeriod(authStore.token.value)
+  if (!result.ok) errorMessage.value = result.error || 'Unable to load the current academic period.'
+  else Object.assign(currentPeriod, result.data || {})
+}
+
+async function saveCurrentPeriod() {
+  periodSaving.value = true
+  periodMessage.value = ''
+  const result = await updateCurrentAcademicPeriod(authStore.token.value, currentPeriod)
+  if (!result.ok) periodMessage.value = result.error || 'Unable to update the current academic period.'
+  else {
+    Object.assign(currentPeriod, result.data || {})
+    periodMessage.value = `Current period set to ${currentPeriod.academic_year} · ${currentPeriod.semester}.`
+  }
+  periodSaving.value = false
+}
+
 async function createGuardianProfile() {
   errorMessage.value = ''
   successMessage.value = ''
@@ -128,5 +166,5 @@ async function createGuardianProfile() {
   guardianSaving.value = false
 }
 
-onMounted(loadMetrics)
+onMounted(async () => { await Promise.all([loadMetrics(), loadCurrentPeriod()]) })
 </script>

@@ -83,6 +83,9 @@ erDiagram
     CLASS_SESSION ||--o{ PARTICIPATION_LOG : monitors
     ROOM ||--o{ CLASS_SESSION : assigned
     ACADEMIC_RECORD ||--|| ASSESSMENT : belongs_to
+    ACADEMIC_PERIOD_SETTINGS ||--o{ TEACHER_COURSE_ASSIGNMENT : defaults
+    ACADEMIC_PERIOD_SETTINGS ||--o{ CLASS_SESSION : defaults
+    ACADEMIC_PERIOD_SETTINGS ||--o{ ENROLLMENT : defaults
 
     USER_ACCOUNT {
         string user_id PK
@@ -134,11 +137,17 @@ erDiagram
         string department
     }
 
+    ACADEMIC_PERIOD_SETTINGS {
+        int setting_id PK
+        int academic_year
+        string semester
+        datetime updated_at
+    }
+
     COURSE {
         string course_id PK
         string course_name
         string course_code
-        string term
         int credit_units
     }
 
@@ -149,10 +158,21 @@ erDiagram
         int capacity
     }
 
+    TEACHER_COURSE_ASSIGNMENT {
+        string assignment_id PK
+        string teacher_id FK
+        string course_id FK
+        int academic_year
+        string semester
+        string status
+    }
+
     CLASS_SESSION {
         string session_id PK
         string course_id FK
         string teacher_id FK
+        int academic_year
+        string semester
         string room_id FK
         string substitute_teacher_id FK
         datetime start_time

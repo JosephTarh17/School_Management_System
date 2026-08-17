@@ -84,10 +84,38 @@ CREATE TABLE course (
   course_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   course_name text NOT NULL,
   course_code text NOT NULL UNIQUE,
-  academic_year integer NOT NULL CHECK (academic_year BETWEEN 2000 AND 9999),
-  semester text NOT NULL CHECK (semester IN ('Semester 1', 'Semester 2')),
+  academic_year integer CHECK (academic_year IS NULL OR academic_year BETWEEN 2000 AND 9999),
+  semester text CHECK (semester IS NULL OR semester IN ('Semester 1', 'Semester 2')),
   credit_units integer CHECK (credit_units IS NULL OR credit_units >= 0)
 );
+
+CREATE TABLE teacher_course_assignment (
+  assignment_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id uuid NOT NULL REFERENCES teacher(teacher_id) ON DELETE CASCADE,
+  course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+  academic_year integer NOT NULL CHECK (academic_year BETWEEN 2000 AND 9999),
+  semester text NOT NULL CHECK (semester IN ('Semester 1', 'Semester 2')),
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  assigned_at timestamptz NOT NULL DEFAULT now(),
+  assigned_by uuid REFERENCES user_account(user_id) ON DELETE SET NULL,
+  UNIQUE(teacher_id, course_id, academic_year, semester)
+);
+
+CREATE UNIQUE INDEX uq_teacher_course_assignment_period
+  ON teacher_course_assignment(course_id, academic_year, semester)
+  WHERE status = 'active';
+
+CREATE TABLE academic_period_settings (
+  setting_id smallint PRIMARY KEY CHECK (setting_id = 1),
+  academic_year integer NOT NULL CHECK (academic_year BETWEEN 2000 AND 9999),
+  semester text NOT NULL CHECK (semester IN ('Semester 1', 'Semester 2')),
+  updated_by uuid REFERENCES user_account(user_id) ON DELETE SET NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO academic_period_settings (setting_id, academic_year, semester)
+VALUES (1, 2026, 'Semester 1')
+ON CONFLICT (setting_id) DO NOTHING;
 
 CREATE TABLE room (
   room_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -107,6 +135,7 @@ CREATE TABLE class_session (
   academic_year integer NOT NULL DEFAULT 2026 CHECK (academic_year BETWEEN 2000 AND 9999),
   semester text NOT NULL DEFAULT 'Semester 1' CHECK (semester IN ('Semester 1', 'Semester 2')),
   recurrence_pattern text,
+  assignment_id uuid REFERENCES teacher_course_assignment(assignment_id) ON DELETE SET NULL,
   CHECK (start_time < end_time)
 );
 
@@ -137,10 +166,12 @@ CREATE TABLE final_grade (
   final_grade_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id uuid NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
   course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+  academic_year integer NOT NULL CHECK (academic_year BETWEEN 2000 AND 9999),
+  semester text NOT NULL CHECK (semester IN ('Semester 1', 'Semester 2')),
   computed_score numeric(6,2) CHECK (computed_score IS NULL OR computed_score BETWEEN 0 AND 100),
   letter_grade text,
   gpa numeric(3,2) CHECK (gpa IS NULL OR gpa BETWEEN 0 AND 4.00),
-  UNIQUE(student_id, course_id)
+  UNIQUE(student_id, course_id, academic_year, semester)
 );
 
 CREATE TABLE participation_log (

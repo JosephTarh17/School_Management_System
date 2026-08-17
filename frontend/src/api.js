@@ -89,6 +89,14 @@ export async function fetchTranslations(token, texts, targetLanguage = 'fr') {
   return requestJson('/translations', { method: 'POST', token, body: { texts, targetLanguage } })
 }
 
+export async function fetchCurrentAcademicPeriod(token) {
+  return requestJson('/academic-period', { token })
+}
+
+export async function updateCurrentAcademicPeriod(token, body) {
+  return requestJson('/academic-period', { method: 'PATCH', token, body })
+}
+
 export async function fetchAttendance(token) {
   return requestJson('/attendance', { token })
 }
@@ -173,8 +181,9 @@ export async function deleteEnrollment(token, enrollmentId) {
   return requestJson(`/enrollments/${enrollmentId}`, { method: 'DELETE', token })
 }
 
-export async function fetchRegistrationEligibility(token) {
-  return requestJson('/course-registrations/eligibility', { token })
+export async function fetchRegistrationEligibility(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/course-registrations/eligibility${query.toString() ? `?${query}` : ''}`, { token })
 }
 
 export async function fetchRegistrationCatalog(token, params = {}) {
@@ -314,8 +323,9 @@ export async function fetchClassSessions(token) {
   return requestJson('/class-sessions', { token })
 }
 
-export async function fetchClassSessionResources(token) {
-  return requestJson('/class-sessions/resources', { token })
+export async function fetchClassSessionResources(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/class-sessions/resources${query.toString() ? `?${query.toString()}` : ''}`, { token })
 }
 
 export async function createClassSession(token, body) {

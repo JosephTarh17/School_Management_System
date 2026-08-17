@@ -82,13 +82,19 @@ The functional requirements specify the expected behavior of the system, definin
 
 ### 3.3 Class Session Management Module
 * **REQ-SES-01 (Priority: Medium):** The system shall enable administrators to schedule recurring and one-off class sessions, allocating classrooms, time slots, assigned instructors, academic years, and Semester 1 or Semester 2 without scheduling conflicts.
-* **REQ-SES-02 (Priority: High):** Teachers shall create class sessions from Teacher Attendance by selecting a course, room, academic year, semester, start time, and end time; the authenticated teacher shall be assigned automatically and the new session shall become available for attendance entry.
+* **REQ-SES-02 (Priority: High):** Teachers shall create class sessions from Teacher Attendance by selecting an administrator-created course from the available-course list, room, academic year, semester, start time, and end time; the authenticated teacher shall be assigned automatically and the new session shall become available for attendance entry.
+* **REQ-OFR-01 (Priority: High):** Administrators shall create and maintain catalog courses. Teachers shall not create, edit, or delete catalog courses.
+* **REQ-OFR-02 (Priority: High):** The system shall permit only one active teacher to offer a given course in the same academic year and semester, while allowing a different teacher to offer that course in another semester.
+* **REQ-OFR-03 (Priority: High):** Enrollment and final-grade uniqueness shall include academic year and semester, allowing a student to retake the same course in a later semester with a separate cohort and academic result.
+* **REQ-OFR-04 (Priority: High):** Administrators shall change the current academic year and semester from the Administrator Dashboard. The singleton current-period setting shall supply the default for active teacher offerings, class sessions, registrations, assessments, enrollment, and grading, while historical periods remain selectable when explicitly required.
     * *Inputs:* Course ID, Instructor ID, Room ID, Start Time, End Time, Academic Year, Semester (`Semester 1` or `Semester 2`).
     * *Data Source:* Teacher Attendance workflow or administrator scheduling console.
     * *Valid Range:* Start Time < End Time; Room and Instructor must not have overlapping bookings during the specified time slot.
     * *Outputs:* Confirmed timetable entry; conflict error message if double-booking is detected.
 
-### 3.4 Student Participation Module
+### 3.4 Course Offerings, Registration, and Student Participation Module
+* **REQ-REG-01 (Priority: High):** Students shall see and select only courses with an active teacher offering for the chosen academic year and semester. A registration request shall be period-specific, and the same course may be registered again in a later semester as a retake.
+
 * **REQ-PAR-01 (Priority: Medium):** The system shall provide teachers with an interface to record qualitative participation scores and qualitative engagement notes for students during active class sessions.
     * *Inputs:* Session ID, Student ID, Participation Rating (`Active`, `Moderate`, `Passive`, `Disruptive`), Optional Text Notes.
     * *Data Source:* Teacher active session dashboard.

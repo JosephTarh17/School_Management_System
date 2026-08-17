@@ -76,7 +76,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
-import { fetchCourses, fetchGradingGradebook, saveGradingMark, confirmGradingAssessment } from '../api.js'
+import { fetchCourses, fetchCurrentAcademicPeriod, fetchGradingGradebook, saveGradingMark, confirmGradingAssessment } from '../api.js'
 
 const courses = ref([])
 const assessments = ref([])
@@ -163,7 +163,12 @@ async function confirmAssessment() {
 watch(selectedCourseId, async () => { selectedAssessmentId.value = ''; await loadGradebook() })
 watch(selectedAssessmentId, loadGradebook)
 onMounted(async () => {
-  const result = await fetchCourses(token())
+  const periodResult = await fetchCurrentAcademicPeriod(token())
+  if (periodResult.ok) {
+    academicYear.value = periodResult.data.academic_year
+    semester.value = periodResult.data.semester
+  } else errorMessage.value = periodResult.error || 'Unable to load the current academic period.'
+  const result = await fetchCourses(token(), { academic_year: academicYear.value, semester: semester.value })
   if (result.ok) { courses.value = result.data || []; selectedCourseId.value = courses.value[0]?.course_id || '' }
 })
 </script>

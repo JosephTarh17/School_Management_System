@@ -2,7 +2,7 @@
 
 ## Scope
 
-This feature adds academic-year and semester-aware grading for actively registered students, an Excel-like teacher gradebook, administrator review and publication for every individual assessment, credit-weighted GPA calculation, and published report-card views for students and linked guardians.
+This feature adds academic-year and semester-aware grading for actively registered students, an Excel-like teacher gradebook, administrator review and publication for every individual assessment, credit-weighted GPA calculation, and published report-card views for students and linked guardians. The administrator-selected current academic period supplies the default year and semester for active grading workflows.
 
 ## Grading rules
 
@@ -18,7 +18,7 @@ GPA = sum(course GPA × course credits) / sum(course credits)
 
 ## Workflow
 
-1. A teacher selects a course, academic year, and semester in **Gradebook**.
+1. A teacher selects an administrator-created course offering in **Gradebook**. The current academic year and semester are loaded by default from the Administrator Dashboard.
 2. The teacher selects Test 1, Test 2, Test 3, or Final.
 3. The teacher enters a mark for every actively registered student or records an absence decision.
 4. The gradebook displays live assessment and course metrics.
@@ -29,7 +29,7 @@ GPA = sum(course GPA × course credits) / sum(course credits)
 
 ## Migration
 
-Apply `backend/db/migrations/019_report_cards_and_grading.sql` manually in Supabase SQL Editor after the existing migrations, followed by `backend/db/migrations/020_academic_year_and_semesters.sql`. The migrations are not executed automatically by the application. Migration 019 adds the grading workflow and `report_card` table; migration 020 transforms legacy academic-period values into `academic_year` plus `semester`, recreates report-card uniqueness using both fields, and adds the class-session academic period.
+Apply `backend/db/migrations/019_report_cards_and_grading.sql` manually in Supabase SQL Editor after the existing migrations, followed by `backend/db/migrations/020_academic_year_and_semesters.sql`, `021_teacher_course_offerings_and_retakes.sql`, and `022_current_academic_period.sql`. The migrations are not executed automatically by the application. Migration 019 adds the grading workflow and `report_card` table; migration 020 transforms legacy academic-period values into `academic_year` plus `semester`; migration 021 creates one-teacher-per-course-period offerings and retake-safe enrollment and final-grade keys; migration 022 supplies the administrator-controlled current period used as the active default.
 
 The migration preserves existing academic records. Existing records with a null score are classified as `PENDING`; existing scored records remain `GRADED`.
 
