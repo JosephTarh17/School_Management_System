@@ -94,6 +94,8 @@ The functional requirements specify the expected behavior of the system, definin
 
 ### 3.4 Course Offerings, Registration, and Student Participation Module
 * **REQ-REG-01 (Priority: High):** Students shall see and select only courses with an active teacher offering for the chosen academic year and semester. A registration request shall be period-specific, and the same course may be registered again in a later semester as a retake.
+* **REQ-REG-02 (Priority: High):** Administrators shall have a visible Course Catalog workflow for creating, editing, and deleting period-neutral course definitions. Teachers shall only select existing catalog courses when choosing what to teach for an academic year and semester.
+* **REQ-REG-03 (Priority: High):** Administrators shall be able to create an official manual enrollment for a student when registrar-led placement or correction is required. Manual enrollment shall remain distinct from student-submitted registration requests and the administrator review lifecycle.
 
 * **REQ-PAR-01 (Priority: Medium):** The system shall provide teachers with an interface to record qualitative participation scores and qualitative engagement notes for students during active class sessions.
     * *Inputs:* Session ID, Student ID, Participation Rating (`Active`, `Moderate`, `Passive`, `Disruptive`), Optional Text Notes.

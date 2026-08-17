@@ -35,17 +35,17 @@
       </form>
 
       <form @submit.prevent="enrollStudent" class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div><h2 class="font-bold text-slate-900">Enroll in a course</h2><p class="mt-1 text-xs text-slate-500">Only administrators can create or change enrollment records.</p></div>
+        <div><h2 class="font-bold text-slate-900">Manual enrollment</h2><p class="mt-1 text-xs text-slate-500">Use this registrar workflow to place a student directly into an approved course. Student self-registration requests are reviewed separately.</p></div>
         <label class="block text-sm text-slate-700">Student
           <select v-model="enrollmentForm.student_id" required class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"><option value="">Select student</option><option v-for="student in students" :key="student.student_id" :value="student.student_id">{{ student.full_name }} — {{ student.user_account?.email }}</option></select>
         </label>
-        <label class="block text-sm text-slate-700">Course
-          <select v-model="enrollmentForm.course_id" required class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"><option value="">Select course</option><option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }}</option></select>
+        <label class="block text-sm text-slate-700">Course offering
+          <select v-model="enrollmentForm.course_id" required class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"><option value="">Select offered course</option><option v-for="course in courses" :key="`${course.course_id}-${course.academic_year}-${course.semester}`" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }} · {{ course.academic_year }} · {{ course.semester }}</option></select>
         </label>
         <label class="block text-sm text-slate-700">Status
           <select v-model="enrollmentForm.status" class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"><option value="active">Active</option><option value="completed">Completed</option><option value="dropped">Dropped</option></select>
         </label>
-        <button :disabled="saving" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ saving ? 'Saving…' : 'Create enrollment' }}</button>
+        <button :disabled="saving" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ saving ? 'Saving…' : 'Create manual enrollment' }}</button>
       </form>
     </div>
 
@@ -66,7 +66,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { authStore } from '../store/auth'
-import { createEnrollment, createStudent, createUser, deleteEnrollment, fetchCourses, fetchEnrollments, fetchStudents, fetchUsers, linkStudentGuardian, updateEnrollment } from '../api.js'
+import { createEnrollment, createStudent, createUser, deleteEnrollment, fetchEnrollments, fetchRegistrationCatalog, fetchStudents, fetchUsers, linkStudentGuardian, updateEnrollment } from '../api.js'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -84,7 +84,7 @@ const token = () => authStore.token.value
 function resetNotice() { message.value = ''; errorMessage.value = '' }
 async function load() {
   resetNotice(); loading.value = true
-  const [studentsResult, coursesResult, enrollmentsResult, usersResult] = await Promise.all([fetchStudents(token()), fetchCourses(token()), fetchEnrollments(token()), fetchUsers(token())])
+  const [studentsResult, coursesResult, enrollmentsResult, usersResult] = await Promise.all([fetchStudents(token()), fetchRegistrationCatalog(token()), fetchEnrollments(token()), fetchUsers(token())])
   if (!studentsResult.ok) errorMessage.value = studentsResult.error
   else students.value = studentsResult.data || []
   if (coursesResult.ok) courses.value = coursesResult.data || []

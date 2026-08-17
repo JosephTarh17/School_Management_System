@@ -15,7 +15,7 @@ const routes = [
     path: '/course-catalog',
     name: 'CourseCatalog',
     component: () => import('../pages/CourseCatalog.vue'),
-    meta: { requiresAuth: true, roles: ['student', 'teacher'] }
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator'] }
   },
   {
     path: '/course-registration',

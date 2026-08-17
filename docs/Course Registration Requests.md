@@ -13,7 +13,7 @@ The School Management System now supports a controlled university course-registr
 | `rejected` | Declined by an administrator with optional notes |
 | `cancelled` | Cancelled by the student before review |
 
-The existing `enrollment` table remains the official record of courses taken. Registration requests are stored separately in `course_registration_request` and `course_registration_item`.
+The existing `enrollment` table remains the official record of courses taken. Registration requests are stored separately in `course_registration_request` and `course_registration_item`. Administrators may also create an official enrollment directly from the Student Enrollment page when the registrar needs to place a student manually; that direct action does not replace or bypass the student request-review workflow for students who submit their own selections.
 
 ## Credit enforcement
 
@@ -21,7 +21,7 @@ The server derives the student identity from the authenticated session. On submi
 
 ## Roles
 
-Students can view the catalog, submit one pending request per academic year and semester, view request history, and cancel a pending request. Administrators can view pending requests and approve or reject them. Teachers retain course-scoped academic access but do not approve registration requests.
+Administrators create and maintain the period-neutral course catalog from **Course Catalog**. Teachers cannot create or delete courses; they select an available catalog course when creating a class session, which creates the teacher's offering for the current academic year and semester. Students can view active offerings, submit one pending request per academic year and semester, view request history, and cancel a pending request. Administrators can review and approve or reject those requests, and can also use **Manual enrollment** for registrar-led placement or corrections. Teachers retain course-scoped academic access but do not approve registration requests.
 
 ## Database application
 
