@@ -24,6 +24,7 @@ const NON_AUDITABLE_AUTH_PATHS = new Set([
   '/auth/logout',
   '/auth/refresh',
   '/auth/mfa/verify',
+  '/translations',
 ])
 
 export function shouldAuditRequest(req) {

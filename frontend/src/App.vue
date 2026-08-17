@@ -39,6 +39,8 @@ import { ref } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import Navbar from './components/Navbar.vue'
 import RequestLoadingOverlay from './components/RequestLoadingOverlay.vue'
+import { installLanguageTranslation } from './store/language.js'
 
 const mobileMenuOpen = ref(false)
+installLanguageTranslation()
 </script>

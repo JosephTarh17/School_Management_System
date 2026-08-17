@@ -85,6 +85,10 @@ export async function refreshSession(token) {
   return requestJson('/auth/refresh', { method: 'POST', token })
 }
 
+export async function fetchTranslations(token, texts, targetLanguage = 'fr') {
+  return requestJson('/translations', { method: 'POST', token, body: { texts, targetLanguage } })
+}
+
 export async function fetchAttendance(token) {
   return requestJson('/attendance', { token })
 }
