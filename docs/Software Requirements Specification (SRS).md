@@ -1,9 +1,9 @@
 # Software Requirements Specification (SRS)
 ## School Management System (SMS)
 
-**Author:** Manus AI  
-**Date:** August 10, 2026  
-**Status:** Final Draft  
+**Author:** Manus AI<br>
+**Date:** August 18, 2026<br>
+**Status:** Baseline Release Candidate
 
 ---
 
@@ -30,7 +30,8 @@ The primary objective of the School Management System is to centralize academic 
 * **Automated Attendance Tracking:** Recording daily and class-wise attendance with instant notification triggers for unexcused absences and role-scoped in-app delivery to students and guardians.
 * **Announcements and Notifications:** Administrators publish school notices to all users or selected role audiences; authenticated users receive an in-app notification inbox with unread counts and read-state controls for announcements, attendance alerts, registration decisions, and published academic results.
 * **Assessment Management:** Creating, grading, and reporting Test 1, Test 2, Test 3, and Final Examination within an academic year containing exactly two semesters: Semester 1 and Semester 2.
-* **Class Session Scheduling:** Managing academic calendars, room allocations, recurring timetables, substitute teacher assignments, and academic-year and semester-aware class sessions.
+* **Class Session Scheduling:** Managing academic calendars, administrator-configured class locations, recurring timetables, substitute teacher assignments, and academic-year and semester-aware class sessions with same-location overlap prevention.
+* **Staff Management:** Tracking teaching and non-teaching staff profiles, employment status, daily staff attendance, and administrator-reviewed leave records.
 * **Participation Monitoring:** Tracking qualitative and quantitative student engagement metrics during live class sessions and extracurricular activities.
 
 ### 2.2 User Characteristics and Community
@@ -51,7 +52,7 @@ Implementing the School Management System delivers measurable institutional bene
 
 ---
 
-## 3. Functional Requirements
+## 7. Non-Functional Requirements
 
 The functional requirements specify the expected behavior of the system, defining the precise relationships between system inputs and outputs. All requirements are ranked in order of priority (High, Medium, Low) to guide iterative development.
 
@@ -69,32 +70,42 @@ The functional requirements specify the expected behavior of the system, definin
     * *Outputs:* Formatted statistical report showing total sessions, sessions attended, attendance percentage, and threshold alert flags (e.g., attendance $< 85\%$).
 
 ### 3.2 Assessment Module
-* **REQ-ASM-01 (Priority: High):** The system shall enable teachers to create, publish, and grade assessments (quizzes, assignments, exams) with configurable maximum points and weightings.
-    * *Inputs:* Course ID, Assessment Title, Type (`Quiz`, `Assignment`, `Midterm`, `Final`), Maximum Score, Weighting Percentage, Due Date.
+* **REQ-ASM-01 (Priority: High):** The system shall enable authorized teachers and administrators to create, review, publish, and grade assessments using only Test 1, Test 2, Test 3, and Final Examination, with configurable maximum points and weightings.
+    * *Inputs:* Course ID, Assessment Title, Type (`Test 1`, `Test 2`, `Test 3`, `Final Examination`), Maximum Score, Weighting Percentage, Due Date.
     * *Data Source:* Teacher input form.
     * *Units of Measure:* Numeric points (scale 0.00 to 100.00), Percentage (0% to 100%).
     * *Valid Range:* Sum of assessment weightings per course must equal 100%.
     * *Outputs:* Stored assessment schema in database; notification sent to enrolled students.
-* **REQ-ASM-02 (Priority: High):** The system shall calculate final course grades automatically based on weighted assessment scores and store the resulting gradebook matrix.
+* **REQ-ASM-02 (Priority: High):** The system shall calculate final course grades automatically based on three tests weighted at 20% each and one Final Examination weighted at 40%, then store the resulting gradebook matrix.
     * *Inputs:* Individual student assessment scores, assessment weighting rules.
     * *Data Source:* Assessment results database.
     * *Units of Measure:* Letter grade (A-F) and Cumulative GPA (scale 0.0 to 4.0).
     * *Outputs:* Real-time gradebook viewable by authorized teachers, students, and administrators.
 
 ### 3.3 Class Session Management Module
-* **REQ-SES-01 (Priority: Medium):** The system shall enable administrators to schedule recurring and one-off class sessions, allocating classrooms, time slots, assigned instructors, academic years, and Semester 1 or Semester 2 without scheduling conflicts.
+* **REQ-SES-01 (Priority: Medium):** The system shall enable administrators and authorized teachers to access recurring and one-off class sessions, allocating administrator-configured class locations, time slots, assigned instructors, academic years, and Semester 1 or Semester 2. The current conflict rule shall prevent overlapping bookings for the same class location; teacher, section, and student timetable conflicts are separate future requirements.
 * **REQ-SES-02 (Priority: High):** Teachers shall create class sessions from Teacher Attendance by selecting an administrator-created course from the available-course list, class location, academic year, semester, start time, and end time; the authenticated teacher shall be assigned automatically and the new session shall become available for attendance entry.
-* **REQ-SES-03 (Priority: High):** Administrators shall maintain the class-location catalog, and the system shall prevent two class sessions from using the same location during overlapping time ranges. Back-to-back sessions are permitted when one session ends at the exact time another begins. When a conflict is detected, the system shall reject the create or update operation with an actionable error identifying that the location is already booked.
+* **REQ-SES-03 (Priority: High):** Administrators shall maintain the class-location catalog through **Course Management → Configure Locations**. Each location shall have a unique location name, an optional building or area, and an optional positive whole-number capacity. Teachers shall select existing locations from Teacher Attendance but shall not create, edit, or delete locations.
+* **REQ-SES-04 (Priority: High):** The system shall prevent two class sessions from using the same location during overlapping time ranges. Back-to-back sessions are permitted when one session ends at the exact time another begins. The rule shall apply to both class-session creation and update operations, and a conflict shall return an actionable error identifying that the location is already booked.
+* **REQ-SES-05 (Priority: High):** A class location referenced by an existing class session shall not be deleted because historical attendance and scheduling records depend on the reference. Administrators may edit the location name, building or area, and capacity while preserving historical session relationships.
+* **REQ-SES-06 (Priority: High):** Migration 025 shall check for existing same-location overlaps before installing the PostgreSQL timestamp-range exclusion constraint. If conflicts exist, the migration shall stop and report the number of conflicting bookings so they can be resolved before the constraint is applied. The database rule shall protect against concurrent overlapping create and update requests.
 * **REQ-OFR-01 (Priority: High):** Administrators shall create and maintain catalog courses. Teachers shall not create, edit, or delete catalog courses.
 * **REQ-OFR-02 (Priority: High):** The system shall permit only one active teacher to offer a given course in the same academic year and semester, while allowing a different teacher to offer that course in another semester.
 * **REQ-OFR-03 (Priority: High):** Enrollment and final-grade uniqueness shall include academic year and semester, allowing a student to retake the same course in a later semester with a separate cohort and academic result.
 * **REQ-OFR-04 (Priority: High):** Administrators shall change the current academic year and semester from the Administrator Dashboard. The singleton current-period setting shall supply the default for active teacher offerings, class sessions, registrations, assessments, enrollment, and grading, while historical periods remain selectable when explicitly required.
-    * *Inputs:* Course ID, Instructor ID, Room ID, Start Time, End Time, Academic Year, Semester (`Semester 1` or `Semester 2`).
+    * *Inputs:* Course ID, Instructor ID where administrator-assigned, Location ID, Start Time, End Time, Academic Year, Semester (`Semester 1` or `Semester 2`), and optional Recurrence Pattern. Location configuration inputs are Location Name, Building or Area, and optional positive Capacity.
     * *Data Source:* Teacher Attendance workflow or administrator scheduling console.
-    * *Valid Range:* Start Time < End Time; a class location must not have overlapping bookings during the specified time slot.
-    * *Outputs:* Confirmed timetable entry; conflict error message if double-booking is detected.
+    * *Valid Range:* Start Time < End Time; a class location must not have overlapping bookings during the specified time slot; a session ending at the next session's start time is valid.
+    * *Outputs:* Confirmed timetable entry; actionable conflict error if a location is double-booked; protected historical location reference when deletion is attempted.
 
-### 3.4 Course Offerings, Registration, and Student Participation Module
+### 3.4 Staff Management Module
+* **REQ-STF-01 (Priority: High):** Administrators shall maintain a staff directory containing teaching and non-teaching staff. Staff records shall include staff type, employee number, full name, email, phone, department, job title, employment status, date joined, and optional date left.
+* **REQ-STF-02 (Priority: High):** Existing teacher profiles shall be linked to teaching staff records through their existing teacher and user relationships. Staff tracking shall not create duplicate user accounts or duplicate teacher profiles.
+* **REQ-STF-03 (Priority: High):** Administrators shall record one staff-attendance status per staff member and date using Present, Absent, Late, Excused, or On Leave, with optional notes. Duplicate records for the same staff member and date shall be rejected or updated rather than duplicated.
+* **REQ-STF-04 (Priority: High):** Administrators shall record staff leave with leave type, start date, end date, reason, and review status. Administrators shall be able to approve, reject, or cancel leave records.
+* **REQ-STF-05 (Priority: High):** Staff directory, staff attendance, and leave-management mutations shall be administrator-only. A staff record referenced by teaching, attendance, or leave history shall not be hard-deleted; it shall be marked inactive or terminated instead.
+
+### 3.5 Course Offerings, Registration, and Student Participation Module
 * **REQ-REG-01 (Priority: High):** Students shall see and select only courses with an active teacher offering for the chosen academic year and semester. A registration request shall be period-specific, and the same course may be registered again in a later semester as a retake.
 * **REQ-REG-02 (Priority: High):** Administrators shall have a visible Course Catalog workflow for creating, editing, and deleting period-neutral course definitions. Teachers shall only select existing catalog courses when choosing what to teach for an academic year and semester.
 * **REQ-REG-03 (Priority: High):** Administrators shall be able to create an official manual enrollment for a student when registrar-led placement or correction is required. Manual enrollment shall remain distinct from student-submitted registration requests and the administrator review lifecycle.
@@ -106,7 +117,7 @@ The functional requirements specify the expected behavior of the system, definin
     * *Valid Range:* Rating restricted to predefined enumeration set; text notes capped at 500 characters.
     * *Outputs:* Stored participation log linked to student profile and session history.
 
-### 3.5 Announcements and Notifications Module
+### 3.6 Announcements and Notifications Module
 * **REQ-NOT-01 (Priority: High):** Administrators shall create, save, publish, and archive announcements with a title, message, audience (`Everyone`, `Students`, `Teachers`, `Guardians`, or `Administrators`), priority, and optional expiry date.
     * *Inputs:* Announcement title, body, audience, priority, publication status, and optional expiry date.
     * *Outputs:* Published notices visible only to authenticated users in the selected audience.
@@ -189,7 +200,7 @@ The functional requirements specify the expected behavior of the system, definin
 
 ## 8. Preliminary Schedule and Budget
 
-### 8.1 Project Schedule (Milestone Breakdown)
+### 8.1 Project Timeline (Milestone Breakdown)
 The total estimated development duration is **24 weeks (6 months)**, structured into four sequential phases:
 
 | Phase | Milestone Description | Duration | Key Deliverables |

@@ -90,6 +90,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['administrator'] }
   },
   {
+    path: '/staff-management',
+    name: 'StaffManagement',
+    component: () => import('../pages/StaffManagement.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
     path: '/class-locations',
     name: 'ClassLocations',
     component: () => import('../pages/ClassLocations.vue'),

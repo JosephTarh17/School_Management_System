@@ -181,6 +181,49 @@ export async function fetchCurrentUser(token) {
   return requestJson('/users/me', { token })
 }
 
+export async function fetchStaff(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/staff${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function fetchStaffTeacherOptions(token) {
+  return requestJson('/staff/teachers', { token })
+}
+
+export async function createStaff(token, body) {
+  return requestJson('/staff', { method: 'POST', token, body })
+}
+
+export async function updateStaff(token, staffId, body) {
+  return requestJson(`/staff/${staffId}`, { method: 'PATCH', token, body })
+}
+
+export async function deleteStaff(token, staffId) {
+  return requestJson(`/staff/${staffId}`, { method: 'DELETE', token })
+}
+
+export async function fetchStaffAttendance(token, date) {
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  return requestJson(`/staff/attendance${query}`, { token })
+}
+
+export async function saveStaffAttendance(token, body) {
+  return requestJson('/staff/attendance', { method: 'POST', token, body })
+}
+
+export async function fetchStaffLeave(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/staff/leave${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function createStaffLeave(token, body) {
+  return requestJson('/staff/leave', { method: 'POST', token, body })
+}
+
+export async function updateStaffLeave(token, leaveId, body) {
+  return requestJson(`/staff/leave/${leaveId}`, { method: 'PATCH', token, body })
+}
+
 export async function updateCurrentUser(token, body) {
   return requestJson('/users/me', { method: 'PATCH', token, body })
 }

@@ -129,6 +129,7 @@ const administratorMenuGroups = [
     items: [
       { label: 'Financial Records', path: '/financial-records', icon: 'payments' },
       { label: 'Guardian Management', path: '/guardian-management', icon: 'family_restroom' },
+      { label: 'Staff Management', path: '/staff-management', icon: 'badge' },
       { label: 'Audit Logs', path: '/audit-logs', icon: 'history' },
       { label: 'Attendance Reports & Alerts', path: '/attendance-reports', icon: 'monitoring' },
       { label: 'User Profile', path: '/profile', icon: 'account_circle' },
