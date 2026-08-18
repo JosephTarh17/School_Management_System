@@ -21,11 +21,36 @@ function exposeSession(session) {
   return { ...session, course: exposeCourse(session.course) }
 }
 
+function classSessionMutationError(error) {
+  if (error?.code === '23P01') throw new ApiError(409, 'The selected class location is already booked during the selected time. Choose another location or time.')
+  throw error
+}
+
 function validateTimes(start_time, end_time) {
   const start = asDateTime(start_time, 'start_time')
   const end = asDateTime(end_time, 'end_time')
   if (new Date(start) >= new Date(end)) throw new ApiError(400, 'start_time must be before end_time')
   return { start_time: start, end_time: end }
+}
+
+async function assertRoomAvailable({ roomId, startTime, endTime, excludeSessionId = null }) {
+  if (!roomId) return
+  let query = supabase
+    .from('class_session')
+    .select('session_id,start_time,end_time,room(room_name),course(course_code,course_name)')
+    .eq('room_id', roomId)
+    .lt('start_time', endTime)
+    .gt('end_time', startTime)
+    .limit(1)
+  if (excludeSessionId) query = query.neq('session_id', excludeSessionId)
+
+  const { data, error } = await query.maybeSingle()
+  if (error) throw error
+  if (data) {
+    const roomName = data.room?.room_name || 'selected location'
+    const courseName = data.course?.course_code || data.course?.course_name || 'another course'
+    throw new ApiError(409, `${roomName} is already booked by ${courseName} during the selected time. Choose another location or time.`)
+  }
 }
 
 router.get('/', asyncRoute(async (req, res) => {
@@ -87,6 +112,7 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   const { academic_year, semester } = await resolveAcademicPeriod(req.body)
   const recurrence_pattern = asText(req.body?.recurrence_pattern, 'recurrence_pattern', { max: 120, optional: true })
   const times = validateTimes(req.body?.start_time, req.body?.end_time)
+  await assertRoomAvailable({ roomId: room_id, startTime: times.start_time, endTime: times.end_time })
   const teacher_id = req.user.role === 'teacher'
     ? await teacherIdForUser(req.user.user_id)
     : asUuid(req.body?.teacher_id, 'teacher_id')
@@ -112,7 +138,7 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
     recurrence_pattern,
     ...times,
   }).select(select).single()
-  if (error) throw error
+  if (error) classSessionMutationError(error)
   return sendData(res, exposeSession(data), 201)
 }))
 
@@ -127,9 +153,16 @@ router.patch('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(
   if (!current) throw new ApiError(404, 'Class session not found')
 
   const updates = {}
-  for (const field of ['room_id', 'substitute_teacher_id']) {
+  const nextRoomId = req.body?.room_id !== undefined ? asUuid(req.body.room_id, 'room_id') : current.room_id
+  const nextTimes = req.body?.start_time !== undefined || req.body?.end_time !== undefined
+    ? validateTimes(req.body.start_time ?? current.start_time, req.body.end_time ?? current.end_time)
+    : { start_time: current.start_time, end_time: current.end_time }
+  await assertRoomAvailable({ roomId: nextRoomId, startTime: nextTimes.start_time, endTime: nextTimes.end_time, excludeSessionId: sessionId })
+
+  for (const field of ['substitute_teacher_id']) {
     if (req.body?.[field] !== undefined) updates[field] = asUuid(req.body[field], field, { optional: true })
   }
+  if (req.body?.room_id !== undefined) updates.room_id = nextRoomId
 
   const nextCourseId = req.body?.course_id !== undefined ? asUuid(req.body.course_id, 'course_id') : current.course_id
   const nextTeacherId = req.user.role === 'teacher'
@@ -164,13 +197,11 @@ router.patch('/:sessionId', requireRole('teacher', 'administrator'), asyncRoute(
   }
 
   if (req.body?.recurrence_pattern !== undefined) updates.recurrence_pattern = asText(req.body.recurrence_pattern, 'recurrence_pattern', { max: 120, optional: true })
-  if (req.body?.start_time !== undefined || req.body?.end_time !== undefined) {
-    Object.assign(updates, validateTimes(req.body.start_time ?? current.start_time, req.body.end_time ?? current.end_time))
-  }
+  if (req.body?.start_time !== undefined || req.body?.end_time !== undefined) Object.assign(updates, nextTimes)
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
 
   const { data, error } = await supabase.from('class_session').update(updates).eq('session_id', sessionId).select(select).single()
-  if (error) throw error
+  if (error) classSessionMutationError(error)
   return sendData(res, exposeSession(data))
 }))
 

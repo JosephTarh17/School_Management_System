@@ -363,6 +363,23 @@ export async function fetchClassSessionResources(token, params = {}) {
   return requestJson(`/class-sessions/resources${query.toString() ? `?${query.toString()}` : ''}`, { token })
 }
 
+export async function fetchRooms(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/rooms${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function createRoom(token, body) {
+  return requestJson('/rooms', { method: 'POST', token, body })
+}
+
+export async function updateRoom(token, roomId, body) {
+  return requestJson(`/rooms/${roomId}`, { method: 'PATCH', token, body })
+}
+
+export async function deleteRoom(token, roomId) {
+  return requestJson(`/rooms/${roomId}`, { method: 'DELETE', token })
+}
+
 export async function createClassSession(token, body) {
   return requestJson('/class-sessions', { method: 'POST', token, body })
 }

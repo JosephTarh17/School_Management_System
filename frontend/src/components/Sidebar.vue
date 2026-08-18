@@ -112,10 +112,16 @@ const administratorMenuGroups = [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
       { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'Student Enrollment', path: '/student-enrollment', icon: 'how_to_reg' },
-      { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
-      { label: 'Registration Review', path: '/course-registration-review', icon: 'fact_check' },
       { label: 'Grading Review & Publication', path: '/grading-review', icon: 'fact_check' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
+    ]
+  },
+  {
+    title: 'Course Management',
+    items: [
+      { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
+      { label: 'Configure Locations', path: '/class-locations', icon: 'location_on' },
+      { label: 'Registration Review', path: '/course-registration-review', icon: 'fact_check' },
     ]
   },
   {

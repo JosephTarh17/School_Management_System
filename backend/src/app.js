@@ -26,6 +26,7 @@ import academicPeriodRoutes from './routes/academicPeriod.js'
 import announcementsRoutes from './routes/announcements.js'
 import notificationsRoutes from './routes/notifications.js'
 import searchRoutes from './routes/search.js'
+import roomsRoutes from './routes/rooms.js'
 
 dotenv.config()
 
@@ -60,6 +61,7 @@ app.use('/academic-period', academicPeriodRoutes)
 app.use('/announcements', announcementsRoutes)
 app.use('/notifications', notificationsRoutes)
 app.use('/search', searchRoutes)
+app.use('/rooms', roomsRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))
