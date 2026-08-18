@@ -1,6 +1,7 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
+import { hashPassword } from '../lib/security.js'
 import { ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 
 const router = express.Router()
@@ -73,45 +74,51 @@ router.post('/', asyncRoute(async (req, res) => {
   const staff_type = asEnum(req.body?.staff_type, 'staff_type', staffTypes)
   const employee_number = optionalText(req.body, 'employee_number', 40)
   const phone = optionalText(req.body, 'phone', 40)
-  let department = optionalText(req.body, 'department', 120)
+  const department = optionalText(req.body, 'department', 120)
   const date_joined = dateOnly(req.body?.date_joined, 'date_joined', { optional: true })
-  const date_left = dateOnly(req.body?.date_left, 'date_left', { optional: true })
   const job_title = asText(req.body?.job_title || (staff_type === 'teaching' ? 'Teacher' : ''), 'job_title', { max: 120 })
-  if (date_joined && date_left && date_left < date_joined) throw new ApiError(400, 'date_left cannot be before date_joined')
-
-  let teacher_id = null
-  let user_id = null
-  let full_name = req.body?.full_name ? asText(req.body.full_name, 'full_name', { max: 160 }) : null
-  let email = optionalText(req.body, 'email', 320)
-
+  const full_name = asText(req.body?.full_name, 'full_name', { max: 160 })
+  const email = optionalText(req.body, 'email', 320)
   if (staff_type === 'teaching') {
-    teacher_id = asUuid(req.body?.teacher_id, 'teacher_id')
-    const teacher = await teacherForStaff(teacher_id)
-    user_id = teacher.user_id
-    full_name = teacher.full_name
-    email = teacher.email
-    if (department === undefined) department = teacher.department || null
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) throw new ApiError(400, 'A valid email is required for teaching staff')
+    const password = asText(req.body?.password, 'password', { max: 128 })
+    if (password.length < 8) throw new ApiError(400, 'password must be at least 8 characters')
+    const password_hash = await hashPassword(password)
+    const { data: created, error } = await supabase.rpc('create_teacher_staff_account', {
+      p_email: email.toLowerCase(),
+      p_password_hash: password_hash,
+      p_full_name: full_name,
+      p_phone: phone || null,
+      p_department: department || null,
+      p_job_title: job_title,
+      p_employee_number: employee_number || null,
+      p_date_joined: date_joined,
+      p_created_by: req.user.user_id,
+    })
+    if (error?.code === '42883') throw new ApiError(409, 'Migration 027 is required before creating new teaching staff')
+    if (error?.code === '23505') throw new ApiError(409, 'A user email, employee number, teacher profile, or staff record already exists')
+    if (error) throw error
+    const createdRow = Array.isArray(created) ? created[0] : created
+    const { data, error: staffError } = await supabase.from('staff_member').select(staffFields).eq('staff_id', createdRow?.staff_id).single()
+    if (staffError) throw staffError
+    return sendData(res, data, 201)
   }
-  if (!full_name) throw new ApiError(400, 'full_name is required for non-teaching staff')
 
-  const payload = {
-    user_id,
-    teacher_id,
+  const { data, error } = await supabase.from('staff_member').insert({
+    user_id: null,
+    teacher_id: null,
     staff_type,
     employee_number: employee_number || null,
     full_name,
     email: email || null,
     phone: phone || null,
-    department: department === undefined ? null : department || null,
+    department: department || null,
     job_title,
     employment_status: 'active',
     date_joined,
-    date_left,
     created_by: req.user.user_id,
-  }
-
-  const { data, error } = await supabase.from('staff_member').insert(payload).select(staffFields).single()
-  if (error?.code === '23505') throw new ApiError(409, 'This teacher or employee number is already linked to a staff record')
+  }).select(staffFields).single()
+  if (error?.code === '23505') throw new ApiError(409, 'This employee number is already linked to a staff record')
   if (error) throw error
   return sendData(res, data, 201)
 }))

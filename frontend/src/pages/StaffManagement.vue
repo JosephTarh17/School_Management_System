@@ -17,7 +17,7 @@
         <div class="flex items-start justify-between gap-3">
           <div>
             <h2 class="font-bold text-slate-900">{{ editingId ? 'Edit staff record' : 'Add staff member' }}</h2>
-            <p class="mt-1 text-xs text-slate-500">Existing teachers are linked to their current teacher profile; non-teaching staff receive a separate directory record.</p>
+            <p class="mt-1 text-xs text-slate-500">Add new teaching staff with a login account, or track non-teaching staff independently. Search the directory before editing.</p>
           </div>
           <button v-if="editingId" type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-900" @click="resetForm">Cancel</button>
         </div>
@@ -29,16 +29,9 @@
           </select>
         </label>
 
-        <label v-if="form.staff_type === 'teaching'" class="block text-xs font-semibold text-slate-700">Existing teacher profile
-          <select v-model="form.teacher_id" :disabled="Boolean(editingId)" required class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none">
-            <option value="">Select a teacher</option>
-            <option v-for="teacher in availableTeacherOptions" :key="teacher.teacher_id" :value="teacher.teacher_id">{{ teacher.full_name }}{{ teacher.department ? ` — ${teacher.department}` : '' }}</option>
-          </select>
-        </label>
-
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label class="text-xs font-semibold text-slate-700">Full name
-            <input v-model.trim="form.full_name" :readonly="form.staff_type === 'teaching'" required maxlength="160" placeholder="Full name" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal read-only:bg-slate-50 focus:border-indigo-500 focus:outline-none" />
+            <input v-model.trim="form.full_name" required maxlength="160" placeholder="Full name" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
           </label>
           <label class="text-xs font-semibold text-slate-700">Job title
             <input v-model.trim="form.job_title" required maxlength="120" :placeholder="form.staff_type === 'teaching' ? 'Teacher' : 'Security officer'" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
@@ -50,10 +43,13 @@
             <input v-model.trim="form.department" maxlength="120" placeholder="Department or unit" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
           </label>
           <label class="text-xs font-semibold text-slate-700">Email
-            <input v-model.trim="form.email" type="email" maxlength="320" placeholder="Optional email" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+            <input v-model.trim="form.email" :required="form.staff_type === 'teaching'" type="email" maxlength="320" :placeholder="form.staff_type === 'teaching' ? 'teacher@example.com' : 'Optional email'" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
           </label>
           <label class="text-xs font-semibold text-slate-700">Phone
             <input v-model.trim="form.phone" maxlength="40" placeholder="Optional phone" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+          <label v-if="form.staff_type === 'teaching' && !editingId" class="text-xs font-semibold text-slate-700">Temporary password
+            <input v-model="form.password" required type="password" minlength="8" maxlength="128" placeholder="At least 8 characters" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
           </label>
           <label class="text-xs font-semibold text-slate-700">Date joined
             <input v-model="form.date_joined" type="date" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
@@ -73,7 +69,7 @@
       </form>
 
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="mb-4 flex items-center justify-between gap-3"><div><h2 class="font-bold text-slate-900">Staff directory</h2><p class="text-xs text-slate-500">{{ staff.length }} staff member{{ staff.length === 1 ? '' : 's' }} tracked</p></div><span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">Administrator only</span></div>
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 class="font-bold text-slate-900">Staff directory</h2><p class="text-xs text-slate-500">{{ staff.length }} matching staff member{{ staff.length === 1 ? '' : 's' }} tracked</p></div><div class="flex items-center gap-2"><input v-model.trim="searchQuery" type="search" placeholder="Search staff name, email, ID…" class="w-full rounded-lg border px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none sm:w-56" /><span class="hidden rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 sm:inline-flex">Administrator only</span></div></div>
         <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading staff directory…</div>
         <div v-else-if="!staff.length" class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">No staff records exist yet.</div>
         <div v-else class="space-y-3">
@@ -109,7 +105,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth.js'
 import {
   createStaff,
@@ -118,14 +114,12 @@ import {
   fetchStaff,
   fetchStaffAttendance,
   fetchStaffLeave,
-  fetchStaffTeacherOptions,
   saveStaffAttendance,
   updateStaff,
   updateStaffLeave,
 } from '../api.js'
 
 const staff = ref([])
-const teacherOptions = ref([])
 const attendanceRows = ref([])
 const leaveRecords = ref([])
 const loading = ref(true)
@@ -136,15 +130,13 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const editingId = ref('')
 const attendanceDate = ref(new Date().toISOString().slice(0, 10))
+const searchQuery = ref('')
 const employmentStatuses = ['active', 'on_leave', 'inactive', 'terminated']
 const attendanceStatuses = ['Present', 'Absent', 'Late', 'Excused', 'On Leave']
 const leaveTypes = ['Annual', 'Sick', 'Maternity', 'Study', 'Emergency', 'Other']
-const form = reactive({ staff_type: 'non_teaching', teacher_id: '', full_name: '', job_title: '', employee_number: '', email: '', phone: '', department: '', date_joined: '', date_left: '', employment_status: 'active' })
+const form = reactive({ staff_type: 'non_teaching', full_name: '', job_title: '', employee_number: '', email: '', phone: '', department: '', date_joined: '', date_left: '', employment_status: 'active', password: '' })
 const leaveForm = reactive({ staff_id: '', leave_type: 'Annual', start_date: '', end_date: '', reason: '' })
 const token = () => authStore.token.value
-const availableTeacherOptions = computed(() => teacherOptions.value.filter((teacher) => !teacher.staff_id || teacher.staff_id === editingStaffTeacherId.value))
-const editingStaffTeacherId = computed(() => staff.value.find((member) => member.staff_id === editingId.value)?.teacher_id || '')
-
 function setMessage(message, success = false) {
   if (success) successMessage.value = message
   else errorMessage.value = message
@@ -155,33 +147,22 @@ function resetMessages() {
   successMessage.value = ''
 }
 
-function applyTeacherProfile() {
-  const teacher = teacherOptions.value.find((item) => item.teacher_id === form.teacher_id)
-  if (!teacher) return
-  form.full_name = teacher.full_name || ''
-  form.email = teacher.email || ''
-  form.department = teacher.department || ''
-  if (!form.job_title) form.job_title = 'Teacher'
-}
-
 function resetForm() {
   editingId.value = ''
-  Object.assign(form, { staff_type: 'non_teaching', teacher_id: '', full_name: '', job_title: '', employee_number: '', email: '', phone: '', department: '', date_joined: '', date_left: '', employment_status: 'active' })
+  Object.assign(form, { staff_type: 'non_teaching', full_name: '', job_title: '', employee_number: '', email: '', phone: '', department: '', date_joined: '', date_left: '', employment_status: 'active', password: '' })
 }
 
 function startEdit(member) {
   editingId.value = member.staff_id
-  Object.assign(form, { staff_type: member.staff_type, teacher_id: member.teacher_id || '', full_name: member.full_name || '', job_title: member.job_title || '', employee_number: member.employee_number || '', email: member.email || '', phone: member.phone || '', department: member.department || '', date_joined: member.date_joined || '', date_left: member.date_left || '', employment_status: member.employment_status || 'active' })
+  Object.assign(form, { staff_type: member.staff_type, full_name: member.full_name || '', job_title: member.job_title || '', employee_number: member.employee_number || '', email: member.email || '', phone: member.phone || '', department: member.department || '', date_joined: member.date_joined || '', date_left: member.date_left || '', employment_status: member.employment_status || 'active', password: '' })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 async function loadStaffData() {
-  const [staffResult, teacherResult, leaveResult] = await Promise.all([fetchStaff(token()), fetchStaffTeacherOptions(token()), fetchStaffLeave(token())])
+  const [staffResult, leaveResult] = await Promise.all([fetchStaff(token(), { search: searchQuery.value }), fetchStaffLeave(token())])
   if (!staffResult.ok) throw new Error(staffResult.error || 'Unable to load staff records.')
-  if (!teacherResult.ok) throw new Error(teacherResult.error || 'Unable to load teacher profiles.')
   if (!leaveResult.ok) throw new Error(leaveResult.error || 'Unable to load leave records.')
   staff.value = staffResult.data || []
-  teacherOptions.value = teacherResult.data || []
   leaveRecords.value = leaveResult.data || []
 }
 
@@ -210,7 +191,7 @@ async function loadAll() {
 async function submitStaff() {
   saving.value = true
   resetMessages()
-  const body = { ...form }
+  const body = editingId.value ? { ...form, password: undefined, staff_type: undefined } : { ...form }
   const result = editingId.value ? await updateStaff(token(), editingId.value, body) : await createStaff(token(), body)
   if (!result.ok) {
     setMessage(result.error || 'Unable to save staff record.')
@@ -280,7 +261,15 @@ function leaveStatusClass(status) {
   return 'bg-amber-50 text-amber-700'
 }
 
-watch(() => form.teacher_id, applyTeacherProfile)
 watch(attendanceDate, loadAttendance)
+watch(searchQuery, async () => {
+  try {
+    const result = await fetchStaff(token(), { search: searchQuery.value })
+    if (result.ok) staff.value = result.data || []
+    else errorMessage.value = result.error || 'Unable to search staff records.'
+  } catch (error) {
+    errorMessage.value = error.message || 'Unable to search staff records.'
+  }
+})
 onMounted(loadAll)
 </script>
