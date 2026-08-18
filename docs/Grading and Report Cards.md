@@ -6,7 +6,7 @@ This feature adds academic-year and semester-aware grading for actively register
 
 ## Grading rules
 
-Each registered course academic period uses three assessments of type `Test` at 20 percent each and one `Final` examination at 40 percent. The existing letter scale remains: A from 90 to 100, B from 80 to 89, C from 70 to 79, D from 60 to 69, and F below 60.
+Each registered course academic period uses exactly four assessments: `Test 1`, `Test 2`, `Test 3`, and `Final Examination`. Each test carries 20 percent and the final examination carries 40 percent. Quiz, Assignment, and Midterm are not valid assessment types in the active workflow. Legacy records using those categories are excluded from active assessment lists and GPA calculations. The existing letter scale remains: A from 90 to 100, B from 80 to 89, C from 70 to 79, D from 60 to 69, and F below 60.
 
 A student is graded only for courses with an active enrollment. An unjustified absence receives a score of zero and is included in the weighted calculation. A justified absence requires a reason and is excluded from the calculation. A course is incomplete if any required assessment has no mark or absence decision. A course passes at a weighted average of at least 60 percent, equivalent to at least 2.4 on the four-point GPA scale.
 
@@ -19,7 +19,7 @@ GPA = sum(course GPA × course credits) / sum(course credits)
 ## Workflow
 
 1. A teacher selects an administrator-created course offering in **Gradebook**. The current academic year and semester are loaded by default from the Administrator Dashboard.
-2. The teacher selects Test 1, Test 2, Test 3, or Final.
+2. The teacher selects Test 1, Test 2, Test 3, or Final Examination.
 3. The teacher enters a mark for every actively registered student or records an absence decision.
 4. The gradebook displays live assessment and course metrics.
 5. The teacher saves and confirms the assessment.

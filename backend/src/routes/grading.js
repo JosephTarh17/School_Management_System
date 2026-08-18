@@ -20,7 +20,7 @@ async function courseFor(courseId) {
 async function assessmentFor(assessmentId) {
   const { data, error } = await supabase.from('assessment').select('*,course(*)').eq('assessment_id', assessmentId).maybeSingle()
   if (error) throw error
-  if (!data) throw new ApiError(404, 'Assessment not found')
+  if (!data || !ENUMS.assessmentType.includes(data.assessment_type)) throw new ApiError(404, 'Assessment not found')
   return data
 }
 
@@ -39,7 +39,7 @@ async function activeStudentsForCourse(courseId, period = {}) {
 }
 
 async function assessmentsForCourse(courseId, academic_year, semester) {
-  let query = supabase.from('assessment').select('*,course(course_id,course_code,course_name,academic_year,semester,credit_units)').eq('course_id', courseId).order('assessment_type').order('assessment_number', { ascending: true, nullsFirst: false })
+  let query = supabase.from('assessment').select('*,course(course_id,course_code,course_name,academic_year,semester,credit_units)').eq('course_id', courseId).in('assessment_type', ENUMS.assessmentType).order('assessment_type').order('assessment_number', { ascending: true, nullsFirst: false })
   if (academic_year) query = query.eq('academic_year', academic_year)
   if (semester) query = query.eq('semester', semester)
   const { data, error } = await query
@@ -164,7 +164,7 @@ router.post('/assessments/:assessmentId/confirm', requireRole('teacher'), asyncR
 
 router.get('/review', requireRole('administrator'), asyncRoute(async (req, res) => {
   const { academic_year, semester } = await resolveAcademicPeriod(req.query)
-  let query = supabase.from('assessment').select('*,course(course_id,course_code,course_name,academic_year,semester,credit_units)').eq('academic_year', academic_year).eq('semester', semester).order('course_id').order('assessment_type').order('assessment_number')
+  let query = supabase.from('assessment').select('*,course(course_id,course_code,course_name,academic_year,semester,credit_units)').eq('academic_year', academic_year).eq('semester', semester).in('assessment_type', ENUMS.assessmentType).order('course_id').order('assessment_type').order('assessment_number')
   const { data: assessments, error: assessmentError } = await query
   if (assessmentError) throw assessmentError
   const assessmentIds = (assessments || []).map((assessment) => assessment.assessment_id)

@@ -15,13 +15,10 @@
           <select v-model="form.course_id" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Select course</option><option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }}</option></select>
         </label>
         <label class="text-sm font-medium text-slate-700">Type
-          <select v-model="form.assessment_type" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option>Test</option><option>Final</option><option>Quiz</option><option>Assignment</option><option>Midterm</option></select>
+          <select v-model="form.assessment_type" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="Test">Test</option><option value="Final">Final examination</option></select>
         </label>
         <label v-if="form.assessment_type === 'Test'" class="text-sm font-medium text-slate-700">Assessment
           <select v-model.number="form.assessment_number" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option :value="null">Select test</option><option :value="1">Test 1</option><option :value="2">Test 2</option><option :value="3">Test 3</option></select>
-        </label>
-        <label v-else-if="!['Final'].includes(form.assessment_type)" class="text-sm font-medium text-slate-700">Title
-          <input v-model="form.title" required placeholder="e.g. Computing Foundations Quiz" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
         </label>
         <div v-else class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"><span class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Assessment</span><span class="font-semibold">Final examination</span></div>
         <label class="text-sm font-medium text-slate-700">Maximum score
@@ -89,8 +86,7 @@ async function load() {
 }
 watch([() => form.assessment_type, () => form.assessment_number], ([type]) => {
   if (type === 'Test') form.title = `Test ${form.assessment_number || ''}`.trim()
-  else if (type === 'Final') form.title = 'Final Examination'
-  else if (/^(Test \d+|Final Examination)$/.test(form.title)) form.title = ''
+  if (type === 'Final') form.title = 'Final Examination'
 })
 
 async function createNewAssessment() {
