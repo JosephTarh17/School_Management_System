@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ApiError, asDate, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { enrolledStudentIdsForTeacher, studentIdForUser } from '../lib/enrollmentScope.js'
+import { safeNotifyStudentAndGuardians } from '../lib/notifications.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -90,6 +91,15 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   validateResolution(payload)
   const { data, error } = await supabase.from('behavior_incident').insert({ ...payload, reported_by: req.user.user_id }).select(select).single()
   if (error) throw error
+  if (['High', 'Critical'].includes(data.severity)) {
+    await safeNotifyStudentAndGuardians(data.student_id, {
+      notification_type: 'disciplinary_action',
+      title: 'Significant disciplinary action recorded',
+      body: `A ${data.severity.toLowerCase()} disciplinary action has been recorded. Review the details in Behavior & Discipline.`,
+      link_path: '/behavior-discipline',
+      event_key: `discipline:${data.incident_id}:created:${data.severity}`,
+    })
+  }
   return sendData(res, data, 201)
 }))
 
@@ -115,6 +125,18 @@ router.patch('/:incidentId', requireRole('teacher', 'administrator'), asyncRoute
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('behavior_incident').update(updates).eq('incident_id', incidentId).select(select).single()
   if (error) throw error
+  if (['High', 'Critical'].includes(data.severity)) {
+    const materiallyChanged = updates.severity !== undefined || updates.status !== undefined || updates.action_taken !== undefined || updates.resolution_notes !== undefined
+    if (materiallyChanged) {
+      await safeNotifyStudentAndGuardians(data.student_id, {
+        notification_type: 'disciplinary_action_updated',
+        title: 'Disciplinary action updated',
+        body: `A ${data.severity.toLowerCase()} disciplinary action has been updated. Review the details in Behavior & Discipline.`,
+        link_path: '/behavior-discipline',
+        event_key: `discipline:${data.incident_id}:updated:${data.severity}:${data.status}`,
+      })
+    }
+  }
   return sendData(res, data)
 }))
 

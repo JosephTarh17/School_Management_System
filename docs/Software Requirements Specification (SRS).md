@@ -110,6 +110,7 @@ The functional requirements specify the expected behavior of the system, definin
 * **REQ-REG-02 (Priority: High):** Administrators shall have a visible Course Catalog workflow for creating, editing, and deleting period-neutral course definitions. Teachers shall only select existing catalog courses when choosing what to teach for an academic year and semester.
 * **REQ-REG-03 (Priority: High):** Administrators shall be able to create an official manual enrollment for a student when registrar-led placement or correction is required. Manual enrollment shall remain distinct from student-submitted registration requests and the administrator review lifecycle.
 * **REQ-SRCH-01 (Priority: Medium):** Authorized users shall be able to search visible catalog courses and active offerings by course name or course code. Catalog courses shall remain period-neutral; the teacher-course offering relationship shall carry the teacher, academic year, and semester used for teaching and registration.
+* **REQ-SRCH-02 (Priority: Medium):** Administrators shall be able to search the staff directory by full name, email, employee number, department, or job title before editing staff records.
 
 * **REQ-PAR-01 (Priority: Medium):** The system shall provide teachers with an interface to record qualitative participation scores and qualitative engagement notes for students during active class sessions.
     * *Inputs:* Session ID, Student ID, Participation Rating (`Active`, `Moderate`, `Passive`, `Disruptive`), Optional Text Notes.
@@ -124,6 +125,9 @@ The functional requirements specify the expected behavior of the system, definin
 * **REQ-NOT-02 (Priority: High):** The system shall maintain a role-scoped in-app notification inbox with unread counts, recent notification messages, mark-as-read, and mark-all-as-read actions.
 * **REQ-NOT-03 (Priority: High):** The system shall create idempotent notifications for unexcused attendance absences, new student registration requests, registration approval or rejection, and administrator-published assessment results.
 * **REQ-NOT-04 (Priority: Medium):** Notification delivery shall not invalidate the underlying academic or attendance transaction when an inbox write fails; failed fanout shall be logged for operational diagnosis.
+* **REQ-NOT-05 (Priority: High):** When an administrator publishes a final report card, the system shall notify the affected student and all linked guardians. The notification shall link to the Report Card page and shall not be created while the report card remains in administrator review.
+* **REQ-NOT-06 (Priority: High):** When a High or Critical disciplinary action is recorded or materially updated, the system shall notify the affected student and all linked guardians. Low and Medium incidents shall not trigger significant-action notifications by default.
+* **REQ-NOT-07 (Priority: High):** Significant disciplinary notifications shall not include the incident description or other sensitive details in the notification body. Recipients shall open the role-scoped Behavior & Discipline page to view permitted details. Event keys shall prevent duplicate delivery for the same report-card publication or disciplinary update event.
 
 ---
 

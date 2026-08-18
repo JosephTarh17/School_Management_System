@@ -37,9 +37,12 @@ The backend creates in-app notifications for the following events:
 | Course-registration request approved | Student and linked guardians | Course Registration |
 | Course-registration request rejected | Student and linked guardians | Course Registration |
 | Assessment published by administrator | Active students and linked guardians in the course and academic period | Student Portal |
+| Final report card published | The student and linked guardians for the academic year and semester | Report Card |
+| High or Critical disciplinary action recorded | The affected student and linked guardians | Behavior & Discipline |
+| High or Critical disciplinary action materially updated | The affected student and linked guardians | Behavior & Discipline |
 | Administrator announcement published | Users matching the selected audience | Announcements |
 
-Notification fanout is deliberately non-blocking. The attendance, registration, or grading operation remains successful if the notification inbox write fails; the backend records a diagnostic message for operational troubleshooting.
+Notification fanout is deliberately non-blocking. The attendance, registration, grading, or disciplinary operation remains successful if the notification inbox write fails; the backend records a diagnostic message for operational troubleshooting. Disciplinary notification bodies do not copy incident descriptions or other sensitive details. They identify the severity and direct the student or linked guardian to the scoped Behavior & Discipline page. Event keys prevent duplicate delivery for the same publication or disciplinary update event.
 
 ## API surface
 

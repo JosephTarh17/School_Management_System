@@ -259,6 +259,13 @@ router.post('/report-cards/:studentId/publish', requireRole('administrator'), as
     const { data, error } = await supabase.from('report_card').upsert({ student_id: studentId, academic_year, semester, status: 'PUBLISHED',
  overall_average: calculation.overall_average, gpa: calculation.gpa, total_credits: calculation.total_credits, earned_credits: calculation.earned_credits, passed_courses: calculation.passed_courses, failed_courses: calculation.failed_courses, promotion_status: calculation.promotion_status, administrator_comments: req.body?.administrator_comments ? asText(req.body.administrator_comments, 'administrator_comments', { max: 2000 }) : null, reviewed_by: req.user.user_id, reviewed_at: now, published_by: req.user.user_id, published_at: now }, { onConflict: 'student_id,academic_year,semester' }).select('*').single()
   if (error) throw error
+  await notifyStudentAndGuardians(studentId, {
+    notification_type: 'report_card_published',
+    title: 'Report card published',
+    body: `Your report card for ${academic_year} ${semester} is now available.`,
+    link_path: '/report-card',
+    event_key: `report-card:${studentId}:${academic_year}:${semester}:published`,
+  })
   return sendData(res, { report_card: data, calculation })
 }))
 
