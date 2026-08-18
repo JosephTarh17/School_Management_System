@@ -2,7 +2,7 @@
   <section class="space-y-6">
     <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Chapter 2</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Student records</p>
         <h1 class="mt-1 text-2xl font-bold text-slate-950">Student demographics & enrollment</h1>
         <p class="mt-1 text-sm text-slate-500">Register complete student profiles, link guardians, and manage course enrollment.</p>
       </div>
