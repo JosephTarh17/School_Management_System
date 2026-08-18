@@ -15,7 +15,7 @@
         <input
           v-model="searchQuery"
           type="search"
-          placeholder="Search courses or course codes..."
+          placeholder="Search students, courses, announcements..."
           class="w-full rounded-eight border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-4 text-sm transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-container font-sans"
           @input="handleSearchInput"
           @focus="searchFocused = true"
@@ -23,16 +23,19 @@
           @keydown.enter.prevent="openFirstSearchResult"
         />
         <div v-if="searchFocused && searchQuery.trim().length >= 2" class="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-          <div v-if="searchLoading" class="px-4 py-4 text-xs text-slate-500">Searching courses…</div>
-          <div v-else-if="!searchResults.length" class="px-4 py-4 text-xs text-slate-500">No matching courses or course codes.</div>
-          <div v-else class="max-h-80 overflow-y-auto py-1">
-            <button v-for="course in searchResults" :key="course.course_id" type="button" class="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-slate-50" @mousedown.prevent @click="openSearchResult(course)">
-              <span class="mt-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700">{{ course.course_code }}</span>
-              <span class="min-w-0">
-                <span class="block truncate text-sm font-semibold text-slate-800">{{ course.course_name }}</span>
-                <span class="mt-0.5 block text-[11px] text-slate-500">{{ Number(course.credit_units || 0) }} credits</span>
-              </span>
-            </button>
+          <div v-if="searchLoading" class="px-4 py-4 text-xs text-slate-500">Searching the system…</div>
+          <div v-else-if="!searchResults.length" class="px-4 py-4 text-xs text-slate-500">No matching records found.</div>
+          <div v-else class="max-h-96 overflow-y-auto py-1">
+            <section v-for="group in searchGroups" :key="group.type" class="border-b border-slate-100 last:border-0">
+              <h2 class="px-4 pb-1 pt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ resultTypeLabel(group.type) }}</h2>
+              <button v-for="item in group.items" :key="`${item.type}-${item.id}`" type="button" class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50" @mousedown.prevent @click="openSearchResult(item)">
+                <span class="mt-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-700">{{ item.type }}</span>
+                <span class="min-w-0">
+                  <span class="block truncate text-sm font-semibold text-slate-800">{{ item.title }}</span>
+                  <span v-if="item.subtitle" class="mt-0.5 block truncate text-[11px] text-slate-500">{{ item.subtitle }}</span>
+                </span>
+              </button>
+            </section>
           </div>
         </div>
       </div>
@@ -115,7 +118,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchClassSessionResources, fetchCourses, fetchNotifications, fetchRegistrationCatalog, fetchUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from '../api.js'
+import { fetchNotifications, fetchUniversalSearch, fetchUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from '../api.js'
 import { authStore } from '../store/auth'
 import LanguagePicker from './LanguagePicker.vue'
 
@@ -137,47 +140,53 @@ function closeSearch() {
   searchFocused.value = false
 }
 
+const searchGroups = computed(() => {
+  const grouped = new Map()
+  for (const item of searchResults.value) {
+    if (!grouped.has(item.type)) grouped.set(item.type, [])
+    grouped.get(item.type).push(item)
+  }
+  return [...grouped.entries()].map(([type, items]) => ({ type, items }))
+})
+
+function resultTypeLabel(type) {
+  const labels = {
+    course: 'Courses',
+    student: 'Students',
+    teacher: 'Teachers',
+    announcement: 'Announcements',
+    assessment: 'Assessments',
+    grade: 'Grades',
+    session: 'Class sessions',
+    financial: 'Financial records',
+  }
+  return labels[type] || 'Results'
+}
+
 function handleSearchInput() {
   if (searchTimer) window.clearTimeout(searchTimer)
   const query = searchQuery.value.trim()
-  if (query.length < 2 || !authStore.token.value || ['guardian'].includes(currentUser.value?.role)) {
+  if (query.length < 2 || !authStore.token.value) {
     searchResults.value = []
     searchLoading.value = false
     return
   }
   searchLoading.value = true
-  searchTimer = window.setTimeout(() => searchCourses(query), 220)
+  searchTimer = window.setTimeout(() => searchUniversal(query), 220)
 }
 
-async function searchCourses(query) {
+async function searchUniversal(query) {
   const requestId = ++searchRequestId
-  const role = currentUser.value?.role
-  let result
-  if (role === 'student') {
-    result = await fetchRegistrationCatalog(authStore.token.value)
-  } else if (role === 'teacher') {
-    result = await fetchClassSessionResources(authStore.token.value)
-    if (result.ok) result = { ...result, data: result.data?.available_courses || [] }
-  } else {
-    result = await fetchCourses(authStore.token.value, { search: query })
-  }
+  const result = await fetchUniversalSearch(authStore.token.value, query)
   if (requestId !== searchRequestId) return
   searchLoading.value = false
-  const rows = result.ok ? (result.data || []) : []
-  const normalizedQuery = query.toLocaleLowerCase()
-  searchResults.value = (role === 'administrator' ? rows : rows.filter((course) => `${course.course_code || ''} ${course.course_name || ''}`.toLocaleLowerCase().includes(normalizedQuery))).slice(0, 8)
+  searchResults.value = result.ok ? (result.data?.results || []) : []
 }
 
-function searchTarget() {
-  if (currentUser.value?.role === 'student') return '/course-registration'
-  if (currentUser.value?.role === 'teacher') return '/teacher-attendance'
-  return '/course-catalog'
-}
-
-function openSearchResult(course) {
-  searchQuery.value = course.course_code || ''
+function openSearchResult(item) {
+  searchQuery.value = item.title || ''
   closeSearch()
-  router.push({ path: searchTarget(), query: { search: course.course_code || course.course_name || '' } })
+  if (item.link_path) router.push(item.link_path)
 }
 
 function openFirstSearchResult() {

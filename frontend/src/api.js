@@ -194,6 +194,11 @@ export async function fetchCourses(token, params = {}) {
   return requestJson(`/courses${query.toString() ? `?${query.toString()}` : ''}`, { token })
 }
 
+export async function fetchUniversalSearch(token, query) {
+  const search = new URLSearchParams({ q: query || '' })
+  return requestJson(`/search?${search.toString()}`, { token })
+}
+
 export async function fetchEnrollments(token, params = {}) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
   return requestJson(`/enrollments${query.toString() ? `?${query.toString()}` : ''}`, { token })
