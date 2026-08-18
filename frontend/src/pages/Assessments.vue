@@ -1,24 +1,50 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between gap-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Gradebook & Assessments</h1>
-        <p class="text-xs text-slate-500 font-geist mt-1">Assessments loaded from the institutional database.</p>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600">Teaching</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Assessments</h1>
+        <p class="mt-1 text-sm text-slate-500">Create tests and finals for your courses. The current academic period is loaded automatically.</p>
       </div>
-      <button v-if="canManage" @click="showForm = !showForm" class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-eight shadow-xs font-geist">{{ showForm ? 'Close Form' : 'Add Assessment' }}</button>
+      <button v-if="canManage" @click="showForm = !showForm" class="self-start rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 sm:self-auto">{{ showForm ? 'Close' : 'New assessment' }}</button>
     </div>
 
-    <form v-if="showForm" @submit.prevent="createNewAssessment" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-3">
-      <select v-model="form.course_id" required class="px-3 py-2 border rounded-lg text-sm"><option value="">Select course</option><option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }}</option></select>
-      <input v-model="form.title" required placeholder="Assessment title" class="px-3 py-2 border rounded-lg text-sm" />
-      <select v-model="form.assessment_type" required class="px-3 py-2 border rounded-lg text-sm"><option>Test</option><option>Final</option><option>Quiz</option><option>Assignment</option><option>Midterm</option></select>
-      <select v-if="form.assessment_type === 'Test'" v-model.number="form.assessment_number" required class="px-3 py-2 border rounded-lg text-sm"><option :value="null">Select test number</option><option :value="1">Test 1</option><option :value="2">Test 2</option><option :value="3">Test 3</option></select>
-      <input v-model.number="form.academic_year" type="number" min="2000" max="9999" required placeholder="Academic year e.g. 2026" class="px-3 py-2 border rounded-lg text-sm" />
-      <select v-model="form.semester" required class="px-3 py-2 border rounded-lg text-sm"><option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option></select>
-      <input v-model.number="form.max_score" type="number" min="0.01" required placeholder="Max score" class="px-3 py-2 border rounded-lg text-sm" />
-      <input v-model.number="form.weight" type="number" min="0" max="100" :disabled="['Test', 'Final'].includes(form.assessment_type)" :placeholder="form.assessment_type === 'Test' ? '20% automatic' : form.assessment_type === 'Final' ? '40% automatic' : 'Weight %'" class="px-3 py-2 border rounded-lg text-sm disabled:bg-slate-100" />
-      <input v-model="form.due_date" type="date" class="px-3 py-2 border rounded-lg text-sm" />
-      <button :disabled="saving" class="md:col-span-3 justify-self-start px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Assessment' }}</button>
+    <form v-if="showForm" @submit.prevent="createNewAssessment" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <label class="text-sm font-medium text-slate-700 md:col-span-2">Course
+          <select v-model="form.course_id" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Select course</option><option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }}</option></select>
+        </label>
+        <label class="text-sm font-medium text-slate-700">Type
+          <select v-model="form.assessment_type" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option>Test</option><option>Final</option><option>Quiz</option><option>Assignment</option><option>Midterm</option></select>
+        </label>
+        <label v-if="form.assessment_type === 'Test'" class="text-sm font-medium text-slate-700">Assessment
+          <select v-model.number="form.assessment_number" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option :value="null">Select test</option><option :value="1">Test 1</option><option :value="2">Test 2</option><option :value="3">Test 3</option></select>
+        </label>
+        <label v-else-if="!['Final'].includes(form.assessment_type)" class="text-sm font-medium text-slate-700">Title
+          <input v-model="form.title" required placeholder="e.g. Computing Foundations Quiz" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+        <div v-else class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"><span class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Assessment</span><span class="font-semibold">Final examination</span></div>
+        <label class="text-sm font-medium text-slate-700">Maximum score
+          <input v-model.number="form.max_score" type="number" min="0.01" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+        <label class="text-sm font-medium text-slate-700">Weight
+          <input v-model.number="form.weight" type="number" min="0" max="100" :disabled="['Test', 'Final'].includes(form.assessment_type)" :placeholder="form.assessment_type === 'Test' ? '20% automatic' : form.assessment_type === 'Final' ? '40% automatic' : 'Weight %'" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100" />
+        </label>
+        <label class="text-sm font-medium text-slate-700">Due date
+          <input v-model="form.due_date" type="date" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+      </div>
+      <details class="mt-4 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">
+        <summary class="cursor-pointer font-semibold text-slate-700">Academic period</summary>
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label>Academic year<input v-model.number="form.academic_year" type="number" min="2000" max="9999" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
+          <label>Semester<select v-model="form.semester" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"><option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option></select></label>
+        </div>
+      </details>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button :disabled="saving" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{{ saving ? 'Saving…' : 'Save assessment' }}</button>
+        <span class="text-xs text-slate-500">Tests use 20% and the final uses 40% automatically.</span>
+      </div>
     </form>
 
     <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
@@ -38,7 +64,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
 import { createAssessment, deleteAssessment, fetchAssessments, fetchCourses, fetchCurrentAcademicPeriod } from '../api.js'
 
@@ -49,7 +75,7 @@ const loading = ref(true)
 const saving = ref(false)
 const showForm = ref(false)
 const errorMessage = ref('')
-const form = reactive({ course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, academic_year: 2026, semester: 'Semester 1', max_score: 100, weight: 20, due_date: '' })
+const form = reactive({ course_id: '', title: 'Test 1', assessment_type: 'Test', assessment_number: 1, academic_year: 2026, semester: 'Semester 1', max_score: 100, weight: 20, due_date: '' })
 const canManage = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
 const canDelete = computed(() => ['teacher', 'administrator'].includes(authStore.userRole.value))
 
@@ -61,11 +87,17 @@ async function load() {
   if (courseResult.ok) courses.value = courseResult.data || []
   loading.value = false
 }
+watch([() => form.assessment_type, () => form.assessment_number], ([type]) => {
+  if (type === 'Test') form.title = `Test ${form.assessment_number || ''}`.trim()
+  else if (type === 'Final') form.title = 'Final Examination'
+  else if (/^(Test \d+|Final Examination)$/.test(form.title)) form.title = ''
+})
+
 async function createNewAssessment() {
   saving.value = true
   const result = await createAssessment(authStore.token.value, form)
   if (!result.ok) errorMessage.value = result.error || 'Unable to create assessment.'
-  else { assessments.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', title: '', assessment_type: 'Test', assessment_number: 1, academic_year: form.academic_year, semester: form.semester, max_score: 100, weight: 20, due_date: '' }) }
+  else { assessments.value.push(result.data); showForm.value = false; Object.assign(form, { course_id: '', title: 'Test 1', assessment_type: 'Test', assessment_number: 1, academic_year: form.academic_year, semester: form.semester, max_score: 100, weight: 20, due_date: '' }) }
   saving.value = false
 }
 async function removeAssessment(id) {

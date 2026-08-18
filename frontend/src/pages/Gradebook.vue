@@ -1,49 +1,46 @@
 <template>
   <section class="space-y-6">
-    <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <header class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Teaching Workspace</p>
-        <h1 class="mt-1 text-2xl font-bold text-slate-950">Excel-style gradebook</h1>
-        <p class="mt-1 max-w-3xl text-sm text-slate-500">Select one of your courses and one test or final exam, enter marks for actively registered students, and confirm the assessment for administrator review.</p>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600">Teaching</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950">Gradebook</h1>
+        <p class="mt-1 text-sm text-slate-500">Choose a course and assessment, enter marks, then confirm for administrator review.</p>
       </div>
-      <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-right">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-indigo-600">Passing threshold</p>
-        <p class="text-lg font-bold text-indigo-900">60% · 2.4 GPA</p>
-      </div>
+      <p class="text-xs text-slate-500">Pass: <span class="font-semibold text-slate-700">60% · 2.4 GPA</span></p>
     </header>
 
     <p v-if="message" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ message }}</p>
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ errorMessage }}</p>
 
-    <div class="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-5">
-      <label class="text-sm font-medium text-slate-700">Course
-        <select v-model="selectedCourseId" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" :disabled="loading">
-          <option value="">Select course</option>
-          <option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }} ({{ course.credit_units || 0 }} credits)</option>
-        </select>
-      </label>
-      <label class="text-sm font-medium text-slate-700">Academic year
-        <input v-model.number="academicYear" type="number" min="2000" max="9999" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" @change="loadGradebook" />
-      </label>
-      <label class="text-sm font-medium text-slate-700">Semester
-        <select v-model="semester" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" @change="loadGradebook">
-          <option v-for="option in semesters" :key="option" :value="option">{{ option }}</option>
-        </select>
-      </label>
-      <label class="text-sm font-medium text-slate-700 md:col-span-2">Assessment or exam
-        <select v-model="selectedAssessmentId" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" :disabled="loading || !assessments.length">
-          <option value="">Select assessment</option>
-          <option v-for="assessment in assessments" :key="assessment.assessment_id" :value="assessment.assessment_id">{{ assessmentLabel(assessment) }} · {{ assessment.max_score }} points · {{ assessmentWeight(assessment) }}%</option>
-        </select>
-      </label>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <label class="text-sm font-medium text-slate-700">Course
+          <select v-model="selectedCourseId" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" :disabled="loading">
+            <option value="">Select course</option>
+            <option v-for="course in courses" :key="course.course_id" :value="course.course_id">{{ course.course_code }} — {{ course.course_name }} · {{ course.credit_units || 0 }} credits</option>
+          </select>
+        </label>
+        <label class="text-sm font-medium text-slate-700">Assessment
+          <select v-model="selectedAssessmentId" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" :disabled="loading || !assessments.length">
+            <option value="">Select assessment</option>
+            <option v-for="assessment in assessments" :key="assessment.assessment_id" :value="assessment.assessment_id">{{ assessmentLabel(assessment) }} · {{ assessment.max_score }} points · {{ assessmentWeight(assessment) }}%</option>
+          </select>
+        </label>
+      </div>
+      <details class="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">
+        <summary class="cursor-pointer font-semibold text-slate-700">Academic period: {{ academicYear }} · {{ semester }}</summary>
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label>Academic year<input v-model.number="academicYear" type="number" min="2000" max="9999" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" @change="loadGradebook" /></label>
+          <label>Semester<select v-model="semester" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" @change="loadGradebook"><option v-for="option in semesters" :key="option" :value="option">{{ option }}</option></select></label>
+        </div>
+      </details>
     </div>
 
-    <div v-if="selectedAssessment" class="grid grid-cols-2 gap-3 md:grid-cols-5">
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Assessment</p><p class="mt-1 font-bold text-slate-900">{{ assessmentLabel(selectedAssessment) }}</p></div>
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Weight</p><p class="mt-1 text-xl font-bold text-indigo-700">{{ assessmentWeight(selectedAssessment) }}%</p></div>
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Class average</p><p class="mt-1 text-xl font-bold text-slate-900">{{ formatPercent(classAverage) }}</p></div>
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Students marked</p><p class="mt-1 text-xl font-bold text-slate-900">{{ markedCount }}/{{ rows.length }}</p></div>
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Assessment state</p><p class="mt-1 text-sm font-bold" :class="selectedAssessment.published ? 'text-emerald-700' : selectedAssessment.teacher_confirmed ? 'text-amber-700' : 'text-slate-900'">{{ assessmentState(selectedAssessment) }}</p></div>
+    <div v-if="selectedAssessment" class="flex flex-wrap items-center gap-x-5 gap-y-2 px-1 text-xs text-slate-500">
+      <span><strong class="text-slate-800">{{ assessmentLabel(selectedAssessment) }}</strong> · {{ assessmentWeight(selectedAssessment) }}%</span>
+      <span>Average: <strong class="text-slate-800">{{ formatPercent(classAverage) }}</strong></span>
+      <span>Marked: <strong class="text-slate-800">{{ markedCount }}/{{ rows.length }}</strong></span>
+      <span :class="selectedAssessment.published ? 'text-emerald-700' : selectedAssessment.teacher_confirmed ? 'text-amber-700' : 'text-slate-500'">{{ assessmentState(selectedAssessment) }}</span>
     </div>
 
     <div v-if="selectedAssessment" class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">

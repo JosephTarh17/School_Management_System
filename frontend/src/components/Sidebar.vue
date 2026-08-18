@@ -147,22 +147,21 @@ const guardianMenuGroups = [
 
 const teacherMenuGroups = [
   {
-    title: 'Teaching Workspace',
+    title: 'Teaching',
     items: [
-      { label: 'Teacher Dashboard', path: '/dashboard', icon: 'space_dashboard' },
-      { label: 'Teacher Attendance', path: '/teacher-attendance', icon: 'co_present' },
-      { label: 'Attendance Reports', path: '/attendance-reports', icon: 'monitoring' },
+      { label: 'Dashboard', path: '/dashboard', icon: 'space_dashboard' },
+      { label: 'Attendance', path: '/teacher-attendance', icon: 'co_present' },
+      { label: 'Assessments', path: '/assessments', icon: 'assignment' },
+      { label: 'Gradebook', path: '/gradebook', icon: 'grading' },
     ]
   },
   {
-    title: 'Academic Operations',
+    title: 'More',
     items: [
-      { label: 'Participation Log', path: '/participation-log', icon: 'how_to_reg' },
-      { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
       { label: 'Class Sessions', path: '/class-sessions', icon: 'calendar_month' },
-      { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
-      { label: 'Assessments', path: '/assessments', icon: 'assignment' },
-      { label: 'Gradebook', path: '/gradebook', icon: 'grading' },
+      { label: 'Attendance Reports', path: '/attendance-reports', icon: 'monitoring' },
+      { label: 'Participation', path: '/participation-log', icon: 'how_to_reg' },
+      { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
   },
   {
