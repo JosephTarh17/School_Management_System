@@ -9,6 +9,7 @@ export const ENUMS = {
   enrollmentStatus: ['active', 'completed', 'dropped'],
   classLevel: ['Freshman', 'Sophomore', 'Junior'],
   semester: ['Semester 1', 'Semester 2'],
+  announcementAudience: ['all', 'students', 'teachers', 'guardians', 'administrators'],
 }
 
 export function isUuid(value) {

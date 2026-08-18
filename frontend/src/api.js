@@ -147,6 +147,36 @@ export async function fetchAuditLogs(token, params = {}) {
   return requestJson(`/audit-logs${query.toString() ? `?${query.toString()}` : ''}`, { token })
 }
 
+export async function fetchAnnouncements(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/announcements${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function createAnnouncement(token, body) {
+  return requestJson('/announcements', { method: 'POST', token, body })
+}
+
+export async function updateAnnouncement(token, announcementId, body) {
+  return requestJson(`/announcements/${announcementId}`, { method: 'PATCH', token, body })
+}
+
+export async function fetchNotifications(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/notifications${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+
+export async function fetchUnreadNotificationCount(token) {
+  return requestJson('/notifications/unread-count', { token })
+}
+
+export async function markNotificationRead(token, notificationId) {
+  return requestJson(`/notifications/${notificationId}/read`, { method: 'PATCH', token })
+}
+
+export async function markAllNotificationsRead(token) {
+  return requestJson('/notifications/read-all', { method: 'POST', token })
+}
+
 export async function fetchCurrentUser(token) {
   return requestJson('/users/me', { token })
 }

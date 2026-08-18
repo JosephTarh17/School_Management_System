@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ApiError, asAcademicYear, asEnum, asSemester, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { studentIdForUser } from '../lib/enrollmentScope.js'
 import { resolveAcademicPeriod } from '../lib/academicPeriod.js'
+import { safeNotifyUsers, safeNotifyStudentAndGuardians, userIdsForAudience } from '../lib/notifications.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -122,7 +123,17 @@ router.post('/', requireRole('student'), asyncRoute(async (req, res) => {
     p_course_ids: courseIds,
   })
   if (error) throw registrationError(error)
-  return sendData(res, exposeRegistrations(data), 201)
+  const exposed = exposeRegistrations(data)
+  const request = Array.isArray(exposed) ? exposed[0] : exposed
+  const administratorIds = await userIdsForAudience('administrators')
+  await safeNotifyUsers(administratorIds, {
+    notification_type: 'registration_request',
+    title: 'New course registration request',
+    body: `${request?.student?.full_name || 'A student'} submitted a course registration request for review.`,
+    link_path: '/course-registration-review',
+    event_key: request?.registration_request_id ? `registration:${request.registration_request_id}:submitted` : undefined,
+  })
+  return sendData(res, exposed, 201)
 }))
 
 router.patch('/:requestId/cancel', requireRole('student'), asyncRoute(async (req, res) => {
@@ -154,7 +165,16 @@ router.patch('/:requestId/review', requireRole('administrator'), asyncRoute(asyn
       p_review_notes: reviewNotes,
     })
     if (error) throw registrationError(error, 'Unable to approve registration request')
-    return sendData(res, exposeRegistrations(data))
+    const exposed = exposeRegistrations(data)
+    const request = Array.isArray(exposed) ? exposed[0] : exposed
+    if (request?.student_id) await safeNotifyStudentAndGuardians(request.student_id, {
+      notification_type: 'registration_decision',
+      title: 'Course registration approved',
+      body: 'Your course registration request was approved by the administrator.',
+      link_path: '/course-registration',
+      event_key: `registration:${request.registration_request_id}:approved`,
+    })
+    return sendData(res, exposed)
   }
 
   const { data, error } = await supabase.from('course_registration_request')
@@ -165,7 +185,15 @@ router.patch('/:requestId/review', requireRole('administrator'), asyncRoute(asyn
     .maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError(404, 'Pending registration request not found')
-  return sendData(res, exposeRegistration(data))
+  const exposed = exposeRegistration(data)
+  await safeNotifyStudentAndGuardians(exposed.student_id, {
+    notification_type: 'registration_decision',
+    title: 'Course registration rejected',
+    body: reviewNotes ? `Your course registration request was rejected: ${reviewNotes}` : 'Your course registration request was rejected by the administrator.',
+    link_path: '/course-registration',
+    event_key: `registration:${exposed.registration_request_id}:rejected`,
+  })
+  return sendData(res, exposed)
 }))
 
 export default router

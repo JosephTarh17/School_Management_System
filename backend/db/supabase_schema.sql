@@ -284,3 +284,49 @@ $$;
 CREATE TRIGGER trg_security_audit_no_update
 BEFORE UPDATE OR DELETE ON security_audit_log
 FOR EACH ROW EXECUTE FUNCTION deny_security_audit_mutation();
+
+
+CREATE TABLE announcement (
+  announcement_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL CHECK (char_length(btrim(title)) BETWEEN 1 AND 200),
+  body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 5000),
+  audience text NOT NULL CHECK (audience IN ('all', 'students', 'teachers', 'guardians', 'administrators')),
+  priority text NOT NULL DEFAULT 'normal' CHECK (priority IN ('normal', 'important', 'urgent')),
+  status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  expires_at date,
+  published_at timestamptz,
+  created_by uuid NOT NULL REFERENCES user_account(user_id) ON DELETE RESTRICT,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (status <> 'published' OR published_at IS NOT NULL)
+);
+
+CREATE INDEX announcement_status_published_idx
+  ON announcement(status, published_at DESC);
+CREATE INDEX announcement_expiry_idx
+  ON announcement(expires_at);
+
+CREATE TABLE user_notification (
+  notification_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES user_account(user_id) ON DELETE CASCADE,
+  notification_type text NOT NULL CHECK (char_length(btrim(notification_type)) BETWEEN 1 AND 80),
+  title text NOT NULL CHECK (char_length(btrim(title)) BETWEEN 1 AND 200),
+  body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 2000),
+  link_path text CHECK (link_path IS NULL OR char_length(link_path) <= 500),
+  announcement_id uuid REFERENCES announcement(announcement_id) ON DELETE SET NULL,
+  event_key text,
+  read_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, event_key)
+);
+
+CREATE INDEX user_notification_inbox_idx
+  ON user_notification(user_id, read_at, created_at DESC);
+CREATE INDEX user_notification_announcement_idx
+  ON user_notification(announcement_id);
+
+ALTER TABLE announcement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_notification ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE announcement IS 'Administrator-authored school notices with role audience, publication state, priority, and optional expiry.';
+COMMENT ON TABLE user_notification IS 'In-app notification inbox scoped to one authenticated user.';

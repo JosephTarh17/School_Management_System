@@ -88,6 +88,7 @@ const studentMenuGroups = [
     title: 'Student Portal',
     items: [
       { label: 'My Portal Overview', path: '/student-portal', icon: 'person' },
+      { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'My Course Schedule', path: '/class-sessions', icon: 'calendar_month' },
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
       { label: 'Course Registration', path: '/course-registration', icon: 'how_to_reg' },
@@ -109,6 +110,7 @@ const administratorMenuGroups = [
     title: 'Core Portals',
     items: [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
+      { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'Student Enrollment', path: '/student-enrollment', icon: 'how_to_reg' },
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
       { label: 'Registration Review', path: '/course-registration-review', icon: 'fact_check' },
@@ -133,6 +135,7 @@ const guardianMenuGroups = [
     title: 'Guardian Portal',
     items: [
       { label: 'Children Overview', path: '/guardian-portal', icon: 'family_restroom' },
+      { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'Published Report Cards', path: '/report-card', icon: 'description' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
@@ -159,6 +162,7 @@ const teacherMenuGroups = [
     title: 'More',
     items: [
       { label: 'Class Sessions', path: '/class-sessions', icon: 'calendar_month' },
+      { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'Attendance Reports', path: '/attendance-reports', icon: 'monitoring' },
       { label: 'Participation', path: '/participation-log', icon: 'how_to_reg' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },

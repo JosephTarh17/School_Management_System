@@ -5,6 +5,7 @@ import { ENUMS, ApiError, asAcademicYear, asDate, asEnum, asNumber, asSemester, 
 import { assertTeacherOwnsCourse } from '../lib/ownership.js'
 import { studentIdForUser, studentCourseIdsForUser, teacherCourseIdsForUser } from '../lib/enrollmentScope.js'
 import { resolveAcademicPeriod } from '../lib/academicPeriod.js'
+import { notifyStudentsAndGuardians } from '../lib/notifications.js'
 import { PASS_PERCENT, PASS_GPA, TEST_WEIGHT, FINAL_WEIGHT, assessmentWeight, calculateCourseResult, gpaForScore, letterGrade, round2, statusForRecord } from '../lib/grading.js'
 
 const router = express.Router()
@@ -188,6 +189,20 @@ router.post('/assessments/:assessmentId/publish', requireRole('administrator'), 
   if (recordError) throw recordError
   const { data, error } = await supabase.from('assessment').update({ published: true, published_by: req.user.user_id, published_at: now }).eq('assessment_id', assessment.assessment_id).select('*,course(*)').single()
   if (error) throw error
+  const { data: enrollments, error: enrollmentError } = await supabase.from('enrollment')
+    .select('student_id')
+    .eq('course_id', assessment.course_id)
+    .eq('academic_year', assessment.academic_year)
+    .eq('semester', assessment.semester)
+    .eq('status', 'active')
+  if (enrollmentError) throw enrollmentError
+  await notifyStudentsAndGuardians((enrollments || []).map((enrollment) => enrollment.student_id), (studentId) => ({
+    notification_type: 'assessment_published',
+    title: 'Assessment results published',
+    body: `${assessment.title} results are now available.`,
+    link_path: '/student-portal',
+    event_key: `assessment:${assessment.assessment_id}:published:${studentId}`,
+  }))
   return sendData(res, data)
 }))
 

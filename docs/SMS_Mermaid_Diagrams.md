@@ -70,6 +70,8 @@ erDiagram
     USER_ACCOUNT ||--o{ TEACHER : owns
     USER_ACCOUNT ||--o{ GUARDIAN : owns
     USER_ACCOUNT ||--o{ ADMINISTRATOR : owns
+    USER_ACCOUNT ||--o{ ANNOUNCEMENT : authors
+    USER_ACCOUNT ||--o{ USER_NOTIFICATION : receives
     STUDENT ||--o{ STUDENT_GUARDIAN : linked
     STUDENT ||--o{ ATTENDANCE : records
     STUDENT ||--o{ ACADEMIC_RECORD : owns
@@ -86,6 +88,7 @@ erDiagram
     ACADEMIC_PERIOD_SETTINGS ||--o{ TEACHER_COURSE_ASSIGNMENT : defaults
     ACADEMIC_PERIOD_SETTINGS ||--o{ CLASS_SESSION : defaults
     ACADEMIC_PERIOD_SETTINGS ||--o{ ENROLLMENT : defaults
+    ANNOUNCEMENT ||--o{ USER_NOTIFICATION : generates
 
     USER_ACCOUNT {
         string user_id PK
@@ -95,6 +98,31 @@ erDiagram
         boolean mfa_enabled
         datetime created_at
         datetime last_login
+    }
+
+    ANNOUNCEMENT {
+        string announcement_id PK
+        string created_by FK
+        string title
+        string body
+        string audience
+        string priority
+        string status
+        date expires_at
+        datetime published_at
+    }
+
+    USER_NOTIFICATION {
+        string notification_id PK
+        string user_id FK
+        string announcement_id FK
+        string notification_type
+        string title
+        string body
+        string link_path
+        string event_key
+        datetime read_at
+        datetime created_at
     }
 
     STUDENT {

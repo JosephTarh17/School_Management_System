@@ -54,6 +54,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['student', 'guardian'] }
   },
   {
+    path: '/announcements',
+    name: 'Announcements',
+    component: () => import('../pages/Announcements.vue'),
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator', 'guardian'] }
+  },
+  {
     path: '/profile',
     name: 'UserProfile',
     component: () => import('../pages/UserProfile.vue'),

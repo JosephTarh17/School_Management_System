@@ -24,6 +24,9 @@ describe('API validation helpers', () => {
     expect(asAcademicYear('2026')).to.equal(2026)
     expect(() => asAcademicYear(1999)).to.throw(ApiError)
     expect(() => asAcademicYear('2026 Term 1')).to.throw(ApiError)
+    expect(ENUMS.announcementAudience).to.deep.equal(['all', 'students', 'teachers', 'guardians', 'administrators'])
+    expect(asEnum('teachers', 'audience', ENUMS.announcementAudience)).to.equal('teachers')
+    expect(() => asEnum('parents', 'audience', ENUMS.announcementAudience)).to.throw(ApiError)
   })
 
   it('validates bounded numbers and text', () => {
@@ -31,6 +34,8 @@ describe('API validation helpers', () => {
     expect(() => asNumber(-1, 'amount', { min: 0 })).to.throw(ApiError)
     expect(asText('  Course  ', 'name')).to.equal('Course')
     expect(() => asText('', 'name')).to.throw(ApiError)
+    expect(asNumber('20', 'limit', { min: 1, max: 100, integer: true })).to.equal(20)
+    expect(() => asNumber(101, 'limit', { min: 1, max: 100, integer: true })).to.throw(ApiError)
   })
 
   it('accepts whole-number XAF amounts and rejects fractions or invalid signs', () => {

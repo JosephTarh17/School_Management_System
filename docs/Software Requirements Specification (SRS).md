@@ -27,8 +27,9 @@ The School Management System is architected as a multi-tier, responsive web appl
 
 ### 2.1 Product Functions and Objectives
 The primary objective of the School Management System is to centralize academic management into a single, cohesive digital ecosystem. The core functions provided by the product include:
-* **Automated Attendance Tracking:** Recording daily and class-wise attendance with instant notification triggers for unexcused absences.
-* **Assessment Management:** Creating, grading, and reporting quizzes, assignments, midterms, and final exams within an academic year containing exactly two semesters: Semester 1 and Semester 2.
+* **Automated Attendance Tracking:** Recording daily and class-wise attendance with instant notification triggers for unexcused absences and role-scoped in-app delivery to students and guardians.
+* **Announcements and Notifications:** Administrators publish school notices to all users or selected role audiences; authenticated users receive an in-app notification inbox with unread counts and read-state controls for announcements, attendance alerts, registration decisions, and published academic results.
+* **Assessment Management:** Creating, grading, and reporting Test 1, Test 2, Test 3, and Final Examination within an academic year containing exactly two semesters: Semester 1 and Semester 2.
 * **Class Session Scheduling:** Managing academic calendars, room allocations, recurring timetables, substitute teacher assignments, and academic-year and semester-aware class sessions.
 * **Participation Monitoring:** Tracking qualitative and quantitative student engagement metrics during live class sessions and extracurricular activities.
 
@@ -103,6 +104,14 @@ The functional requirements specify the expected behavior of the system, definin
     * *Valid Range:* Rating restricted to predefined enumeration set; text notes capped at 500 characters.
     * *Outputs:* Stored participation log linked to student profile and session history.
 
+### 3.5 Announcements and Notifications Module
+* **REQ-NOT-01 (Priority: High):** Administrators shall create, save, publish, and archive announcements with a title, message, audience (`Everyone`, `Students`, `Teachers`, `Guardians`, or `Administrators`), priority, and optional expiry date.
+    * *Inputs:* Announcement title, body, audience, priority, publication status, and optional expiry date.
+    * *Outputs:* Published notices visible only to authenticated users in the selected audience.
+* **REQ-NOT-02 (Priority: High):** The system shall maintain a role-scoped in-app notification inbox with unread counts, recent notification messages, mark-as-read, and mark-all-as-read actions.
+* **REQ-NOT-03 (Priority: High):** The system shall create idempotent notifications for unexcused attendance absences, new student registration requests, registration approval or rejection, and administrator-published assessment results.
+* **REQ-NOT-04 (Priority: Medium):** Notification delivery shall not invalidate the underlying academic or attendance transaction when an inbox write fails; failed fanout shall be logged for operational diagnosis.
+
 ---
 
 ## 4. Interface Requirements
@@ -110,7 +119,7 @@ The functional requirements specify the expected behavior of the system, definin
 ### 4.1 Software Interfaces
 * **Database Interface:** The application shall interface with a relational database management system (MySQL / TiDB) using secure connection pooling and parameterized SQL queries to prevent SQL injection.
 * **Authentication Interface:** The system shall integrate with OAuth2 / OpenID Connect identity providers for secure user authentication and session management.
-* **Notification Interface:** The system shall interface with an SMTP email service and an SMS gateway (e.g., Twilio API) to dispatch attendance alerts and administrative announcements.
+* **Notification Interface:** The system shall provide a secure in-app notification interface for attendance alerts, registration decisions, published academic results, and administrative announcements. External SMTP email and SMS gateway delivery remain provider integrations to be configured separately.
 
 ### 4.2 Hardware Interfaces
 * **Client Devices:** The web application shall be fully accessible via standard desktop computers, laptops, tablets, and mobile smartphones equipped with modern web browsers (Chrome, Firefox, Safari, Edge).
