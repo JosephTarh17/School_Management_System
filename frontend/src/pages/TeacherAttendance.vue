@@ -37,9 +37,10 @@
       <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <label class="block text-xs font-semibold text-slate-700">
           Course
+          <input v-model="courseSearchQuery" type="search" placeholder="Search course name or code" :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
           <select v-model="newSession.course_id" required :disabled="loading || saving" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50">
             <option value="">Select a course</option>
-            <option v-for="course in availableCourses" :key="course.course_id" :value="course.course_id">
+            <option v-for="course in filteredAvailableCourses" :key="course.course_id" :value="course.course_id">
               {{ course.course_code }} — {{ course.course_name }}{{ course.semester ? ` · ${course.semester}` : '' }}
             </option>
           </select>
@@ -77,7 +78,7 @@
         </label>
       </div>
       <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button type="submit" :disabled="loading || saving || !availableCourses.length || !rooms.length" class="rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="submit" :disabled="loading || saving || !filteredAvailableCourses.length || !rooms.length" class="rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
           {{ saving ? 'Creating…' : 'Create and select session' }}
         </button>
         <p v-if="!availableCourses.length || !rooms.length" class="text-xs text-amber-700">An administrator must configure at least one course and one room before a session can be created.</p>
@@ -155,20 +156,28 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { authStore } from '../store/auth.js'
 import { createClassSession, fetchAttendance, fetchClassSessionResources, fetchClassSessions, fetchCurrentAcademicPeriod, fetchStudents, saveAttendanceBatch } from '../api.js'
 
 const statuses = ['Present', 'Late', 'Absent', 'Excused']
 const semesters = ['Semester 1', 'Semester 2']
+const route = useRoute()
 const sessions = ref([])
 const availableCourses = ref([])
+const courseSearchQuery = ref(String(route.query.search || ''))
+const filteredAvailableCourses = computed(() => {
+  const query = courseSearchQuery.value.trim().toLocaleLowerCase()
+  if (!query) return availableCourses.value
+  return availableCourses.value.filter((course) => `${course.course_code || ''} ${course.course_name || ''}`.toLocaleLowerCase().includes(query))
+})
 const rooms = ref([])
 const roster = ref([])
 const selectedSessionId = ref('')
 const sessionDate = ref('')
 const loading = ref(true)
 const saving = ref(false)
-const showCreatePanel = ref(false)
+const showCreatePanel = ref(Boolean(route.query.search))
 const errorMessage = ref('')
 const successMessage = ref('')
 const currentPeriod = reactive({ academic_year: 2026, semester: 'Semester 1' })
@@ -338,6 +347,10 @@ async function initialize() {
   await loadData()
 }
 
+watch(() => route.query.search, (value) => {
+  courseSearchQuery.value = String(value || '')
+  if (value) showCreatePanel.value = true
+})
 onMounted(initialize)
 watch([() => newSession.academic_year, () => newSession.semester], async () => {
   if (loading.value || saving.value) return

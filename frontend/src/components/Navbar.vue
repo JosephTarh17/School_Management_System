@@ -11,12 +11,30 @@
 
     <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-4 lg:max-w-xl">
       <div class="relative hidden w-full max-w-md sm:block">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+        <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
         <input
-          type="text"
-          placeholder="Search courses, grades, or schedules..."
+          v-model="searchQuery"
+          type="search"
+          placeholder="Search courses or course codes..."
           class="w-full rounded-eight border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-4 text-sm transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-container font-sans"
+          @input="handleSearchInput"
+          @focus="searchFocused = true"
+          @keydown.esc="closeSearch"
+          @keydown.enter.prevent="openFirstSearchResult"
         />
+        <div v-if="searchFocused && searchQuery.trim().length >= 2" class="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+          <div v-if="searchLoading" class="px-4 py-4 text-xs text-slate-500">Searching courses…</div>
+          <div v-else-if="!searchResults.length" class="px-4 py-4 text-xs text-slate-500">No matching courses or course codes.</div>
+          <div v-else class="max-h-80 overflow-y-auto py-1">
+            <button v-for="course in searchResults" :key="course.course_id" type="button" class="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-slate-50" @mousedown.prevent @click="openSearchResult(course)">
+              <span class="mt-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700">{{ course.course_code }}</span>
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-semibold text-slate-800">{{ course.course_name }}</span>
+                <span class="mt-0.5 block text-[11px] text-slate-500">{{ Number(course.credit_units || 0) }} credits</span>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -97,7 +115,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchNotifications, fetchUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from '../api.js'
+import { fetchClassSessionResources, fetchCourses, fetchNotifications, fetchRegistrationCatalog, fetchUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from '../api.js'
 import { authStore } from '../store/auth'
 import LanguagePicker from './LanguagePicker.vue'
 
@@ -108,6 +126,63 @@ const notificationsOpen = ref(false)
 const notificationsLoading = ref(false)
 const notifications = ref([])
 const unreadCount = ref(0)
+const searchQuery = ref('')
+const searchResults = ref([])
+const searchLoading = ref(false)
+const searchFocused = ref(false)
+let searchTimer = null
+let searchRequestId = 0
+
+function closeSearch() {
+  searchFocused.value = false
+}
+
+function handleSearchInput() {
+  if (searchTimer) window.clearTimeout(searchTimer)
+  const query = searchQuery.value.trim()
+  if (query.length < 2 || !authStore.token.value || ['guardian'].includes(currentUser.value?.role)) {
+    searchResults.value = []
+    searchLoading.value = false
+    return
+  }
+  searchLoading.value = true
+  searchTimer = window.setTimeout(() => searchCourses(query), 220)
+}
+
+async function searchCourses(query) {
+  const requestId = ++searchRequestId
+  const role = currentUser.value?.role
+  let result
+  if (role === 'student') {
+    result = await fetchRegistrationCatalog(authStore.token.value)
+  } else if (role === 'teacher') {
+    result = await fetchClassSessionResources(authStore.token.value)
+    if (result.ok) result = { ...result, data: result.data?.available_courses || [] }
+  } else {
+    result = await fetchCourses(authStore.token.value, { search: query })
+  }
+  if (requestId !== searchRequestId) return
+  searchLoading.value = false
+  const rows = result.ok ? (result.data || []) : []
+  const normalizedQuery = query.toLocaleLowerCase()
+  searchResults.value = (role === 'administrator' ? rows : rows.filter((course) => `${course.course_code || ''} ${course.course_name || ''}`.toLocaleLowerCase().includes(normalizedQuery))).slice(0, 8)
+}
+
+function searchTarget() {
+  if (currentUser.value?.role === 'student') return '/course-registration'
+  if (currentUser.value?.role === 'teacher') return '/teacher-attendance'
+  return '/course-catalog'
+}
+
+function openSearchResult(course) {
+  searchQuery.value = course.course_code || ''
+  closeSearch()
+  router.push({ path: searchTarget(), query: { search: course.course_code || course.course_name || '' } })
+}
+
+function openFirstSearchResult() {
+  if (searchResults.value[0]) openSearchResult(searchResults.value[0])
+}
 
 async function loadNotifications() {
   const token = authStore.token.value
@@ -161,6 +236,10 @@ const handleLogout = async () => {
   await router.replace('/')
 }
 
-watch(() => authStore.token.value, () => { loadNotifications() })
+watch(() => authStore.token.value, () => {
+  loadNotifications()
+  searchQuery.value = ''
+  searchResults.value = []
+})
 onMounted(loadNotifications)
 </script>

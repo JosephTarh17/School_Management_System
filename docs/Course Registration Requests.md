@@ -25,7 +25,7 @@ Administrators create and maintain the period-neutral course catalog from **Cour
 
 ## Database application
 
-Apply `backend/db/migrations/012_course_registration_requests.sql` in Supabase after migration 011. Then apply `backend/db/migrations/020_academic_year_and_semesters.sql`, `021_teacher_course_offerings_and_retakes.sql`, and `022_current_academic_period.sql` after migrations 017, 018, and 019. Migration 020 transforms legacy values into `academic_year` plus `semester`; migration 021 creates one-teacher-per-course-period offerings and retake-safe enrollments; migration 022 provides the administrator-controlled current period used as the default throughout the active workflow.
+Apply `backend/db/migrations/012_course_registration_requests.sql` in Supabase after migration 011. Then apply `backend/db/migrations/020_academic_year_and_semesters.sql`, `021_teacher_course_offerings_and_retakes.sql`, `022_current_academic_period.sql`, `023_announcements_and_notifications.sql`, and `024_normalize_catalog_course_periods.sql` after migrations 017 and 019. Migration 018 is optional and remains deferred until CinetPay activation. Migration 020 transforms legacy values into `academic_year` plus `semester`; migration 021 creates one-teacher-per-course-period offerings and retake-safe enrollments; migration 022 provides the administrator-controlled current period; migration 023 adds announcements and the notification inbox; migration 024 preserves legacy catalog periods and clears the deprecated period values from period-neutral catalog courses.
 
 ## API endpoints
 
@@ -50,3 +50,12 @@ Run the backend test suite only in an environment with the private Supabase vari
 ```powershell
 npm --prefix backend test
 ```
+
+
+## Course search and period ownership
+
+Authorized users can search visible courses by course name or course code. Students search the active teacher offerings available for the selected academic year and semester; administrators and teachers search the catalog view available to their role.
+
+Catalog courses are period-neutral. The `teacher_course_assignment` relationship records which teacher offers a course for a specific academic year and semester. Student registration requests, enrollments, assessments, class sessions, and final grades use that period-specific offering or academic-period record rather than assigning a semester directly to the catalog course.
+
+Migration `024_normalize_catalog_course_periods.sql` preserves legacy catalog period values in `course_period_legacy_backup` and clears the deprecated nullable fields from `course`. Apply it after migration 023 before creating new catalog courses.

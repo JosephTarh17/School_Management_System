@@ -330,3 +330,15 @@ ALTER TABLE user_notification ENABLE ROW LEVEL SECURITY;
 
 COMMENT ON TABLE announcement IS 'Administrator-authored school notices with role audience, publication state, priority, and optional expiry.';
 COMMENT ON TABLE user_notification IS 'In-app notification inbox scoped to one authenticated user.';
+
+
+CREATE TABLE course_period_legacy_backup (
+  backup_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  course_id uuid NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+  academic_year integer,
+  semester text,
+  captured_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(course_id)
+);
+
+COMMENT ON TABLE course_period_legacy_backup IS 'Preserved legacy period values removed from period-neutral catalog courses by migration 024.';

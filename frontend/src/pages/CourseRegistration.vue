@@ -39,10 +39,15 @@
           </div>
           <span class="text-xs font-semibold text-slate-500">{{ countLabel(selectedCourseIds.length, 'course selected', 'courses selected') }}</span>
         </div>
+        <label v-if="!loading && catalog.length" class="relative mb-4 block">
+          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400">search</span>
+          <input v-model="searchQuery" type="search" placeholder="Search by course name or code" class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-container" />
+        </label>
         <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading registration options…</div>
         <div v-else-if="!catalog.length" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No courses are available for this semester.</div>
+        <div v-else-if="!filteredCatalog.length" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No offered courses match that name or code.</div>
         <div v-else class="grid gap-3 md:grid-cols-2">
-          <label v-for="course in catalog" :key="course.course_id" class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition" :class="selectedCourseIds.includes(course.course_id) ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'">
+          <label v-for="course in filteredCatalog" :key="course.course_id" class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition" :class="selectedCourseIds.includes(course.course_id) ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'">
             <input v-model="selectedCourseIds" type="checkbox" :value="course.course_id" class="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
             <span class="min-w-0">
               <span class="flex flex-wrap items-center gap-2">
@@ -87,15 +92,23 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { authStore } from '../store/auth'
 import { cancelCourseRegistration, fetchCourseRegistrationRequests, fetchCurrentAcademicPeriod, fetchRegistrationCatalog, fetchRegistrationEligibility, submitCourseRegistration } from '../api.js'
 import { countLabel } from '../lib/formatters.js'
 
+const route = useRoute()
 const semesters = ['Semester 1', 'Semester 2']
 const academicYear = ref(2026)
 const semester = ref('Semester 1')
 const catalog = ref([])
 const requests = ref([])
+const searchQuery = ref(String(route.query.search || ''))
+const filteredCatalog = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase()
+  if (!query) return catalog.value
+  return catalog.value.filter((course) => `${course.course_code || ''} ${course.course_name || ''}`.toLocaleLowerCase().includes(query))
+})
 const selectedCourseIds = ref([])
 const eligibility = ref({ class_level: null, max_credits: 0, enrolled_credits: 0 })
 const loading = ref(true)
@@ -156,4 +169,5 @@ async function initialize() {
 
 onMounted(initialize)
 watch([academicYear, semester], loadData)
+watch(() => route.query.search, (value) => { searchQuery.value = String(value || '') })
 </script>

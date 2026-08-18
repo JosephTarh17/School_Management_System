@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between gap-4">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Academic Course Catalog</h1>
         <p class="text-xs text-slate-500 font-geist mt-1">Courses are created by administrators and selected by teachers for their academic-period offering.</p>
@@ -18,9 +18,19 @@
     <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
     <div v-if="loading" class="p-8 text-center text-slate-500">Loading courses…</div>
     <div v-else class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs">
-      <p v-if="!catalog.length" class="p-8 text-center text-slate-500">No courses are available.</p>
+      <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">Course list</h2>
+          <p class="mt-1 text-xs text-slate-500">Search by course name or course code.</p>
+        </div>
+        <label class="relative block w-full sm:w-72">
+          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400">search</span>
+          <input v-model="searchQuery" type="search" placeholder="Search name or code" class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-container" />
+        </label>
+      </div>
+      <p v-if="!filteredCatalog.length" class="p-8 text-center text-slate-500">{{ searchQuery.trim() ? 'No courses match that name or code.' : 'No courses are available.' }}</p>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div v-for="c in catalog" :key="c.course_id" class="p-5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white hover:shadow-sm transition-all">
+        <div v-for="c in filteredCatalog" :key="c.course_id" class="p-5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white hover:shadow-sm transition-all">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-bold text-primary-container font-geist px-2 py-0.5 bg-blue-50 rounded border border-blue-200">{{ c.course_code }}</span>
             <span class="text-xs font-semibold text-slate-600 font-geist">{{ c.credit_units ?? '—' }} Credits</span>
@@ -35,7 +45,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { authStore } from '../store/auth'
 import { createCourse, deleteCourse, fetchCourses } from '../api.js'
 
@@ -45,8 +56,15 @@ const saving = ref(false)
 const showForm = ref(false)
 const errorMessage = ref('')
 const form = reactive({ course_name: '', course_code: '', credit_units: null })
+const route = useRoute()
 const canManage = computed(() => authStore.userRole.value === 'administrator')
 const canDelete = computed(() => authStore.userRole.value === 'administrator')
+const searchQuery = ref(String(route.query.search || ''))
+const filteredCatalog = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase()
+  if (!query) return catalog.value
+  return catalog.value.filter((course) => `${course.course_code || ''} ${course.course_name || ''}`.toLocaleLowerCase().includes(query))
+})
 
 async function loadCourses() {
   loading.value = true
@@ -77,5 +95,6 @@ async function removeCourse(courseId) {
   else catalog.value = catalog.value.filter((course) => course.course_id !== courseId)
 }
 
+watch(() => route.query.search, (value) => { searchQuery.value = String(value || '') })
 onMounted(loadCourses)
 </script>
