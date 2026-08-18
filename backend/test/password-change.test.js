@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import request from 'supertest'
 
-process.env.JWT_SECRET = 'a'.repeat(64)
-process.env.SUPABASE_URL = 'https://example.supabase.co'
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature'
+process.env.JWT_SECRET ||= 'test-only-jwt-secret'
+process.env.SUPABASE_URL ||= 'https://example.supabase.co'
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= ['test', Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url'), 'test'].join('.')
 
 const { default: app } = await import('../src/app.js')
 const { parsePasswordChange } = await import('../src/routes/users.js')

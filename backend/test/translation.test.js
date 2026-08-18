@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import request from 'supertest'
 
-process.env.JWT_SECRET = 'a'.repeat(64)
-process.env.SUPABASE_URL = 'https://example.supabase.co'
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature'
+process.env.JWT_SECRET ||= 'test-only-jwt-secret'
+process.env.SUPABASE_URL ||= 'https://example.supabase.co'
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= ['test', Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url'), 'test'].join('.')
 process.env.TRANSLATION_CACHE_PERSISTENT = 'false'
 
 const { default: app } = await import('../src/app.js')
@@ -41,7 +41,7 @@ describe('Translation API and cache', () => {
     clearTranslationCache()
     process.env.TRANSLATION_CACHE_PERSISTENT = 'false'
     process.env.TRANSLATION_PROVIDER = 'deepl'
-    process.env['DEEPL_API_KEY'] = 'unit-test-key'
+    process.env['DEEPL_API_KEY'] = 'test-only-provider-key'
   })
 
   afterEach(() => {

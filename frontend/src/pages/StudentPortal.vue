@@ -104,7 +104,7 @@
 
       <!-- Tab 3: Attendance History -->
       <div v-else-if="activeTab === 'Attendance History'" class="p-6">
-        <h2 class="text-base font-bold text-slate-900 mb-4 font-sans">Personal Attendance Log (Term 2026-A)</h2>
+        <h2 class="text-base font-bold text-slate-900 mb-4 font-sans">Personal Attendance Log</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs font-geist">
             <thead>
