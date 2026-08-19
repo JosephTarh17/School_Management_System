@@ -9,6 +9,8 @@ router.use(requireAuth, requireRole('administrator'))
 router.get('/', asyncRoute(async (req, res) => {
   const limit = asNumber(req.query?.limit, 'limit', { optional: true, min: 1, max: 200, integer: true }) || 100
   const action = asText(req.query?.action, 'action', { max: 120, optional: true })
+  const resourceType = asText(req.query?.resource_type, 'resource_type', { max: 120, optional: true })
+  const resourceId = asText(req.query?.resource_id, 'resource_id', { max: 160, optional: true })
 
   let query = supabase
     .from('security_audit_log')
@@ -18,6 +20,8 @@ router.get('/', asyncRoute(async (req, res) => {
     .limit(limit)
 
   if (action) query = query.ilike('action', `%${action}%`)
+  if (resourceType) query = query.eq('resource_type', resourceType)
+  if (resourceId) query = query.eq('resource_id', resourceId)
 
   const { data, error } = await query
   if (error) throw new ApiError(500, 'Unable to load audit logs')

@@ -1,4 +1,5 @@
 import express from 'express'
+import { randomBytes } from 'node:crypto'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
@@ -22,6 +23,15 @@ export function assertAccountStatusChangeAllowed({ actorUserId, targetUserId, ta
   if (!enabled && targetRole === 'administrator' && activeAdministratorCount <= 1) {
     throw new ApiError(400, 'The last active administrator account cannot be disabled')
   }
+}
+
+export function parseAdministrativeReason(body = {}) {
+  const reason = asText(body.reason, 'reason', { max: 500 })
+  return { reason }
+}
+
+export function generateTemporaryPassword() {
+  return randomBytes(12).toString('base64url')
 }
 
 export function parsePasswordChange(body = {}) {
@@ -111,6 +121,54 @@ router.patch('/:userId/status', requireRole('administrator'), asyncRoute(async (
   return sendData(res, updated)
 }))
 
+router.post('/:userId/force-logout', requireRole('administrator'), asyncRoute(async (req, res) => {
+  const userId = asUuid(req.params.userId, 'userId')
+  const { reason } = parseAdministrativeReason(req.body)
+  if (req.user.user_id === userId) throw new ApiError(400, 'Use the normal logout action for your own account')
+  const { data: target, error: targetError } = await supabase.from('user_account').select('user_id,email,role').eq('user_id', userId).maybeSingle()
+  if (targetError) throw targetError
+  if (!target) throw new ApiError(404, 'User account not found')
+
+  await revokeAllUserSessions(userId)
+  await recordAuditEvent({
+    req,
+    action: 'ACCOUNT_SESSIONS_REVOKED',
+    statusCode: 200,
+    resourceType: 'user_account',
+    resourceId: userId,
+    metadata: { target_email: target.email, target_role: target.role, reason },
+  })
+  return sendData(res, { message: 'All active sessions for this account were revoked.' })
+}))
+
+router.post('/:userId/reset-password', requireRole('administrator'), asyncRoute(async (req, res) => {
+  const userId = asUuid(req.params.userId, 'userId')
+  const { reason } = parseAdministrativeReason(req.body)
+  if (req.user.user_id === userId) throw new ApiError(400, 'Use the change-password feature for your own account')
+  const { data: target, error: targetError } = await supabase.from('user_account').select('user_id,email,role').eq('user_id', userId).maybeSingle()
+  if (targetError) throw targetError
+  if (!target) throw new ApiError(404, 'User account not found')
+
+  const temporaryPassword = generateTemporaryPassword()
+  const password_hash = await hashPassword(temporaryPassword)
+  const { error: updateError } = await supabase
+    .from('user_account')
+    .update({ password_hash, password_algorithm: 'argon2id' })
+    .eq('user_id', userId)
+  if (updateError) throw updateError
+
+  await revokeAllUserSessions(userId)
+  await recordAuditEvent({
+    req,
+    action: 'ADMIN_PASSWORD_RESET',
+    statusCode: 200,
+    resourceType: 'user_account',
+    resourceId: userId,
+    metadata: { target_email: target.email, target_role: target.role, reason, sessions_revoked: true },
+  })
+  return sendData(res, { message: 'A temporary password was generated. Share it securely and require the user to change it.', temporary_password: temporaryPassword })
+}))
+
 router.get('/:userId', asyncRoute(async (req, res) => {
   const userId = asUuid(req.params.userId, 'userId')
   if (req.user.role !== 'administrator' && req.user.user_id !== userId) throw new ApiError(403, 'You do not have permission to view this user')
@@ -128,6 +186,7 @@ router.post('/register', requireRole('administrator'), asyncRoute(async (req, re
   if (password.length < 8) throw new ApiError(400, 'password must be at least 8 characters')
   const password_hash = await hashPassword(password)
   const { data, error } = await supabase.from('user_account').insert({ email, password_hash, role }).select(publicFields).single()
+  if (error?.code === '23505') throw new ApiError(409, 'An account with this email already exists')
   if (error) throw error
   return sendData(res, data, 201)
 }))
