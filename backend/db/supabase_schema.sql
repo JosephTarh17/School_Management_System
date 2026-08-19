@@ -22,7 +22,17 @@ CREATE TABLE user_account (
   security_version integer NOT NULL DEFAULT 0 CHECK (security_version >= 0),
   disabled_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
-  last_login timestamptz
+  last_login timestamptz,
+  must_change_password boolean NOT NULL DEFAULT false,
+  first_login_at timestamptz,
+  mfa_reset_required boolean NOT NULL DEFAULT false,
+  suspension_until timestamptz,
+  account_expires_at timestamptz,
+  account_status_reason text,
+  failed_login_count integer NOT NULL DEFAULT 0 CHECK (failed_login_count >= 0),
+  last_failed_login timestamptz,
+  last_login_ip inet,
+  last_login_user_agent text
 );
 
 CREATE TABLE student (

@@ -56,6 +56,12 @@
       </div>
     </div>
 
+    <div v-if="currentUser?.must_change_password || currentUser?.mfa_reset_required" class="rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm" role="alert">
+      <h2 class="font-bold text-amber-950">Security action required</h2>
+      <p v-if="currentUser?.must_change_password" class="mt-1 text-sm text-amber-900">Change the temporary password before using the rest of the system.</p>
+      <p v-if="currentUser?.mfa_reset_required" class="mt-1 text-sm text-amber-900">An administrator reset your MFA enrollment. Set up MFA again below before continuing.</p>
+    </div>
+
     <div v-if="currentUser" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs space-y-4">
       <div>
         <h2 class="text-lg font-bold text-slate-900">Change Password</h2>
@@ -170,7 +176,13 @@ async function confirmMfaEnrollment() {
   securityError.value = ''
   const result = await verifyMfaEnrollment(authStore.token.value, mfaCode.value)
   if (!result.ok) securityError.value = result.error || 'Unable to verify MFA enrollment.'
-  else { mfaEnabled.value = true; provisioningUri.value = ''; mfaCode.value = ''; securityMessage.value = 'MFA has been enabled.' }
+  else {
+    mfaEnabled.value = true
+    provisioningUri.value = ''
+    mfaCode.value = ''
+    authStore.setUser({ ...currentUser.value, mfa_enabled: true, mfa_reset_required: false }, authStore.token.value)
+    securityMessage.value = 'MFA has been enabled.'
+  }
   mfaBusy.value = false
 }
 

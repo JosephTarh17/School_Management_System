@@ -44,6 +44,30 @@
       </form>
     </div>
 
+    <div v-if="selectedLifecycleUser" class="rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 class="font-bold text-indigo-950">Lifecycle settings: {{ displayName(selectedLifecycleUser) }}</h2>
+          <p class="mt-1 text-sm text-indigo-800">Set a temporary suspension end date or an account expiration date. Leave a date empty to clear that lifecycle rule.</p>
+        </div>
+        <button type="button" class="btn-ghost px-2 py-1 text-xs font-semibold" @click="selectedLifecycleUser = null">Cancel</button>
+      </div>
+      <form class="mt-4 space-y-3" @submit.prevent="saveLifecycle">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="text-xs font-semibold text-slate-700">Suspension ends
+            <input v-model="suspensionUntil" type="datetime-local" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+          <label class="text-xs font-semibold text-slate-700">Account expires
+            <input v-model="accountExpiresAt" type="datetime-local" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+        </div>
+        <label class="block text-xs font-semibold text-slate-700">Reason <span class="text-rose-700">*</span>
+          <textarea v-model.trim="lifecycleReason" required maxlength="500" rows="3" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" placeholder="Explain the lifecycle decision."></textarea>
+        </label>
+        <button type="submit" :disabled="busyUserId === selectedLifecycleUser.user_id || !lifecycleReason" class="btn-primary px-4 py-2 text-sm font-semibold disabled:opacity-50">{{ busyUserId === selectedLifecycleUser.user_id ? 'Saving…' : 'Save lifecycle settings' }}</button>
+      </form>
+    </div>
+
     <div v-if="selectedHistoryUser" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -105,6 +129,15 @@
             <option value="disabled">Disabled</option>
           </select>
         </label>
+        <label class="text-xs font-semibold text-slate-700">Review
+          <select v-model="reviewFilter" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none">
+            <option value="all">All accounts</option>
+            <option value="never_logged_in">Never logged in</option>
+            <option value="failed_logins">Failed logins</option>
+            <option value="temporary">Temporary lifecycle</option>
+            <option value="activation">Activation required</option>
+          </select>
+        </label>
       </div>
 
       <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading accounts…</div>
@@ -125,11 +158,21 @@
             <div><dt class="text-slate-500">Account ID</dt><dd class="mt-0.5 truncate text-slate-800" :title="user.user_id">{{ user.user_id.slice(0, 8) }}…</dd></div>
           </dl>
           <p v-if="user.disabled_at" class="mt-3 text-xs text-rose-700">Disabled on {{ formatDate(user.disabled_at) }}. Enable it to allow a new login.</p>
+          <dl class="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 text-xs sm:grid-cols-4">
+            <div><dt class="text-slate-500">Failed logins</dt><dd class="mt-0.5 font-semibold text-slate-800">{{ user.failed_login_count || 0 }}</dd></div>
+            <div><dt class="text-slate-500">Last failed</dt><dd class="mt-0.5 text-slate-800">{{ formatDate(user.last_failed_login) }}</dd></div>
+            <div><dt class="text-slate-500">Last IP</dt><dd class="mt-0.5 truncate text-slate-800" :title="user.last_login_ip || ''">{{ user.last_login_ip || 'Not recorded' }}</dd></div>
+            <div><dt class="text-slate-500">Activation</dt><dd class="mt-0.5 text-slate-800">{{ user.must_change_password || user.mfa_reset_required ? 'Required' : 'Complete' }}</dd></div>
+          </dl>
+          <p v-if="user.suspension_until" class="mt-3 text-xs text-indigo-700">Temporary suspension ends {{ formatDate(user.suspension_until) }}.</p>
+          <p v-if="user.account_expires_at" class="mt-1 text-xs text-amber-700">Account expiration: {{ formatDate(user.account_expires_at) }}.</p>
           <div class="mt-4 flex flex-wrap items-center gap-2">
             <button v-if="user.disabled_at" type="button" :disabled="busyUserId === user.user_id" class="btn-primary px-3 py-2 text-xs font-semibold disabled:opacity-50" @click="enableAccount(user)">{{ busyUserId === user.user_id ? 'Enabling…' : 'Enable account' }}</button>
             <button v-else type="button" :disabled="!canDisable(user) || busyUserId === user.user_id" class="btn-danger px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50" @click="openDisable(user)">Disable account</button>
             <button type="button" :disabled="!canManageTarget(user) || busyUserId === user.user_id" class="btn-secondary px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50" @click="openAction(user, 'logout')">Force logout</button>
             <button type="button" :disabled="!canManageTarget(user) || busyUserId === user.user_id" class="btn-secondary px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50" @click="openAction(user, 'reset')">Reset password</button>
+            <button v-if="user.role === 'administrator'" type="button" :disabled="!canManageTarget(user) || busyUserId === user.user_id" class="btn-secondary px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50" @click="openAction(user, 'mfa')">Reset MFA</button>
+            <button type="button" :disabled="!canManageTarget(user) || !canDisable(user) || busyUserId === user.user_id" class="btn-secondary px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50" @click="openLifecycle(user)">Lifecycle settings</button>
             <button type="button" class="btn-ghost px-3 py-2 text-xs font-semibold" @click="loadHistory(user)">View history</button>
           </div>
           <p v-if="user.user_id === currentUserId" class="mt-2 text-xs text-slate-500">Your own account cannot be force-logged out or reset here.</p>
@@ -143,7 +186,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { authStore } from '../store/auth.js'
-import { fetchAuditLogs, fetchUsers, forceLogoutUser, resetUserPassword, updateUserStatus } from '../api.js'
+import { fetchAuditLogs, fetchUsers, forceLogoutUser, resetUserMfa, resetUserPassword, updateUserLifecycle, updateUserStatus } from '../api.js'
 
 const users = ref([])
 const loading = ref(true)
@@ -154,10 +197,15 @@ const temporaryPassword = ref('')
 const search = ref('')
 const roleFilter = ref('all')
 const statusFilter = ref('all')
+const reviewFilter = ref('all')
 const selectedUser = ref(null)
 const disableReason = ref('')
 const selectedAction = ref(null)
 const actionReason = ref('')
+const selectedLifecycleUser = ref(null)
+const lifecycleReason = ref('')
+const suspensionUntil = ref('')
+const accountExpiresAt = ref('')
 const selectedHistoryUser = ref(null)
 const historyLogs = ref([])
 const historyLoading = ref(false)
@@ -174,14 +222,21 @@ const filteredUsers = computed(() => {
     const matchesSearch = !query || name.includes(query) || user.email.toLowerCase().includes(query)
     const matchesRole = roleFilter.value === 'all' || user.role === roleFilter.value
     const matchesStatus = statusFilter.value === 'all' || (statusFilter.value === 'disabled' ? Boolean(user.disabled_at) : !user.disabled_at)
-    return matchesSearch && matchesRole && matchesStatus
+    const matchesReview = reviewFilter.value === 'all'
+      || (reviewFilter.value === 'never_logged_in' && !user.last_login)
+      || (reviewFilter.value === 'failed_logins' && Number(user.failed_login_count || 0) > 0)
+      || (reviewFilter.value === 'temporary' && Boolean(user.suspension_until || user.account_expires_at))
+      || (reviewFilter.value === 'activation' && Boolean(user.must_change_password || user.mfa_reset_required))
+    return matchesSearch && matchesRole && matchesStatus && matchesReview
   })
 })
-const actionTitle = computed(() => selectedAction.value?.type === 'logout' ? 'Force logout' : 'Reset password')
-const actionDescription = computed(() => selectedAction.value?.type === 'logout'
-  ? 'All active sessions will be revoked, but the account will remain enabled.'
-  : 'A temporary password will be generated, all active sessions will be revoked, and the user should change the password after signing in.')
-const actionSubmitLabel = computed(() => selectedAction.value?.type === 'logout' ? 'Revoke all sessions' : 'Generate temporary password')
+const actionTitle = computed(() => ({ logout: 'Force logout', reset: 'Reset password', mfa: 'Reset MFA' }[selectedAction.value?.type] || 'Administrative action'))
+const actionDescription = computed(() => ({
+  logout: 'All active sessions will be revoked, but the account will remain enabled.',
+  reset: 'A temporary password will be generated, all active sessions will be revoked, and the user should change the password after signing in.',
+  mfa: 'The current MFA enrollment will be cleared, all active sessions will be revoked, and the user will be required to set up MFA again.',
+}[selectedAction.value?.type] || 'This action will be recorded in the security audit log.'))
+const actionSubmitLabel = computed(() => ({ logout: 'Revoke all sessions', reset: 'Generate temporary password', mfa: 'Reset MFA enrollment' }[selectedAction.value?.type] || 'Continue'))
 
 function displayName(user) {
   return user.student?.full_name || user.teacher?.full_name || user.guardian?.full_name || user.administrator?.full_name || user.email
@@ -191,6 +246,8 @@ function canDisable(user) { return user.user_id !== currentUserId.value && (user
 function canManageTarget(user) { return user.user_id !== currentUserId.value }
 function openDisable(user) { if (!canDisable(user)) return; selectedUser.value = user; disableReason.value = ''; clearMessages() }
 function openAction(user, type) { if (!canManageTarget(user)) return; selectedAction.value = { user, type }; actionReason.value = ''; temporaryPassword.value = ''; clearMessages() }
+function openLifecycle(user) { if (!canManageTarget(user) || !canDisable(user)) return; selectedLifecycleUser.value = user; lifecycleReason.value = ''; suspensionUntil.value = user.suspension_until ? toLocalInput(user.suspension_until) : ''; accountExpiresAt.value = user.account_expires_at ? toLocalInput(user.account_expires_at) : ''; clearMessages() }
+function toLocalInput(value) { return value ? new Date(value).toISOString().slice(0, 16) : '' }
 function closeAction() { selectedAction.value = null; actionReason.value = '' }
 function clearMessages() { errorMessage.value = ''; successMessage.value = '' }
 function displayAuditAction(log) { return String(log.action || 'Event').replace(/^[A-Z]+\s+/, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) }
@@ -239,7 +296,9 @@ async function submitAction() {
   temporaryPassword.value = ''
   const result = type === 'logout'
     ? await forceLogoutUser(token(), user.user_id, { reason: actionReason.value })
-    : await resetUserPassword(token(), user.user_id, { reason: actionReason.value })
+    : type === 'mfa'
+      ? await resetUserMfa(token(), user.user_id, { reason: actionReason.value })
+      : await resetUserPassword(token(), user.user_id, { reason: actionReason.value })
   if (!result.ok) {
     errorMessage.value = result.error || 'Unable to complete the administrative account action.'
   } else {
@@ -247,6 +306,26 @@ async function submitAction() {
     temporaryPassword.value = result.data?.temporary_password || ''
     selectedAction.value = null
     actionReason.value = ''
+  }
+  busyUserId.value = ''
+}
+
+async function saveLifecycle() {
+  if (!selectedLifecycleUser.value || !lifecycleReason.value) return
+  const user = selectedLifecycleUser.value
+  busyUserId.value = user.user_id
+  clearMessages()
+  const result = await updateUserLifecycle(token(), user.user_id, {
+    reason: lifecycleReason.value,
+    suspension_until: suspensionUntil.value ? new Date(suspensionUntil.value).toISOString() : null,
+    account_expires_at: accountExpiresAt.value ? new Date(accountExpiresAt.value).toISOString() : null,
+  })
+  if (!result.ok) errorMessage.value = result.error || 'Unable to update lifecycle settings.'
+  else {
+    const index = users.value.findIndex((entry) => entry.user_id === user.user_id)
+    if (index >= 0) users.value[index] = { ...users.value[index], ...(result.data || {}) }
+    successMessage.value = `${displayName(user)} lifecycle settings were updated.`
+    selectedLifecycleUser.value = null
   }
   busyUserId.value = ''
 }

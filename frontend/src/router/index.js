@@ -232,6 +232,13 @@ router.beforeEach((to, from, next) => {
     return next({ name: 'GuardianPortal' })
   }
 
+  const securityUser = authStore.user.value
+  const requiresPasswordChange = Boolean(securityUser?.must_change_password)
+  const requiresMfaSetup = role === 'administrator' && Boolean(securityUser?.mfa_reset_required)
+  if (isAuth && to.name !== 'UserProfile' && (requiresPasswordChange || requiresMfaSetup)) {
+    return next({ name: 'UserProfile', query: { security: 'required' } })
+  }
+
   // Role check: redirect every authenticated user away from routes outside their role scope
   if (to.meta.roles && role && !to.meta.roles.includes(role)) {
     if (role === 'student') return next({ name: 'StudentPortal' })

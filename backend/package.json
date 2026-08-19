@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "job:daily-maintenance": "node src/jobs/dailyMaintenance.js",
     "test": "mocha --recursive --exit"
   },
   "dependencies": {

@@ -89,6 +89,13 @@ export const authStore = {
   isAuthenticated: computed(() => !!state.token && !!state.user),
   userRole: computed(() => state.user?.role || null),
 
+  setUser(user, token = state.token) {
+    state.user = profileRecord(user)
+    state.token = token
+    persist()
+    scheduleRefresh()
+  },
+
   async login(email, password) {
     const result = await loginRequest(email, password)
     if (result.ok && result.data?.mfa_required && result.data?.challenge_token) return { mfaRequired: true, challengeToken: result.data.challenge_token }

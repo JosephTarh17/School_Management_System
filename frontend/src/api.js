@@ -134,6 +134,14 @@ export async function resetUserPassword(token, userId, body) {
   return requestJson(`/users/${userId}/reset-password`, { method: 'POST', token, body })
 }
 
+export async function resetUserMfa(token, userId, body) {
+  return requestJson(`/users/${userId}/reset-mfa`, { method: 'POST', token, body })
+}
+
+export async function updateUserLifecycle(token, userId, body) {
+  return requestJson(`/users/${userId}/lifecycle`, { method: 'PATCH', token, body })
+}
+
 export async function createStudent(token, body) {
   return requestJson('/students', { method: 'POST', token, body })
 }

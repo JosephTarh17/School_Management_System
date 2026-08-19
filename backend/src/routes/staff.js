@@ -99,6 +99,10 @@ router.post('/', asyncRoute(async (req, res) => {
     if (error?.code === '23505') throw new ApiError(409, 'A user email, employee number, teacher profile, or staff record already exists')
     if (error) throw error
     const createdRow = Array.isArray(created) ? created[0] : created
+    if (createdRow?.user_id) {
+      const { error: activationError } = await supabase.from('user_account').update({ must_change_password: true }).eq('user_id', createdRow.user_id)
+      if (activationError) throw activationError
+    }
     const { data, error: staffError } = await supabase.from('staff_member').select(staffFields).eq('staff_id', createdRow?.staff_id).single()
     if (staffError) throw staffError
     return sendData(res, data, 201)
