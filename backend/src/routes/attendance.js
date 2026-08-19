@@ -5,6 +5,7 @@ import { ENUMS, ApiError, asDate, asEnum, asUuid, asyncRoute, sendData } from '.
 import { sessionForAccess } from '../lib/ownership.js'
 import { enrolledStudentIdsForTeacher, studentIdForUser, studentSessionIdsForUser, teacherSessionIdsForUser } from '../lib/enrollmentScope.js'
 import { safeNotifyStudentAndGuardians } from '../lib/notifications.js'
+import { prepareAbsenceJustification } from './absenceJustifications.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -56,13 +57,16 @@ router.post('/batch', requireRole('teacher', 'administrator'), asyncRoute(async 
     .upsert(records, { onConflict: 'student_id,session_id,session_date' })
     .select(select)
   if (error) throw error
-  await Promise.all((data || []).filter((record) => record.status === 'Absent').map((record) => safeNotifyStudentAndGuardians(record.student_id, {
-    notification_type: 'attendance_absence',
-    title: 'Attendance absence recorded',
-    body: 'An absence was recorded for your class session.',
-    link_path: '/student-portal',
-    event_key: `attendance:${record.attendance_id}:absent`,
-  })))
+  await Promise.all((data || []).filter((record) => record.status === 'Absent').map(async (record) => {
+    await prepareAbsenceJustification(record.attendance_id)
+    return safeNotifyStudentAndGuardians(record.student_id, {
+      notification_type: 'attendance_absence',
+      title: 'Attendance absence recorded',
+      body: 'An absence was recorded for your class session.',
+      link_path: '/student-portal',
+      event_key: `attendance:${record.attendance_id}:absent`,
+    })
+  }))
   return sendData(res, data)
 }))
 
@@ -87,13 +91,16 @@ router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req,
   }
   const { data, error } = await supabase.from('attendance').insert({ student_id, session_id, session_date, status }).select(select).single()
   if (error) throw error
-  if (data.status === 'Absent') await safeNotifyStudentAndGuardians(data.student_id, {
-    notification_type: 'attendance_absence',
-    title: 'Attendance absence recorded',
-    body: 'An absence was recorded for your class session.',
-    link_path: '/student-portal',
-    event_key: `attendance:${data.attendance_id}:absent`,
-  })
+  if (data.status === 'Absent') {
+    await prepareAbsenceJustification(data.attendance_id)
+    await safeNotifyStudentAndGuardians(data.student_id, {
+      notification_type: 'attendance_absence',
+      title: 'Attendance absence recorded',
+      body: 'An absence was recorded for your class session.',
+      link_path: '/student-portal',
+      event_key: `attendance:${data.attendance_id}:absent`,
+    })
+  }
   return sendData(res, data, 201)
 }))
 
@@ -114,13 +121,16 @@ router.patch('/:attendanceId', requireRole('teacher', 'administrator'), asyncRou
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')
   const { data, error } = await supabase.from('attendance').update(updates).eq('attendance_id', attendanceId).select(select).single()
   if (error) throw error
-  if (data.status === 'Absent') await safeNotifyStudentAndGuardians(data.student_id, {
-    notification_type: 'attendance_absence',
-    title: 'Attendance absence recorded',
-    body: 'An absence was recorded for your class session.',
-    link_path: '/student-portal',
-    event_key: `attendance:${data.attendance_id}:absent`,
-  })
+  if (data.status === 'Absent') {
+    await prepareAbsenceJustification(data.attendance_id)
+    await safeNotifyStudentAndGuardians(data.student_id, {
+      notification_type: 'attendance_absence',
+      title: 'Attendance absence recorded',
+      body: 'An absence was recorded for your class session.',
+      link_path: '/student-portal',
+      event_key: `attendance:${data.attendance_id}:absent`,
+    })
+  }
   return sendData(res, data)
 }))
 

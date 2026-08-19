@@ -1,0 +1,57 @@
+<template>
+  <div class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 class="text-2xl font-bold tracking-tight text-slate-900">Timetables</h1><p class="mt-1 text-xs text-slate-500">{{ role === 'administrator' ? 'Build and publish the semester schedule.' : 'Review your scheduled lessons and confirm delivered sessions.' }}</p></div><button type="button" class="btn-primary px-3 py-2 text-xs font-semibold" :disabled="loading" @click="loadData">Refresh</button></div>
+    <div v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ errorMessage }}</div><div v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">{{ successMessage }}</div>
+
+    <form v-if="role === 'administrator'" class="rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-xs" @submit.prevent="createEntry">
+      <h2 class="text-base font-bold text-slate-900">Add a semester timetable entry</h2><p class="mt-1 text-xs text-slate-600">The same course may appear more than once per week. Its total completed time is measured against Course Hours.</p>
+      <div class="mt-4 grid gap-4 md:grid-cols-4">
+        <label class="block text-xs font-semibold text-slate-700 md:col-span-2">Course-hour allocation<select v-model="entryForm.allocation_id" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal"><option value="">Select an allocation</option><option v-for="allocation in allocations" :key="allocation.allocation_id" :value="allocation.allocation_id">{{ allocation.course?.course_code }} — {{ allocation.teacher?.full_name }} ({{ allocation.approved_hours }} h)</option></select></label>
+        <label class="block text-xs font-semibold text-slate-700">Location<select v-model="entryForm.room_id" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal"><option value="">Select a location</option><option v-for="room in resources.rooms || []" :key="room.room_id" :value="room.room_id">{{ room.room_name }}</option></select></label>
+        <label class="block text-xs font-semibold text-slate-700">Weekday<select v-model.number="entryForm.day_of_week" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal"><option v-for="(day, index) in days" :key="day" :value="index + 1">{{ day }}</option></select></label>
+        <label class="block text-xs font-semibold text-slate-700">Start time<input v-model="entryForm.start_local_time" type="time" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal" /></label>
+        <label class="block text-xs font-semibold text-slate-700">End time<input v-model="entryForm.end_local_time" type="time" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal" /></label>
+        <label class="block text-xs font-semibold text-slate-700">Effective from<input v-model="entryForm.effective_from" type="date" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal" /></label>
+        <label class="block text-xs font-semibold text-slate-700">Effective to<input v-model="entryForm.effective_to" type="date" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal" /></label>
+      </div>
+      <button type="submit" class="btn-primary mt-4 px-4 py-2 text-xs font-semibold" :disabled="saving">{{ saving ? 'Creating…' : 'Create draft timetable entry' }}</button>
+    </form>
+
+    <section class="rounded-xl border border-border-subtle bg-white p-4 shadow-xs sm:p-6"><div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 class="text-base font-bold text-slate-900">{{ role === 'administrator' ? 'Semester schedule occurrences' : 'My lesson occurrences' }}</h2><p class="mt-1 text-xs text-slate-500">Scheduled sessions remain stable; teachers record attendance and then confirm completion.</p></div><div class="flex gap-2"><input v-model="filters.from" type="date" class="rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="loadData" /><input v-model="filters.to" type="date" class="rounded-md border border-slate-200 px-2 py-1.5 text-xs" @change="loadData" /></div></div>
+      <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading timetable…</div><div v-else-if="!occurrences.length" class="py-10 text-center text-sm text-slate-500">No timetable occurrences match the selected dates.</div>
+      <div v-else class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"><article v-for="occurrence in occurrences" :key="occurrence.occurrence_id" class="rounded-lg border border-slate-200 bg-slate-50 p-4"><div class="flex items-start justify-between gap-3"><div><p class="font-bold text-slate-900">{{ occurrence.course?.course_code }} <span class="font-normal text-slate-600">{{ occurrence.course?.course_name }}</span></p><p class="mt-1 text-xs text-slate-500">{{ formatDate(occurrence.occurrence_date) }} · {{ formatTime(occurrence.start_at) }}–{{ formatTime(occurrence.end_at) }}</p><p class="mt-1 text-xs text-slate-500">{{ occurrence.room?.room_name || 'Location' }} · {{ occurrence.planned_minutes }} minutes</p></div><span class="rounded-full px-2 py-1 text-[10px] font-semibold" :class="statusClass(occurrence.status)">{{ occurrence.status }}</span></div><div v-if="role === 'administrator'" class="mt-3 flex flex-wrap gap-2"><button v-if="occurrence.timetable_entry?.status === 'Draft'" type="button" class="btn-primary px-2.5 py-1.5 text-xs font-semibold" @click="publishEntry(occurrence.timetable_entry_id)">Publish entry</button></div><div v-if="role === 'teacher'" class="mt-3 flex flex-wrap gap-2"><button v-if="!occurrence.class_session_id && ['Scheduled','Pending Teacher Absence'].includes(occurrence.status)" type="button" class="btn-secondary px-2.5 py-1.5 text-xs font-semibold" @click="openSession(occurrence)">Open attendance</button><button v-if="occurrence.class_session_id && ['Scheduled','Requires Review'].includes(occurrence.status)" type="button" class="btn-primary px-2.5 py-1.5 text-xs font-semibold" @click="completeOccurrence(occurrence)">Mark completed</button><button v-if="occurrence.status === 'Scheduled'" type="button" class="btn-danger px-2.5 py-1.5 text-xs font-semibold" @click="reportAbsence(occurrence)">Report absence</button></div></article></div>
+    </section>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, reactive, ref } from 'vue'
+import { authStore } from '../store/auth.js'
+import { createTimetableEntry, fetchCourseHours, fetchTimetableResources, fetchTimetables, openTimetableSession, completeTimetableOccurrence, reportTeacherAbsence, updateTimetableEntry } from '../api.js'
+
+const role = computed(() => authStore.userRole.value)
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const today = new Date()
+const dateValue = (date) => date.toISOString().slice(0, 10)
+const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))
+const monthEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
+const filters = reactive({ from: dateValue(monthStart), to: dateValue(monthEnd) })
+const entryForm = reactive({ allocation_id: '', room_id: '', day_of_week: 1, start_local_time: '08:00', end_local_time: '10:00', effective_from: filters.from, effective_to: filters.to })
+const resources = ref({ rooms: [], assignments: [] })
+const allocations = ref([])
+const occurrences = ref([])
+const loading = ref(true)
+const saving = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+function formatDate(value) { return new Date(`${value}T00:00:00Z`).toLocaleDateString() }
+function formatTime(value) { return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+function statusClass(status) { return status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : ['Voided','Cancelled','No Attendance'].includes(status) ? 'bg-rose-100 text-rose-700' : status === 'Pending Teacher Absence' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700' }
+async function loadData() { loading.value = true; errorMessage.value = ''; const timetableResult = await fetchTimetables(authStore.token.value, { from: filters.from, to: filters.to }); if (!timetableResult.ok) errorMessage.value = timetableResult.error || 'Unable to load timetable.'; else occurrences.value = timetableResult.data || []; if (role.value === 'administrator') { const [resourceResult, allocationResult] = await Promise.all([fetchTimetableResources(authStore.token.value, {}), fetchCourseHours(authStore.token.value)]); if (!resourceResult.ok) errorMessage.value = resourceResult.error || 'Unable to load timetable resources.'; else resources.value = resourceResult.data || resourceResult; if (!allocationResult.ok) errorMessage.value = allocationResult.error || 'Unable to load course-hour allocations.'; else allocations.value = allocationResult.data || [] } else if (role.value === 'teacher') { const resourceResult = await fetchTimetableResources(authStore.token.value, {}); if (resourceResult.ok) resources.value = resourceResult.data || resourceResult } loading.value = false }
+async function createEntry() { saving.value = true; errorMessage.value = ''; const result = await createTimetableEntry(authStore.token.value, { ...entryForm }); if (!result.ok) errorMessage.value = result.error || 'Unable to create the timetable entry.'; else { successMessage.value = 'Draft timetable entry created.'; await loadData() } saving.value = false }
+async function publishEntry(entryId) { const result = await updateTimetableEntry(authStore.token.value, entryId, { status: 'Published' }); if (!result.ok) errorMessage.value = result.error || 'Unable to publish the timetable entry.'; else { successMessage.value = 'Timetable entry published.'; await loadData() } }
+async function openSession(occurrence) { const result = await openTimetableSession(authStore.token.value, occurrence.occurrence_id); if (!result.ok) errorMessage.value = result.error || 'Unable to open attendance.'; else { successMessage.value = 'Actual class session opened. Record attendance before completing it.'; occurrence.class_session_id = result.data?.session_id } }
+async function completeOccurrence(occurrence) { const result = await completeTimetableOccurrence(authStore.token.value, occurrence.occurrence_id); if (!result.ok) errorMessage.value = result.error || 'Attendance is required before completion.'; else { successMessage.value = result.data?.status === 'No Attendance' ? 'The occurrence was recorded as no attendance.' : 'Session completed and hours counted.'; await loadData() } }
+async function reportAbsence(occurrence) { const reason = window.prompt('Why will you be absent from this scheduled session?'); if (!reason) return; const result = await reportTeacherAbsence(authStore.token.value, occurrence.occurrence_id, { reason, replacement_requested: false }); if (!result.ok) errorMessage.value = result.error || 'Unable to submit the absence report.'; else { successMessage.value = 'Teacher absence report submitted for administrator review.'; await loadData() } }
+onMounted(loadData)
+</script>

@@ -28,6 +28,11 @@ import notificationsRoutes from './routes/notifications.js'
 import searchRoutes from './routes/search.js'
 import roomsRoutes from './routes/rooms.js'
 import staffRoutes from './routes/staff.js'
+import courseHoursRoutes from './routes/courseHours.js'
+import timetableRoutes from './routes/timetables.js'
+import calendarRoutes from './routes/calendar.js'
+import schoolEventsRoutes from './routes/schoolEvents.js'
+import absenceJustificationsRoutes from './routes/absenceJustifications.js'
 
 dotenv.config()
 
@@ -64,6 +69,11 @@ app.use('/notifications', notificationsRoutes)
 app.use('/search', searchRoutes)
 app.use('/rooms', roomsRoutes)
 app.use('/staff', staffRoutes)
+app.use('/course-hours', courseHoursRoutes)
+app.use('/timetables', timetableRoutes)
+app.use('/calendar', calendarRoutes)
+app.use('/school-events', schoolEventsRoutes)
+app.use('/absence-justifications', absenceJustificationsRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.use((req, res, next) => next(new ApiError(404, 'Route not found')))

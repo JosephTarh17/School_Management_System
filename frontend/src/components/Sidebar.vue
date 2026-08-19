@@ -89,10 +89,12 @@ const studentMenuGroups = [
     items: [
       { label: 'My Portal Overview', path: '/student-portal', icon: 'person' },
       { label: 'Announcements', path: '/announcements', icon: 'campaign' },
-      { label: 'My Course Schedule', path: '/class-sessions', icon: 'calendar_month' },
+      { label: 'My Semester Calendar', path: '/calendar', icon: 'calendar_month' },
+      { label: 'Timetables', path: '/timetables', icon: 'schedule' },
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
       { label: 'Course Registration', path: '/course-registration', icon: 'how_to_reg' },
       { label: 'My Assessments', path: '/assessments', icon: 'assignment' },
+      { label: 'Absence Justifications', path: '/absence-justifications', icon: 'event_available' },
       { label: 'My Report Card', path: '/report-card', icon: 'description' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]
@@ -111,6 +113,7 @@ const administratorMenuGroups = [
     items: [
       { label: 'Admin Dashboard', path: '/admin-dashboard', icon: 'admin_panel_settings' },
       { label: 'Announcements', path: '/announcements', icon: 'campaign' },
+      { label: 'Operations Calendar', path: '/calendar', icon: 'today' },
       { label: 'Student Enrollment', path: '/student-enrollment', icon: 'how_to_reg' },
       { label: 'Grading Review & Publication', path: '/grading-review', icon: 'fact_check' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
@@ -120,6 +123,9 @@ const administratorMenuGroups = [
     title: 'Course Management',
     items: [
       { label: 'Course Catalog', path: '/course-catalog', icon: 'auto_stories' },
+      { label: 'Course Hours', path: '/course-hours', icon: 'timer' },
+      { label: 'Timetables', path: '/timetables', icon: 'schedule' },
+      { label: 'School Events', path: '/school-events', icon: 'event' },
       { label: 'Configure Locations', path: '/class-locations', icon: 'location_on' },
       { label: 'Registration Review', path: '/course-registration-review', icon: 'fact_check' },
     ]
@@ -132,6 +138,8 @@ const administratorMenuGroups = [
       { label: 'Staff Management', path: '/staff-management', icon: 'badge' },
       { label: 'Audit Logs', path: '/audit-logs', icon: 'history' },
       { label: 'Attendance Reports & Alerts', path: '/attendance-reports', icon: 'monitoring' },
+      { label: 'Absence Justifications', path: '/absence-justifications', icon: 'event_available' },
+      { label: 'Teacher Absence Reviews', path: '/teacher-absence-reports', icon: 'event_busy' },
       { label: 'User Profile', path: '/profile', icon: 'account_circle' },
     ]
   }
@@ -142,6 +150,7 @@ const guardianMenuGroups = [
     title: 'Guardian Portal',
     items: [
       { label: 'Children Overview', path: '/guardian-portal', icon: 'family_restroom' },
+      { label: 'Semester Calendar', path: '/calendar', icon: 'calendar_month' },
       { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'Published Report Cards', path: '/report-card', icon: 'description' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
@@ -160,6 +169,8 @@ const teacherMenuGroups = [
     title: 'Teaching',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: 'space_dashboard' },
+      { label: 'Monthly Calendar', path: '/calendar', icon: 'calendar_month' },
+      { label: 'Timetables', path: '/timetables', icon: 'schedule' },
       { label: 'Attendance', path: '/teacher-attendance', icon: 'co_present' },
       { label: 'Assessments', path: '/assessments', icon: 'assignment' },
       { label: 'Gradebook', path: '/gradebook', icon: 'grading' },
@@ -171,6 +182,7 @@ const teacherMenuGroups = [
       { label: 'Class Sessions', path: '/class-sessions', icon: 'calendar_month' },
       { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'Attendance Reports', path: '/attendance-reports', icon: 'monitoring' },
+      { label: 'Teacher Absence Reports', path: '/teacher-absence-reports', icon: 'event_busy' },
       { label: 'Participation', path: '/participation-log', icon: 'how_to_reg' },
       { label: 'Behavior & Discipline', path: '/behavior-discipline', icon: 'gavel' },
     ]

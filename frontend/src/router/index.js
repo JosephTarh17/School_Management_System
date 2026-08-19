@@ -138,6 +138,42 @@ const routes = [
     meta: { requiresAuth: true, roles: ['student', 'teacher'] }
   },
   {
+    path: '/timetables',
+    name: 'Timetables',
+    component: () => import('../pages/Timetables.vue'),
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator', 'guardian'] }
+  },
+  {
+    path: '/calendar',
+    name: 'Calendar',
+    component: () => import('../pages/Calendar.vue'),
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator', 'guardian'] }
+  },
+  {
+    path: '/course-hours',
+    name: 'CourseHours',
+    component: () => import('../pages/CourseHours.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
+    path: '/school-events',
+    name: 'SchoolEvents',
+    component: () => import('../pages/SchoolEvents.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
+    path: '/absence-justifications',
+    name: 'AbsenceJustifications',
+    component: () => import('../pages/AbsenceJustifications.vue'),
+    meta: { requiresAuth: true, roles: ['student', 'administrator'] }
+  },
+  {
+    path: '/teacher-absence-reports',
+    name: 'TeacherAbsenceReports',
+    component: () => import('../pages/TeacherAbsenceReports.vue'),
+    meta: { requiresAuth: true, roles: ['teacher', 'administrator'] }
+  },
+  {
     path: '/financial-records',
     name: 'FinancialRecords',
     component: () => import('../pages/FinancialRecords.vue'),

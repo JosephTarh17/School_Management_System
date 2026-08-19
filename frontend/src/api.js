@@ -522,3 +522,100 @@ export async function initializeCinetPayPayment(token, body) {
 export async function fetchCinetPayStatus(token, merchantTransactionId) {
   return requestJson(`/cinetpay/status/${encodeURIComponent(merchantTransactionId)}`, { token })
 }
+
+export async function fetchCourseHours(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/course-hours${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function createCourseHourAllocation(token, body) {
+  return requestJson('/course-hours', { method: 'POST', token, body })
+}
+export async function updateCourseHourAllocation(token, allocationId, body) {
+  return requestJson(`/course-hours/${allocationId}`, { method: 'PATCH', token, body })
+}
+export async function deleteCourseHourAllocation(token, allocationId) {
+  return requestJson(`/course-hours/${allocationId}`, { method: 'DELETE', token })
+}
+export async function fetchTimetableResources(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/timetables/resources${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function fetchTimetables(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/timetables${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function fetchTimetableEntries(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/timetables/entries${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function createTimetableEntry(token, body) {
+  return requestJson('/timetables', { method: 'POST', token, body })
+}
+export async function updateTimetableEntry(token, entryId, body) {
+  return requestJson(`/timetables/${entryId}`, { method: 'PATCH', token, body })
+}
+export async function openTimetableSession(token, occurrenceId) {
+  return requestJson(`/timetables/occurrences/${occurrenceId}/open-session`, { method: 'POST', token })
+}
+export async function completeTimetableOccurrence(token, occurrenceId) {
+  return requestJson(`/timetables/occurrences/${occurrenceId}/complete`, { method: 'POST', token })
+}
+export async function reportTeacherAbsence(token, occurrenceId, body) {
+  return requestJson(`/timetables/occurrences/${occurrenceId}/absence-report`, { method: 'POST', token, body })
+}
+export async function fetchTeacherAbsenceReports(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/timetables/absence-reports${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function reviewTeacherAbsence(token, reportId, body) {
+  return requestJson(`/timetables/absence-reports/${reportId}/review`, { method: 'POST', token, body })
+}
+export async function createTimetableHourRequest(token, body) {
+  return requestJson('/timetables/hour-requests', { method: 'POST', token, body })
+}
+export async function fetchTimetableHourRequests(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/timetables/hour-requests${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function reviewTimetableHourRequest(token, requestId, body) {
+  return requestJson(`/timetables/hour-requests/${requestId}/review`, { method: 'POST', token, body })
+}
+export async function fetchCalendar(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/calendar${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function fetchSchoolEvents(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/school-events${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function createSchoolEvent(token, body) {
+  return requestJson('/school-events', { method: 'POST', token, body })
+}
+export async function updateSchoolEvent(token, eventId, body) {
+  return requestJson(`/school-events/${eventId}`, { method: 'PATCH', token, body })
+}
+export async function publishSchoolEvent(token, eventId) {
+  return requestJson(`/school-events/${eventId}/publish`, { method: 'POST', token })
+}
+export async function cancelSchoolEvent(token, eventId, reason) {
+  return requestJson(`/school-events/${eventId}/cancel`, { method: 'POST', token, body: { reason } })
+}
+export async function deleteSchoolEvent(token, eventId) {
+  return requestJson(`/school-events/${eventId}`, { method: 'DELETE', token })
+}
+export async function fetchAbsenceJustifications(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/absence-justifications${query.toString() ? `?${query.toString()}` : ''}`, { token })
+}
+export async function submitAbsenceJustification(token, attendanceId, body) {
+  return requestJson(`/absence-justifications/${attendanceId}`, { method: 'POST', token, body })
+}
+export async function reviewAbsenceJustification(token, attendanceId, body) {
+  return requestJson(`/absence-justifications/${attendanceId}/review`, { method: 'POST', token, body })
+}
+export async function fetchAbsencePolicy(token) {
+  return requestJson('/absence-justifications/policy', { token })
+}
+export async function updateAbsencePolicy(token, body) {
+  return requestJson('/absence-justifications/policy', { method: 'PATCH', token, body })
+}
