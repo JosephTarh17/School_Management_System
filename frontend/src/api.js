@@ -122,6 +122,10 @@ export async function fetchUsers(token) {
   return requestJson('/users', { token })
 }
 
+export async function updateUserStatus(token, userId, body) {
+  return requestJson(`/users/${userId}/status`, { method: 'PATCH', token, body })
+}
+
 export async function createStudent(token, body) {
   return requestJson('/students', { method: 'POST', token, body })
 }

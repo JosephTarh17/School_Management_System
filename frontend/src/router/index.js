@@ -90,6 +90,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['administrator'] }
   },
   {
+    path: '/account-management',
+    name: 'AccountManagement',
+    component: () => import('../pages/AccountManagement.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
     path: '/staff-management',
     name: 'StaffManagement',
     component: () => import('../pages/StaffManagement.vue'),

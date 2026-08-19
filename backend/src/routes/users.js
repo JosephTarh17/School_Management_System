@@ -4,10 +4,25 @@ import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ENUMS, ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { hashPassword, verifyPassword } from '../lib/security.js'
 import { revokeAllUserSessions } from '../lib/sessions.js'
+import { recordAuditEvent } from '../lib/audit.js'
 
 const router = express.Router()
 router.use(requireAuth)
-const publicFields = 'user_id,email,role,mfa_enabled,created_at,last_login'
+const publicFields = 'user_id,email,role,mfa_enabled,created_at,last_login,disabled_at'
+
+export function parseAccountStatusChange(body = {}) {
+  if (typeof body.enabled !== 'boolean') throw new ApiError(400, 'enabled must be a boolean')
+  const reason = asText(body.reason, 'reason', { max: 500, optional: true }) || null
+  if (!body.enabled && !reason) throw new ApiError(400, 'reason is required when disabling an account')
+  return { enabled: body.enabled, reason }
+}
+
+export function assertAccountStatusChangeAllowed({ actorUserId, targetUserId, targetRole, activeAdministratorCount, enabled }) {
+  if (!enabled && actorUserId === targetUserId) throw new ApiError(400, 'You cannot disable your own administrator account')
+  if (!enabled && targetRole === 'administrator' && activeAdministratorCount <= 1) {
+    throw new ApiError(400, 'The last active administrator account cannot be disabled')
+  }
+}
 
 export function parsePasswordChange(body = {}) {
   const currentPassword = asText(body.current_password, 'current_password', { max: 128 })
@@ -18,7 +33,10 @@ export function parsePasswordChange(body = {}) {
 }
 
 router.get('/', requireRole('administrator'), asyncRoute(async (req, res) => {
-  const { data, error } = await supabase.from('user_account').select(`${publicFields}, guardian(guardian_id,full_name,email,phone,relationship)`).order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('user_account')
+    .select(`${publicFields}, student(student_id,full_name,class_level), teacher(teacher_id,full_name,email,department), guardian(guardian_id,full_name,email,phone,relationship), administrator(administrator_id,full_name,department)`)
+    .order('created_at', { ascending: false })
   if (error) throw error
   return sendData(res, data)
 }))
@@ -32,6 +50,65 @@ router.get('/me', asyncRoute(async (req, res) => {
   if (error) throw error
   if (!data) throw new ApiError(404, 'User not found')
   return sendData(res, data)
+}))
+
+router.patch('/:userId/status', requireRole('administrator'), asyncRoute(async (req, res) => {
+  const userId = asUuid(req.params.userId, 'userId')
+  const { enabled, reason } = parseAccountStatusChange(req.body)
+  const { data: target, error: targetError } = await supabase
+    .from('user_account')
+    .select('user_id,email,role,disabled_at')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (targetError) throw targetError
+  if (!target) throw new ApiError(404, 'User account not found')
+
+  let activeAdministratorCount = null
+  if (!enabled && target.role === 'administrator') {
+    const { count, error: countError } = await supabase
+      .from('user_account')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('role', 'administrator')
+      .is('disabled_at', null)
+    if (countError) throw countError
+    activeAdministratorCount = count || 0
+  }
+
+  assertAccountStatusChangeAllowed({
+    actorUserId: req.user.user_id,
+    targetUserId: userId,
+    targetRole: target.role,
+    activeAdministratorCount,
+    enabled,
+  })
+
+  const disabledAt = enabled ? null : new Date().toISOString()
+  const { data: updated, error: updateError } = await supabase
+    .from('user_account')
+    .update({ disabled_at: disabledAt })
+    .eq('user_id', userId)
+    .select(publicFields)
+    .single()
+  if (updateError) throw updateError
+
+  if (!enabled) await revokeAllUserSessions(userId)
+
+  await recordAuditEvent({
+    req,
+    action: enabled ? 'ACCOUNT_ENABLED' : 'ACCOUNT_DISABLED',
+    statusCode: 200,
+    resourceType: 'user_account',
+    resourceId: userId,
+    metadata: {
+      target_email: target.email,
+      target_role: target.role,
+      previous_status: target.disabled_at ? 'disabled' : 'enabled',
+      new_status: enabled ? 'enabled' : 'disabled',
+      reason,
+    },
+  })
+
+  return sendData(res, updated)
 }))
 
 router.get('/:userId', asyncRoute(async (req, res) => {
