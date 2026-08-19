@@ -5,7 +5,7 @@
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Class Sessions & Scheduling</h1>
         <p class="text-xs text-slate-500 font-geist mt-1">Schedules loaded from the institutional database. Teachers create their own sessions through Teacher Attendance.</p>
       </div>
-      <button v-if="canManage" @click="showForm = !showForm" class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-eight shadow-xs font-geist">{{ showForm ? 'Close Form' : '+ Schedule Session' }}</button>
+      <button v-if="canManage" @click="showForm = !showForm" class="btn-primary px-4 py-2 text-xs font-semibold font-geist">{{ showForm ? 'Close Form' : '+ Schedule Session' }}</button>
     </div>
 
     <form v-if="showForm" @submit.prevent="createNewSession" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -17,7 +17,7 @@
       <input v-model="form.start_time" type="datetime-local" required class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model="form.end_time" type="datetime-local" required class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model="form.recurrence_pattern" placeholder="Recurrence (optional)" class="px-3 py-2 border rounded-lg text-sm" />
-      <button :disabled="saving" class="md:col-span-3 justify-self-start px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Session' }}</button>
+      <button :disabled="saving" class="btn-primary md:col-span-3 justify-self-start px-4 py-2 text-white text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Session' }}</button>
     </form>
 
     <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
@@ -25,7 +25,7 @@
     <div v-else-if="!sessions.length" class="bg-white rounded-xl border border-border-subtle p-8 text-center text-slate-500">No class sessions are available.</div>
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <div v-for="session in sessions" :key="session.session_id" class="bg-white rounded-xl border border-border-subtle p-5 shadow-xs hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 font-geist">{{ session.course?.course_code || session.course_id }}</span><button v-if="canManage" @click="removeSession(session.session_id)" class="text-xs text-red-700 font-semibold">Delete</button></div>
+        <div class="flex items-center justify-between mb-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 font-geist">{{ session.course?.course_code || session.course_id }}</span><button v-if="canManage" @click="removeSession(session.session_id)" class="btn-danger px-3 py-1.5 text-xs font-semibold">Delete</button></div>
         <h3 class="text-base font-bold text-slate-900 font-sans mb-1">{{ session.course?.course_name || 'Scheduled session' }}</h3>
         <p class="text-xs text-slate-500 font-geist mb-3">{{ session.academic_year || session.course?.academic_year || 'Year not assigned' }} · {{ session.semester || session.course?.semester || 'Semester not assigned' }} · Instructor: {{ session.teacher?.full_name || session.teacher_id }}</p>
         <div class="space-y-1.5 text-xs text-slate-600 font-geist border-t border-slate-100 pt-3"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-base text-slate-400">schedule</span><span>{{ formatTime(session.start_time) }} — {{ formatTime(session.end_time) }}</span></div><div class="flex items-center gap-2"><span class="material-symbols-outlined text-base text-slate-400">room</span><span>{{ session.room?.room_name || session.room_id }}</span></div></div>

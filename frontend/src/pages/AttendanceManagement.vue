@@ -3,7 +3,7 @@
     <div>
       <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Institutional Attendance Management</h1>
       <p class="text-xs text-slate-500 font-geist mt-1">Review attendance records and identify absence patterns from the database.</p>
-      <button type="button" :disabled="loading" @click="loadAttendance" class="rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+      <button type="button" :disabled="loading" @click="loadAttendance" class="btn-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
         {{ loading ? 'Refreshing…' : 'Refresh records' }}
       </button>
     </div>

@@ -16,7 +16,7 @@
       </div>
 
       <div class="flex gap-3">
-        <button @click="downloadTranscript" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-eight font-geist transition-colors shadow-xs flex items-center gap-1.5">
+        <button @click="downloadTranscript" class="btn-primary px-4 py-2 text-white text-xs font-semibold font-geist flex items-center gap-1.5">
           <span class="material-symbols-outlined text-base">download</span>
           Official Transcript
         </button>

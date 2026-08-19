@@ -11,7 +11,7 @@
         <a class="text-sm font-medium text-slate-600 transition-colors hover:text-primary-container" href="#features">Features</a>
         <a class="text-sm font-medium text-slate-600 transition-colors hover:text-primary-container" href="#solutions">Solutions</a>
         <router-link class="text-sm font-medium text-primary-container transition-colors hover:text-primary-700" to="/login">Sign In</router-link>
-        <router-link class="rounded-eight bg-primary-container px-4 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-blue-700" to="/signup">Join Now</router-link>
+        <router-link class="btn-primary px-4 py-2 text-sm font-semibold text-white transition-all" to="/signup">Join Now</router-link>
       </div>
       <button
         type="button"
@@ -28,7 +28,7 @@
           <a class="rounded-lg px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50" href="#features" @click="mobileMenuOpen = false">Features</a>
           <a class="rounded-lg px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50" href="#solutions" @click="mobileMenuOpen = false">Solutions</a>
           <router-link class="rounded-lg px-3 py-3 text-sm font-semibold text-primary-container hover:bg-blue-50" to="/login" @click="mobileMenuOpen = false">Sign In</router-link>
-          <router-link class="mt-2 rounded-eight bg-primary-container px-4 py-3 text-center text-sm font-semibold text-white shadow-xs hover:bg-blue-700" to="/signup" @click="mobileMenuOpen = false">Join Now</router-link>
+          <router-link class="btn-primary mt-2 px-4 py-3 text-center text-sm font-semibold text-white" to="/signup" @click="mobileMenuOpen = false">Join Now</router-link>
         </div>
       </div>
     </nav>
@@ -49,7 +49,7 @@
             A comprehensive, high-security school management system designed for administrators, teachers, and parents to streamline academic operations.
           </p>
           <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-            <router-link to="/signup" class="flex w-full items-center justify-center gap-2 rounded-eight bg-primary-container px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 sm:w-auto">
+            <router-link to="/signup" class="btn-primary flex w-full items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white transition-all sm:w-auto">
               Get Started
               <span class="material-symbols-outlined text-base">arrow_forward</span>
             </router-link>

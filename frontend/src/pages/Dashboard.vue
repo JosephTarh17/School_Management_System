@@ -31,7 +31,7 @@
           <h2 class="text-base font-bold text-slate-900 font-sans">My live data summary</h2>
           <p class="mt-1 text-xs text-slate-500">Metrics are returned by the protected dashboard endpoint.</p>
         </div>
-        <button type="button" :disabled="loading" @click="loadMetrics" class="rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" :disabled="loading" @click="loadMetrics" class="btn-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
           {{ loading ? 'Refreshing…' : 'Refresh metrics' }}
         </button>
       </div>

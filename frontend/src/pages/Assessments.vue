@@ -6,7 +6,7 @@
         <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Assessments</h1>
         <p class="mt-1 text-sm text-slate-500">Create tests and finals for your courses. The current academic period is loaded automatically.</p>
       </div>
-      <button v-if="canManage" @click="showForm = !showForm" class="self-start rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 sm:self-auto">{{ showForm ? 'Close' : 'New assessment' }}</button>
+      <button v-if="canManage" @click="showForm = !showForm" class="btn-primary self-start px-4 py-2 text-sm font-semibold sm:self-auto">{{ showForm ? 'Close' : 'New assessment' }}</button>
     </div>
 
     <form v-if="showForm" @submit.prevent="createNewAssessment" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -39,7 +39,7 @@
         </div>
       </details>
       <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button :disabled="saving" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{{ saving ? 'Saving…' : 'Save assessment' }}</button>
+        <button :disabled="saving" class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{{ saving ? 'Saving…' : 'Save assessment' }}</button>
         <span class="text-xs text-slate-500">Tests use 20% and the final uses 40% automatically.</span>
       </div>
     </form>
@@ -52,7 +52,7 @@
           <thead><tr class="bg-slate-50 text-slate-500 border-b border-slate-200"><th class="py-3 px-4 font-semibold">Assessment Title</th><th class="py-3 px-4 font-semibold">Course Code</th><th class="py-3 px-4 font-semibold">Type</th><th class="py-3 px-4 font-semibold">Weight</th><th class="py-3 px-4 font-semibold">Due Date</th><th class="py-3 px-4 font-semibold">Actions</th></tr></thead>
           <tbody class="divide-y divide-slate-100 text-slate-700">
             <tr v-if="!assessments.length"><td colspan="6" class="py-8 px-4 text-center text-slate-500">No assessments are available.</td></tr>
-            <tr v-for="a in assessments" :key="a.assessment_id" class="hover:bg-slate-50/80"><td class="py-3.5 px-4 font-bold text-slate-900">{{ a.title }}</td><td class="py-3.5 px-4 font-semibold text-primary-container">{{ a.course?.course_code || a.course_id }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? `Test ${a.assessment_number || ''}` : a.assessment_type }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? 20 : a.assessment_type === 'Final' ? 40 : a.weight }}%</td><td class="py-3.5 px-4 text-slate-500">{{ a.academic_year || a.course?.academic_year || 'Year not set' }} · {{ a.semester || a.course?.semester || 'Semester not set' }} · {{ a.due_date || 'Not scheduled' }}</td><td class="py-3.5 px-4"><button v-if="canDelete" @click="removeAssessment(a.assessment_id)" class="text-red-700 font-semibold">Delete</button><span v-else class="text-slate-400">—</span></td></tr>
+            <tr v-for="a in assessments" :key="a.assessment_id" class="hover:bg-slate-50/80"><td class="py-3.5 px-4 font-bold text-slate-900">{{ a.title }}</td><td class="py-3.5 px-4 font-semibold text-primary-container">{{ a.course?.course_code || a.course_id }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? `Test ${a.assessment_number || ''}` : a.assessment_type }}</td><td class="py-3.5 px-4">{{ a.assessment_type === 'Test' ? 20 : a.assessment_type === 'Final' ? 40 : a.weight }}%</td><td class="py-3.5 px-4 text-slate-500">{{ a.academic_year || a.course?.academic_year || 'Year not set' }} · {{ a.semester || a.course?.semester || 'Semester not set' }} · {{ a.due_date || 'Not scheduled' }}</td><td class="py-3.5 px-4"><button v-if="canDelete" @click="removeAssessment(a.assessment_id)" class="btn-danger px-3 py-1.5 text-xs font-semibold">Delete</button><span v-else class="text-slate-400">—</span></td></tr>
           </tbody>
         </table>
       </div>

@@ -50,7 +50,7 @@
       <p v-if="message" class="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">{{ message }}</p>
       <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
       <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
-        <button @click="saveProfile" :disabled="saving" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-eight font-geist transition-colors shadow-xs disabled:opacity-60">
+        <button @click="saveProfile" :disabled="saving" class="btn-primary px-4 py-2 text-white text-xs font-semibold font-geist disabled:opacity-60">
           {{ saving ? 'Saving…' : 'Save Profile Updates' }}
         </button>
       </div>
@@ -78,7 +78,7 @@
       <p v-if="passwordMessage" class="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">{{ passwordMessage }}</p>
       <p v-if="passwordError" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ passwordError }}</p>
       <div class="flex justify-end">
-        <button @click="changeCurrentPassword" :disabled="passwordBusy" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-eight font-geist disabled:opacity-60">
+        <button @click="changeCurrentPassword" :disabled="passwordBusy" class="btn-primary px-4 py-2 text-white text-xs font-semibold font-geist disabled:opacity-60">
           {{ passwordBusy ? 'Changing…' : 'Change Password' }}
         </button>
       </div>
@@ -90,18 +90,18 @@
         <p class="text-xs text-slate-500 mt-1">Protect administrator sign-in with an authenticator application.</p>
       </div>
       <p class="text-sm" :class="mfaEnabled ? 'text-emerald-700' : 'text-amber-700'">{{ mfaEnabled ? 'MFA is enabled for this account.' : 'MFA is not enabled.' }}</p>
-      <button v-if="!mfaEnabled && !provisioningUri" @click="startMfaEnrollment" :disabled="mfaBusy" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-eight disabled:opacity-60">{{ mfaBusy ? 'Preparing…' : 'Set up MFA' }}</button>
+      <button v-if="!mfaEnabled && !provisioningUri" @click="startMfaEnrollment" :disabled="mfaBusy" class="btn-primary px-4 py-2 text-white text-xs font-semibold disabled:opacity-60">{{ mfaBusy ? 'Preparing…' : 'Set up MFA' }}</button>
       <div v-if="provisioningUri" class="space-y-3">
         <p class="text-xs text-slate-600">Add this provisioning URI to your authenticator application, then enter the generated code.</p>
         <textarea readonly :value="provisioningUri" class="w-full min-h-24 p-3 text-xs bg-slate-50 border border-slate-200 rounded-lg"></textarea>
         <div class="flex gap-2">
           <input v-model.trim="mfaCode" inputmode="numeric" maxlength="8" placeholder="Authenticator code" class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg" />
-          <button @click="confirmMfaEnrollment" :disabled="mfaBusy" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-eight disabled:opacity-60">Verify</button>
+          <button @click="confirmMfaEnrollment" :disabled="mfaBusy" class="btn-primary px-4 py-2 text-white text-xs font-semibold disabled:opacity-60">Verify</button>
         </div>
       </div>
       <div v-if="mfaEnabled" class="flex gap-2">
         <input v-model.trim="disableCode" inputmode="numeric" maxlength="8" placeholder="Current MFA code" class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg" />
-        <button @click="turnOffMfa" :disabled="mfaBusy" class="px-4 py-2 bg-slate-700 text-white text-xs font-semibold rounded-eight disabled:opacity-60">Disable MFA</button>
+        <button @click="turnOffMfa" :disabled="mfaBusy" class="btn-danger px-4 py-2 text-xs font-semibold">Disable MFA</button>
       </div>
       <p v-if="securityMessage" class="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">{{ securityMessage }}</p>
       <p v-if="securityError" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ securityError }}</p>

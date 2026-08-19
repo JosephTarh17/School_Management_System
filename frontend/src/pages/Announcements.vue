@@ -6,7 +6,7 @@
         <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Announcements</h1>
         <p class="mt-1 text-sm text-slate-500">School notices and important updates for the right audience.</p>
       </div>
-      <button type="button" class="rounded-eight border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50" @click="loadAnnouncements">Refresh</button>
+      <button type="button" class="btn-primary px-3 py-2 text-xs font-semibold" @click="loadAnnouncements">Refresh</button>
     </div>
 
     <div v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
@@ -52,8 +52,8 @@
             <input v-model="announcementForm.expires_at" type="date" class="mt-1.5 block rounded-lg border border-slate-200 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none" />
           </label>
           <div class="flex flex-col gap-2 sm:flex-row">
-            <button type="button" :disabled="saving" class="rounded-eight border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50" @click="saveAnnouncement('draft')">Save draft</button>
-            <button type="button" :disabled="saving" class="rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50" @click="saveAnnouncement('published')">{{ saving ? 'Saving…' : 'Publish announcement' }}</button>
+            <button type="button" :disabled="saving" class="btn-secondary px-4 py-2 text-xs font-semibold" @click="saveAnnouncement('draft')">Save draft</button>
+            <button type="button" :disabled="saving" class="btn-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50" @click="saveAnnouncement('published')">{{ saving ? 'Saving…' : 'Publish announcement' }}</button>
           </div>
         </div>
       </form>
@@ -83,8 +83,8 @@
               <p class="mt-2 text-xs text-slate-400">{{ formatDate(announcement.published_at || announcement.created_at) }} · {{ audienceLabel(announcement.audience) }}<span v-if="announcement.expires_at"> · Until {{ formatDate(announcement.expires_at) }}</span></p>
             </div>
             <div v-if="isAdministrator" class="flex shrink-0 gap-2">
-              <button v-if="announcement.status === 'draft'" type="button" class="rounded-eight border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50" @click="changeStatus(announcement, 'published')">Publish</button>
-              <button v-if="announcement.status === 'published'" type="button" class="rounded-eight border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50" @click="changeStatus(announcement, 'archived')">Archive</button>
+              <button v-if="announcement.status === 'draft'" type="button" class="btn-primary px-3 py-1.5 text-xs font-semibold" @click="changeStatus(announcement, 'published')">Publish</button>
+              <button v-if="announcement.status === 'published'" type="button" class="btn-secondary px-3 py-1.5 text-xs font-semibold" @click="changeStatus(announcement, 'archived')">Archive</button>
             </div>
           </div>
         </article>

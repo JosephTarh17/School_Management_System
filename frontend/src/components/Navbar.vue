@@ -109,7 +109,7 @@
 
       <div v-else class="flex items-center gap-2">
         <router-link to="/login" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-primary-container font-geist">Sign In</router-link>
-        <router-link to="/signup" class="rounded-eight bg-primary-container px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-primary-600 font-geist">Register</router-link>
+        <router-link to="/signup" class="btn-primary px-3 py-1.5 text-xs font-semibold text-white font-geist">Register</router-link>
       </div>
     </div>
   </header>

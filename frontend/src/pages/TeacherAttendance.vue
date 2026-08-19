@@ -6,14 +6,14 @@
         <p class="mt-1 text-xs text-slate-500 font-geist">Select one of your class sessions, mark the roster, and save the attendance record.</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <button type="button" :disabled="loading || saving" @click="showCreatePanel = !showCreatePanel" class="rounded-eight border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" :disabled="loading || saving" @click="showCreatePanel = !showCreatePanel" class="btn-primary px-3 py-2 text-xs font-semibold">
           {{ showCreatePanel ? 'Close session form' : 'Create class session' }}
         </button>
         <button
           type="button"
           :disabled="loading || saving || !roster.length"
           @click="markAll('Present')"
-          class="rounded-eight border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+          class="btn-secondary px-3 py-2 text-xs font-semibold"
         >
           Mark all present
         </button>
@@ -21,7 +21,7 @@
           type="button"
           :disabled="loading || saving || !roster.length || !selectedSessionId"
           @click="saveAttendance"
-          class="flex items-center gap-1.5 rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          class="btn-primary flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white transition-all disabled:opacity-50"
         >
           <span class="material-symbols-outlined text-base">save</span>
           {{ saving ? 'Saving…' : 'Save attendance' }}
@@ -78,7 +78,7 @@
         </label>
       </div>
       <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button type="submit" :disabled="loading || saving || !filteredAvailableCourses.length || !rooms.length" class="rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="submit" :disabled="loading || saving || !filteredAvailableCourses.length || !rooms.length" class="btn-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
           {{ saving ? 'Creating…' : 'Create and select session' }}
         </button>
         <p v-if="!availableCourses.length || !rooms.length" class="text-xs text-amber-700">An administrator must configure at least one course and one room before a session can be created.</p>

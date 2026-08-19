@@ -6,7 +6,7 @@
         <h1 class="mt-1 text-2xl font-bold text-slate-950">Guardian Management</h1>
         <p class="mt-1 text-sm text-slate-500">Create guardian accounts, review guardian profiles, and link them to students from Student Enrollment.</p>
       </div>
-      <button type="button" :disabled="loading" @click="loadGuardians" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">{{ loading ? 'Refreshing…' : 'Refresh guardians' }}</button>
+      <button type="button" :disabled="loading" @click="loadGuardians" class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ loading ? 'Refreshing…' : 'Refresh guardians' }}</button>
     </header>
 
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ errorMessage }}</p>
@@ -22,7 +22,7 @@
           <label class="text-xs font-semibold text-slate-700">Phone<input v-model.trim="form.phone" maxlength="40" placeholder="Optional phone number" class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" /></label>
           <label class="text-xs font-semibold text-slate-700">Relationship<input v-model.trim="form.relationship" maxlength="80" placeholder="Parent, sponsor, etc." class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" /></label>
         </div>
-        <button type="submit" :disabled="saving" class="w-full rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50">{{ saving ? 'Creating guardian…' : 'Create guardian' }}</button>
+        <button type="submit" :disabled="saving" class="btn-primary w-full px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50">{{ saving ? 'Creating guardian…' : 'Create guardian' }}</button>
       </form>
 
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -33,7 +33,7 @@
           <article v-for="guardian in guardians" :key="guardian.user_id" class="rounded-lg border border-slate-200 p-4">
             <div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate font-semibold text-slate-900">{{ guardian.guardian?.full_name || 'Unnamed guardian' }}</h3><p class="mt-1 break-all text-xs text-slate-500">{{ guardian.email }}</p></div><span class="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">Guardian</span></div>
             <dl class="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2"><div><dt class="text-slate-500">Phone</dt><dd class="mt-0.5 text-slate-800">{{ guardian.guardian?.phone || 'Not provided' }}</dd></div><div><dt class="text-slate-500">Relationship</dt><dd class="mt-0.5 text-slate-800">{{ guardian.guardian?.relationship || 'Not provided' }}</dd></div><div class="sm:col-span-2"><dt class="text-slate-500">Account created</dt><dd class="mt-0.5 text-slate-800">{{ formatDate(guardian.created_at) }}</dd></div></dl>
-            <router-link to="/student-enrollment" class="mt-4 inline-flex rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Link to a student</router-link>
+            <router-link to="/student-enrollment" class="btn-secondary mt-4 px-3 py-2 text-xs font-semibold">Link to a student</router-link>
           </article>
         </div>
       </div>

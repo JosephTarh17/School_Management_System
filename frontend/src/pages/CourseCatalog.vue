@@ -5,14 +5,14 @@
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Academic Course Catalog</h1>
         <p class="text-xs text-slate-500 font-geist mt-1">Courses are created by administrators and selected by teachers for their academic-period offering.</p>
       </div>
-      <button v-if="canManage" @click="showForm = !showForm" class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-eight shadow-xs font-geist">{{ showForm ? 'Close Form' : 'Add Course' }}</button>
+      <button v-if="canManage" @click="showForm = !showForm" class="btn-primary px-4 py-2 text-xs font-semibold font-geist">{{ showForm ? 'Close Form' : 'Add Course' }}</button>
     </div>
 
     <form v-if="showForm" @submit.prevent="createNewCourse" class="bg-white rounded-xl border border-border-subtle p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-3">
       <input v-model="form.course_name" required placeholder="Course name" class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model="form.course_code" required placeholder="Course code" class="px-3 py-2 border rounded-lg text-sm" />
       <input v-model.number="form.credit_units" type="number" min="0" placeholder="Credits" class="px-3 py-2 border rounded-lg text-sm" />
-      <button :disabled="saving" class="md:col-span-3 justify-self-start px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Course' }}</button>
+      <button :disabled="saving" class="btn-primary md:col-span-3 justify-self-start px-4 py-2 text-white text-sm font-semibold disabled:opacity-60">{{ saving ? 'Saving…' : 'Save Course' }}</button>
     </form>
 
     <p v-if="errorMessage" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{{ errorMessage }}</p>
@@ -37,7 +37,7 @@
           </div>
           <h3 class="text-base font-bold text-slate-900 font-sans mb-1">{{ c.course_name }}</h3>
           <p class="text-xs text-slate-600 font-sans mb-3">Catalog course · academic period selected when a teacher takes the course</p>
-          <div v-if="canDelete" class="border-t border-slate-200 pt-3"><button @click="removeCourse(c.course_id)" class="text-xs text-red-700 font-semibold">Delete course</button></div>
+          <div v-if="canDelete" class="border-t border-slate-200 pt-3"><button @click="removeCourse(c.course_id)" class="btn-danger px-3 py-1.5 text-xs font-semibold">Delete course</button></div>
         </div>
       </div>
     </div>

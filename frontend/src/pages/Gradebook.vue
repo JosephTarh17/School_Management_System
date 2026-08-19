@@ -47,8 +47,8 @@
       <div class="flex flex-col gap-3 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between">
         <div><h2 class="font-bold text-slate-900">{{ selectedAssessment.title }}</h2><p class="mt-1 text-xs text-slate-500">Teacher marks are provisional until an administrator reviews and publishes them.</p></div>
         <div class="flex flex-wrap gap-2">
-          <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50" :disabled="saving || selectedAssessment.published" @click="saveAll">{{ saving ? 'Saving…' : 'Save marks' }}</button>
-          <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" :disabled="saving || selectedAssessment.teacher_confirmed || selectedAssessment.published || !canConfirm" @click="confirmAssessment">{{ selectedAssessment.teacher_confirmed ? 'Confirmed for review' : 'Confirm assessment' }}</button>
+          <button class="btn-secondary px-4 py-2 text-sm font-semibold" :disabled="saving || selectedAssessment.published" @click="saveAll">{{ saving ? 'Saving…' : 'Save marks' }}</button>
+          <button class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" :disabled="saving || selectedAssessment.teacher_confirmed || selectedAssessment.published || !canConfirm" @click="confirmAssessment">{{ selectedAssessment.teacher_confirmed ? 'Confirmed for review' : 'Confirm assessment' }}</button>
         </div>
       </div>
       <table class="min-w-[900px] w-full text-left text-sm">

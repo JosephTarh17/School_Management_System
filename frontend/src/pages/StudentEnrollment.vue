@@ -6,7 +6,7 @@
         <h1 class="mt-1 text-2xl font-bold text-slate-950">Student demographics & enrollment</h1>
         <p class="mt-1 text-sm text-slate-500">Register complete student profiles, link guardians, and manage course enrollment.</p>
       </div>
-      <button @click="load" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Refresh data</button>
+      <button @click="load" class="btn-primary px-4 py-2 text-sm font-semibold text-white">Refresh data</button>
     </header>
 
     <p v-if="message" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ message }}</p>
@@ -31,7 +31,7 @@
         <label class="block text-sm text-slate-700">Guardian relationship
           <select v-model="studentForm.guardian_id" class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"><option value="">No guardian link yet</option><option v-for="guardian in guardians" :key="guardian.guardian_id" :value="guardian.guardian_id">{{ guardian.full_name }} — {{ guardian.email }}</option></select>
         </label>
-        <button :disabled="saving" class="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ saving ? 'Registering…' : 'Register student' }}</button>
+        <button :disabled="saving" class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ saving ? 'Registering…' : 'Register student' }}</button>
       </form>
 
       <form @submit.prevent="enrollStudent" class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -45,7 +45,7 @@
         <label class="block text-sm text-slate-700">Status
           <select v-model="enrollmentForm.status" class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"><option value="active">Active</option><option value="completed">Completed</option><option value="dropped">Dropped</option></select>
         </label>
-        <button :disabled="saving" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ saving ? 'Saving…' : 'Create manual enrollment' }}</button>
+        <button :disabled="saving" class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ saving ? 'Saving…' : 'Create manual enrollment' }}</button>
       </form>
     </div>
 
@@ -58,7 +58,7 @@
     <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div class="mb-4"><h2 class="font-bold text-slate-900">Enrollment history</h2><p class="text-xs text-slate-500">Change status or remove an enrollment record.</p></div>
       <div v-if="!enrollments.length" class="py-6 text-center text-sm text-slate-500">No enrollment records found.</div>
-      <div v-else class="space-y-3"><div v-for="enrollment in enrollments" :key="enrollment.enrollment_id" class="flex flex-col gap-3 rounded-lg border border-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between"><div><div class="font-semibold text-slate-900">{{ enrollment.student?.full_name || enrollment.student_id }}</div><div class="text-xs text-slate-500">{{ enrollment.course?.course_code }} — {{ enrollment.course?.course_name }}</div></div><div class="flex items-center gap-2"><select :value="enrollment.status" @change="changeStatus(enrollment, $event.target.value)" class="rounded-lg border px-2 py-1 text-xs"><option value="active">Active</option><option value="completed">Completed</option><option value="dropped">Dropped</option></select><button @click="removeEnrollment(enrollment.enrollment_id)" class="rounded-lg px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50">Remove</button></div></div></div>
+      <div v-else class="space-y-3"><div v-for="enrollment in enrollments" :key="enrollment.enrollment_id" class="flex flex-col gap-3 rounded-lg border border-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between"><div><div class="font-semibold text-slate-900">{{ enrollment.student?.full_name || enrollment.student_id }}</div><div class="text-xs text-slate-500">{{ enrollment.course?.course_code }} — {{ enrollment.course?.course_name }}</div></div><div class="flex items-center gap-2"><select :value="enrollment.status" @change="changeStatus(enrollment, $event.target.value)" class="rounded-lg border px-2 py-1 text-xs"><option value="active">Active</option><option value="completed">Completed</option><option value="dropped">Dropped</option></select><button @click="removeEnrollment(enrollment.enrollment_id)" class="btn-danger px-2 py-1 text-xs font-semibold">Remove</button></div></div></div>
     </div>
   </section>
 </template>

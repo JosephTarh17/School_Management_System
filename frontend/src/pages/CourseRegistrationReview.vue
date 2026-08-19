@@ -29,7 +29,7 @@
           <label class="flex-1 text-xs font-semibold text-slate-700">Review notes
             <textarea v-model="notes[request.registration_request_id]" rows="2" class="mt-1 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="Optional decision notes"></textarea>
           </label>
-          <div class="flex gap-2"><button :disabled="reviewingId === request.registration_request_id" @click="review(request, 'rejected')" class="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">Reject</button><button :disabled="reviewingId === request.registration_request_id" @click="review(request, 'approved')" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{{ reviewingId === request.registration_request_id ? 'Reviewing…' : 'Approve' }}</button></div>
+          <div class="flex gap-2"><button :disabled="reviewingId === request.registration_request_id" @click="review(request, 'rejected')" class="btn-danger px-4 py-2 text-sm font-semibold">Reject</button><button :disabled="reviewingId === request.registration_request_id" @click="review(request, 'approved')" class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ reviewingId === request.registration_request_id ? 'Reviewing…' : 'Approve' }}</button></div>
         </div>
       </article>
     </div>

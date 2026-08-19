@@ -5,7 +5,7 @@
         <h1 class="text-2xl font-bold tracking-tight text-slate-900 font-sans">Configure Locations</h1>
         <p class="mt-1 text-xs text-slate-500 font-geist">Manage rooms and locations used when teachers create class sessions.</p>
       </div>
-      <button v-if="editingId" type="button" class="rounded-eight border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50" @click="resetForm">Cancel editing</button>
+      <button v-if="editingId" type="button" class="btn-secondary px-3 py-2 text-xs font-semibold" @click="resetForm">Cancel editing</button>
     </div>
 
     <div v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ errorMessage }}</div>
@@ -30,7 +30,7 @@
           <input v-model.number="form.capacity" type="number" min="1" max="100000" placeholder="30" class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
         </label>
       </div>
-      <button type="submit" :disabled="saving" class="mt-4 rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+      <button type="submit" :disabled="saving" class="btn-primary mt-4 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
         {{ saving ? 'Saving…' : editingId ? 'Save location' : 'Add location' }}
       </button>
     </form>
@@ -41,7 +41,7 @@
           <h2 class="text-base font-bold text-slate-900 font-sans">Configured locations</h2>
           <p class="mt-1 text-xs text-slate-500">{{ rooms.length }} location{{ rooms.length === 1 ? '' : 's' }} available for class sessions.</p>
         </div>
-        <button type="button" :disabled="loading" class="rounded-eight border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50" @click="loadRooms">Refresh</button>
+        <button type="button" :disabled="loading" class="btn-primary px-3 py-2 text-xs font-semibold" @click="loadRooms">Refresh</button>
       </div>
 
       <div v-if="loading" class="py-10 text-center text-sm text-slate-500">Loading class locations…</div>
@@ -54,7 +54,7 @@
               <td class="px-4 py-3.5 font-semibold text-slate-900">{{ room.room_name }}</td>
               <td class="px-4 py-3.5">{{ room.location || 'Not specified' }}</td>
               <td class="px-4 py-3.5">{{ room.capacity || 'Not specified' }}</td>
-              <td class="px-4 py-3.5 text-right"><div class="inline-flex gap-2"><button type="button" class="rounded-md border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50" @click="startEdit(room)">Edit</button><button type="button" class="rounded-md border border-rose-200 px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-50" @click="removeRoom(room)">Delete</button></div></td>
+              <td class="px-4 py-3.5 text-right"><div class="inline-flex gap-2"><button type="button" class="btn-secondary px-2.5 py-1.5 text-xs font-semibold" @click="startEdit(room)">Edit</button><button type="button" class="btn-danger px-2.5 py-1.5 text-xs font-semibold" @click="removeRoom(room)">Delete</button></div></td>
             </tr>
           </tbody>
         </table>

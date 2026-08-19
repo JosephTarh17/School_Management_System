@@ -6,7 +6,7 @@
         <h1 class="mt-1 text-2xl font-bold text-slate-950">Administrator Audit Logs</h1>
         <p class="mt-1 text-sm text-slate-500">Review protected mutation activity recorded by the backend. Audit records are append-only.</p>
       </div>
-      <button type="button" :disabled="loading" @click="loadLogs" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">{{ loading ? 'Refreshing…' : 'Refresh logs' }}</button>
+      <button type="button" :disabled="loading" @click="loadLogs" class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ loading ? 'Refreshing…' : 'Refresh logs' }}</button>
     </header>
 
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ errorMessage }}</p>

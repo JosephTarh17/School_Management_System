@@ -15,7 +15,7 @@
         <p class="text-xs text-slate-600 mt-2 leading-relaxed">Ask your school administrator to create your account and assign the correct role. This keeps account creation, roles, and credentials under institutional control.</p>
       </div>
 
-      <router-link to="/login" class="mt-6 inline-flex w-full justify-center py-3 px-4 bg-secondary-container hover:bg-teal-700 text-white text-sm font-semibold rounded-eight shadow-sm transition-all hover:shadow-md font-geist">Return to Sign In</router-link>
+      <router-link to="/login" class="btn-primary mt-6 w-full justify-center py-3 px-4 text-sm font-semibold font-geist">Return to Sign In</router-link>
     </div>
   </div>
 </template>

@@ -68,20 +68,20 @@
           <div class="flex justify-between gap-3"><span class="text-slate-400">Courses</span><span class="font-semibold">{{ countLabel(selectedCourseIds.length, 'course') }}</span></div>
           <div class="flex justify-between gap-3"><span class="text-slate-400">Credits</span><span class="font-semibold">{{ selectedCredits }}</span></div>
         </div>
-        <button :disabled="submitting || !selectedCourseIds.length || !semester || selectedCredits > Number(eligibility.max_credits || 0)" @click="submitRequest" class="mt-5 w-full rounded-lg bg-blue-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50">
+        <button :disabled="submitting || !selectedCourseIds.length || !semester || selectedCredits > Number(eligibility.max_credits || 0)" @click="submitRequest" class="btn-primary mt-5 w-full px-4 py-3 text-sm font-bold">
           {{ submitting ? 'Submitting…' : 'Submit registration request' }}
         </button>
       </aside>
     </div>
 
     <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-      <div class="mb-4 flex items-center justify-between gap-3"><h2 class="text-base font-bold text-slate-900">My registration requests</h2><button @click="loadRequests" class="text-xs font-semibold text-blue-700 hover:text-blue-900">Refresh</button></div>
+      <div class="mb-4 flex items-center justify-between gap-3"><h2 class="text-base font-bold text-slate-900">My registration requests</h2><button @click="loadRequests" class="btn-primary px-3 py-1.5 text-xs font-semibold">Refresh</button></div>
       <div v-if="!requests.length" class="rounded-lg border border-dashed border-slate-300 p-7 text-center text-sm text-slate-500">No registration requests have been submitted.</div>
       <div v-else class="space-y-3">
         <article v-for="request in requests" :key="request.registration_request_id" class="rounded-xl border border-slate-200 p-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div><p class="font-semibold text-slate-900">{{ request.academic_year || 'Year not assigned' }} — {{ request.semester || 'Semester not assigned' }}</p><p class="mt-1 text-xs text-slate-500">{{ request.total_credits }} credits · {{ countLabel(request.course_registration_item?.length || 0, 'course') }} · {{ formatDate(request.submitted_at) }}</p></div>
-            <div class="flex items-center gap-3"><span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider" :class="statusClasses(request.status)">{{ request.status }}</span><button v-if="request.status === 'pending'" @click="cancelRequest(request.registration_request_id)" class="text-xs font-semibold text-red-700 hover:text-red-900">Cancel</button></div>
+            <div class="flex items-center gap-3"><span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider" :class="statusClasses(request.status)">{{ request.status }}</span><button v-if="request.status === 'pending'" @click="cancelRequest(request.registration_request_id)" class="btn-danger px-3 py-1.5 text-xs font-semibold">Cancel</button></div>
           </div>
           <p v-if="request.review_notes" class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ request.review_notes }}</p>
         </article>

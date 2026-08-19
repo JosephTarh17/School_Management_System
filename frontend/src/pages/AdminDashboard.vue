@@ -29,7 +29,7 @@
         <form class="grid grid-cols-1 gap-3 sm:grid-cols-3" @submit.prevent="saveCurrentPeriod">
           <label class="text-xs font-semibold text-slate-700">Academic year<input v-model.number="currentPeriod.academic_year" type="number" min="2000" max="9999" required class="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal" /></label>
           <label class="text-xs font-semibold text-slate-700">Semester<select v-model="currentPeriod.semester" required class="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal"><option v-for="option in semesters" :key="option" :value="option">{{ option }}</option></select></label>
-          <button type="submit" :disabled="periodSaving" class="self-end rounded-eight bg-indigo-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{{ periodSaving ? 'Saving…' : 'Set current period' }}</button>
+          <button type="submit" :disabled="periodSaving" class="btn-primary self-end px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{{ periodSaving ? 'Saving…' : 'Set current period' }}</button>
         </form>
       </div>
       <p v-if="periodMessage" class="mt-3 text-xs font-semibold text-indigo-800" role="status">{{ periodMessage }}</p>
@@ -46,7 +46,7 @@
         <label class="text-xs font-semibold text-slate-700">Temporary password<input v-model="guardianForm.password" required type="password" minlength="8" maxlength="128" placeholder="At least 8 characters" class="mt-1.5 block w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none" /></label>
         <label class="text-xs font-semibold text-slate-700">Phone<input v-model.trim="guardianForm.phone" maxlength="40" placeholder="Optional phone number" class="mt-1.5 block w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none" /></label>
         <label class="text-xs font-semibold text-slate-700">Relationship<input v-model.trim="guardianForm.relationship" maxlength="80" placeholder="Parent, sponsor, etc." class="mt-1.5 block w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none" /></label>
-        <div class="flex items-end"><button type="submit" :disabled="guardianSaving" class="w-full rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">{{ guardianSaving ? 'Creating…' : 'Create guardian' }}</button></div>
+        <div class="flex items-end"><button type="submit" :disabled="guardianSaving" class="btn-primary w-full px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 sm:w-auto">{{ guardianSaving ? 'Creating…' : 'Create guardian' }}</button></div>
       </form>
       <p v-if="successMessage" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">{{ successMessage }}</p>
     </section>
@@ -58,7 +58,7 @@
           <h2 class="mt-1 text-base font-bold text-slate-900 font-sans">Administrator audit logs</h2>
           <p class="mt-1 max-w-2xl text-xs leading-5 text-slate-600">Review protected backend activity, including the actor, action, resource, request path, status code, correlation ID, and sanitized metadata. Records are append-only.</p>
         </div>
-        <router-link to="/audit-logs" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-eight bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+        <router-link to="/audit-logs" class="btn-primary inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
           <span class="material-symbols-outlined text-base">history</span>
           Open Audit Logs
         </router-link>
@@ -88,7 +88,7 @@
       <div class="rounded-xl border border-border-subtle bg-white p-6 shadow-xs">
         <h2 class="text-base font-bold text-slate-900 font-sans">Data status</h2>
         <p class="mt-2 text-xs leading-5 text-slate-500">These figures are loaded from protected backend endpoints using the current administrator session.</p>
-        <button type="button" :disabled="loading" @click="loadMetrics" class="mt-5 rounded-eight bg-primary-container px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" :disabled="loading" @click="loadMetrics" class="btn-primary mt-5 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
           {{ loading ? 'Refreshing…' : 'Refresh metrics' }}
         </button>
       </div>

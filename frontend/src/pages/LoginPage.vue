@@ -37,7 +37,7 @@
 
         <p v-if="errorMessage" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">{{ errorMessage }}</p>
 
-        <button type="submit" :disabled="isSubmitting" class="w-full py-3 px-4 bg-primary-container hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-eight shadow-sm transition-all hover:shadow-md font-geist">
+        <button type="submit" :disabled="isSubmitting" class="btn-primary w-full py-3 px-4 disabled:opacity-60 text-white text-sm font-semibold transition-all hover:shadow-md font-geist">
           {{ isSubmitting ? 'Signing in…' : 'Sign In' }}
         </button>
       </form>
@@ -49,7 +49,7 @@
         </div>
         <input v-model.trim="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required class="w-full px-4 py-3 text-center tracking-[0.4em] text-lg bg-slate-50 border border-slate-200 rounded-eight focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="000000" />
         <p v-if="errorMessage" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">{{ errorMessage }}</p>
-        <button type="submit" :disabled="isSubmitting" class="w-full py-3 px-4 bg-primary-container hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-eight shadow-sm">{{ isSubmitting ? 'Verifying…' : 'Verify and Sign In' }}</button>
+        <button type="submit" :disabled="isSubmitting" class="btn-primary w-full py-3 px-4 disabled:opacity-60 text-white text-sm font-semibold">{{ isSubmitting ? 'Verifying…' : 'Verify and Sign In' }}</button>
         <button type="button" @click="resetMfa" class="w-full py-2 text-xs text-slate-500 hover:text-slate-800">Use a different account</button>
       </form>
 
