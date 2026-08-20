@@ -15,24 +15,41 @@
         <input
           v-model="searchQuery"
           type="search"
-          placeholder="Search students, courses, announcements..."
+          placeholder="Search modules, settings, students, courses..."
           class="w-full rounded-eight border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-4 text-sm transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-container font-sans"
           @input="handleSearchInput"
           @focus="searchFocused = true"
           @keydown.esc="closeSearch"
           @keydown.enter.prevent="openFirstSearchResult"
         />
-        <div v-if="searchFocused && searchQuery.trim().length >= 2" class="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-          <div v-if="searchLoading" class="px-4 py-4 text-xs text-slate-500">Searching the system…</div>
-          <div v-else-if="!searchResults.length" class="px-4 py-4 text-xs text-slate-500">No matching records found.</div>
+        <div v-if="searchFocused" class="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+          <div v-if="searchQuery.trim().length >= 2 && searchLoading" class="px-4 py-4 text-xs text-slate-500">Searching the system…</div>
+          <div v-else-if="searchQuery.trim().length >= 1 && !searchGroups.length" class="px-4 py-4 text-xs text-slate-500">No matching modules, settings, or records found.</div>
+          <div v-else-if="searchQuery.trim().length < 1 && recentSearchHistory.length" class="max-h-96 overflow-y-auto py-1">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <div>
+                <h2 class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Recent quick settings</h2>
+                <p class="mt-1 text-[11px] text-slate-500">Most searched destinations appear first.</p>
+              </div>
+              <button type="button" class="text-[11px] font-semibold text-rose-600 hover:underline" @mousedown.prevent @click="clearSearchHistory">Clear history</button>
+            </div>
+            <button v-for="entry in recentSearchHistory" :key="`history-${entry.path}`" type="button" class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50" @mousedown.prevent @click="openSearchHistory(entry)">
+              <span class="mt-0.5 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-indigo-700">Setting</span>
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-semibold text-slate-800">{{ entry.label }}</span>
+                <span class="mt-0.5 block truncate text-[11px] text-slate-500">{{ entry.count }} {{ entry.count === 1 ? 'search' : 'searches' }}</span>
+              </span>
+            </button>
+          </div>
+          <div v-else-if="searchQuery.trim().length < 1" class="px-4 py-4 text-xs text-slate-500">Type to search modules, quick settings, students, courses, and announcements.</div>
           <div v-else class="max-h-96 overflow-y-auto py-1">
             <section v-for="group in searchGroups" :key="group.type" class="border-b border-slate-100 last:border-0">
               <h2 class="px-4 pb-1 pt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ resultTypeLabel(group.type) }}</h2>
-              <button v-for="item in group.items" :key="`${item.type}-${item.id}`" type="button" class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50" @mousedown.prevent @click="openSearchResult(item)">
-                <span class="mt-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-700">{{ item.type }}</span>
+              <button v-for="item in group.items" :key="`${item.type}-${item.id || item.path}`" type="button" class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50" @mousedown.prevent @click="openSearchResult(item)">
+                <span class="mt-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-700">{{ item.type === 'quick-setting' ? 'Setting' : item.type }}</span>
                 <span class="min-w-0">
                   <span class="block truncate text-sm font-semibold text-slate-800">{{ item.title }}</span>
-                  <span v-if="item.subtitle" class="mt-0.5 block truncate text-[11px] text-slate-500">{{ item.subtitle }}</span>
+                  <span v-if="item.subtitle || item.purpose" class="mt-0.5 block truncate text-[11px] text-slate-500">{{ item.subtitle || item.purpose }}</span>
                 </span>
               </button>
             </section>
@@ -139,6 +156,8 @@ import { authStore } from '../store/auth'
 import LanguagePicker from './LanguagePicker.vue'
 import GuardianStudentSelector from './GuardianStudentSelector.vue'
 import { helpPreference } from '../store/helpPreference.js'
+import { moduleCatalog } from '../lib/moduleHelp.js'
+import { quickSearchHistory } from '../store/quickSearchHistory.js'
 
 const router = useRouter()
 const emit = defineEmits(['toggle-menu'])
@@ -149,6 +168,23 @@ const notificationsLoading = ref(false)
 const notifications = ref([])
 const unreadCount = ref(0)
 const searchQuery = ref('')
+
+const recentSearchHistory = computed(() => quickSearchHistory.entries.value)
+const quickSettingResults = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase()
+  if (!query) return []
+  const role = currentUser.value?.role
+  return moduleCatalog
+    .filter((module) => module.roles.includes(role))
+    .filter((module) => `${module.label} ${module.category} ${module.purpose}`.toLocaleLowerCase().includes(query))
+    .map((module) => ({
+      ...module,
+      type: 'quick-setting',
+      title: module.label,
+      path: module.path,
+    }))
+})
+
 const searchResults = ref([])
 const searchLoading = ref(false)
 const searchFocused = ref(false)
@@ -169,7 +205,8 @@ const searchGroups = computed(() => {
     if (!grouped.has(item.type)) grouped.set(item.type, [])
     grouped.get(item.type).push(item)
   }
-  return [...grouped.entries()].map(([type, items]) => ({ type, items }))
+  const groups = quickSettingResults.value.length ? [{ type: 'quick-setting', items: quickSettingResults.value }] : []
+  return [...groups, ...[...grouped.entries()].map(([type, items]) => ({ type, items }))]
 })
 
 function resultTypeLabel(type) {
@@ -182,6 +219,7 @@ function resultTypeLabel(type) {
     grade: 'Grades',
     session: 'Class sessions',
     financial: 'Financial records',
+    'quick-setting': 'Quick settings',
   }
   return labels[type] || 'Results'
 }
@@ -207,13 +245,26 @@ async function searchUniversal(query) {
 }
 
 function openSearchResult(item) {
-  searchQuery.value = item.title || ''
+  if (item.type === 'quick-setting') quickSearchHistory.record(item, currentUser.value)
+  searchQuery.value = ''
   closeSearch()
-  if (item.link_path) router.push(item.link_path)
+  if (item.link_path || item.path) router.push(item.link_path || item.path)
+}
+
+function openSearchHistory(entry) {
+  quickSearchHistory.record(entry, currentUser.value)
+  searchQuery.value = ''
+  closeSearch()
+  router.push(entry.path)
+}
+
+function clearSearchHistory() {
+  if (window.confirm('Clear your quick-settings search history?')) quickSearchHistory.clear(currentUser.value)
 }
 
 function openFirstSearchResult() {
-  if (searchResults.value[0]) openSearchResult(searchResults.value[0])
+  const firstItem = searchGroups.value[0]?.items?.[0]
+  if (firstItem) openSearchResult(firstItem)
 }
 
 async function loadNotifications() {
@@ -270,8 +321,15 @@ const handleLogout = async () => {
 
 watch(() => authStore.token.value, () => {
   loadNotifications()
+  quickSearchHistory.restore(authStore.user.value)
   searchQuery.value = ''
   searchResults.value = []
 })
-onMounted(loadNotifications)
+watch(() => currentUser.value?.user_id || currentUser.value?.id || currentUser.value?.email, (value) => {
+  if (value) quickSearchHistory.restore(currentUser.value)
+})
+onMounted(() => {
+  quickSearchHistory.restore(currentUser.value)
+  loadNotifications()
+})
 </script>
