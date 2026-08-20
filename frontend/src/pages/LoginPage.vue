@@ -64,11 +64,12 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authStore } from '../store/auth'
 import { email as validateEmail, firstError, password as validatePassword, required, validate } from '../lib/validation.js'
 import LanguagePicker from '../components/LanguagePicker.vue'
+import { refreshLanguageTranslation, useLanguage } from '../store/language.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -81,6 +82,10 @@ const fieldErrors = reactive({ email: '', password: '' })
 const mfaRequired = ref(false)
 const challengeToken = ref('')
 const mfaCode = ref('')
+const { language } = useLanguage()
+
+onMounted(() => nextTick(() => refreshLanguageTranslation()))
+watch(language, () => nextTick(() => refreshLanguageTranslation()))
 
 const homeForRole = (role) => {
   if (role === 'student') return '/student-portal'

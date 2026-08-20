@@ -10,7 +10,7 @@
     </button>
 
     <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-4 lg:max-w-xl">
-      <div class="relative hidden w-full max-w-md sm:block">
+      <div data-universal-search class="relative hidden w-full max-w-md sm:block">
         <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
         <input
           v-model="searchQuery"
@@ -19,6 +19,7 @@
           class="w-full rounded-eight border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-4 text-sm transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-container font-sans"
           @input="handleSearchInput"
           @focus="searchFocused = true"
+          @blur="scheduleCloseSearch"
           @keydown.esc="closeSearch"
           @keydown.enter.prevent="openFirstSearchResult"
         />
@@ -170,19 +171,45 @@ const unreadCount = ref(0)
 const searchQuery = ref('')
 
 const recentSearchHistory = computed(() => quickSearchHistory.entries.value)
+
+function normalizeSearchValue(value) {
+  return String(value || '').trim().toLocaleLowerCase()
+}
+
+function relevanceScore(value, query, base = 0) {
+  const text = normalizeSearchValue(value)
+  const normalizedQuery = normalizeSearchValue(query)
+  if (!text || !normalizedQuery) return Number.POSITIVE_INFINITY
+  if (text === normalizedQuery) return base
+  if (text.startsWith(normalizedQuery)) return base + 10
+  if (text.split(/\s+/).some((word) => word.startsWith(normalizedQuery))) return base + 20
+  const index = text.indexOf(normalizedQuery)
+  return index >= 0 ? base + 30 + index : Number.POSITIVE_INFINITY
+}
+
+function moduleRelevanceScore(module, query) {
+  return Math.min(
+    relevanceScore(module.label, query, 0),
+    relevanceScore(module.category, query, 100),
+    relevanceScore(module.purpose, query, 200),
+  )
+}
+
 const quickSettingResults = computed(() => {
-  const query = searchQuery.value.trim().toLocaleLowerCase()
+  const query = searchQuery.value.trim()
   if (!query) return []
   const role = currentUser.value?.role
   return moduleCatalog
     .filter((module) => module.roles.includes(role))
-    .filter((module) => `${module.label} ${module.category} ${module.purpose}`.toLocaleLowerCase().includes(query))
     .map((module) => ({
       ...module,
       type: 'quick-setting',
       title: module.label,
       path: module.path,
+      _searchScore: moduleRelevanceScore(module, query),
     }))
+    .filter((module) => Number.isFinite(module._searchScore))
+    .sort((left, right) => left._searchScore - right._searchScore || left.label.localeCompare(right.label))
 })
 
 const searchResults = ref([])
@@ -199,9 +226,22 @@ function closeSearch() {
   searchFocused.value = false
 }
 
+function scheduleCloseSearch() {
+  window.setTimeout(() => {
+    if (document.activeElement?.closest?.('[data-universal-search]')) return
+    closeSearch()
+  }, 120)
+}
+
 const searchGroups = computed(() => {
   const grouped = new Map()
-  for (const item of searchResults.value) {
+  const query = searchQuery.value.trim()
+  const rankedBackendResults = [...searchResults.value].sort((left, right) => {
+    const leftScore = Math.min(relevanceScore(left.title, query, 0), relevanceScore(left.subtitle, query, 80))
+    const rightScore = Math.min(relevanceScore(right.title, query, 0), relevanceScore(right.subtitle, query, 80))
+    return leftScore - rightScore || String(left.title || '').localeCompare(String(right.title || ''))
+  })
+  for (const item of rankedBackendResults) {
     if (!grouped.has(item.type)) grouped.set(item.type, [])
     grouped.get(item.type).push(item)
   }

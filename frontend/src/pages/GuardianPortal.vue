@@ -6,7 +6,7 @@
         <h1 class="mt-1 text-2xl font-bold text-slate-950 sm:text-3xl">Student overview</h1>
         <p class="mt-1 max-w-2xl text-sm text-slate-500">Monitor linked students, review school operations, and keep up with published information.</p>
       </div>
-      <span v-if="selectedStudent" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900">Viewing: {{ selectedStudent.full_name }}</span>
+      <span v-if="selectedStudent" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900">Viewing: <strong data-no-translate="true" translate="no">{{ selectedStudent.full_name }}</strong></span>
     </header>
 
     <p v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{{ errorMessage }}</p>
@@ -22,7 +22,7 @@
       </section>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Student</p><p class="mt-1 truncate font-bold text-slate-900">{{ summary.student.full_name }}</p></article>
+        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Student</p><p class="mt-1 truncate font-bold text-slate-900" data-no-translate="true" translate="no">{{ summary.student.full_name }}</p></article>
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Active courses</p><p class="mt-1 text-2xl font-bold text-indigo-700">{{ activeEnrollments.length }}</p></article>
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Balance due</p><p class="mt-1 text-2xl font-bold text-amber-700">{{ formatXaf(totalBalance) }}</p></article>
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Upcoming lessons</p><p class="mt-1 text-2xl font-bold text-indigo-700">{{ schedule.length }}</p></article>

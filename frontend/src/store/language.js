@@ -6,6 +6,27 @@ const LANGUAGE_STORAGE_KEY = 'sms_language'
 const supportedLanguages = ['en', 'fr']
 const language = ref(localStorage.getItem(LANGUAGE_STORAGE_KEY) === 'fr' ? 'fr' : 'en')
 const translations = reactive({})
+const LOGIN_STATIC_TRANSLATIONS = {
+  'Institutional Sign In': 'Connexion institutionnelle',
+  'Use your institutional account to access your portal.': 'Utilisez votre compte institutionnel pour accéder à votre portail.',
+  'Email Address': 'Adresse e-mail',
+  'Contact an administrator for help': 'Contactez un administrateur pour obtenir de l’aide',
+  'Password': 'Mot de passe',
+  'Your password': 'Votre mot de passe',
+  'Signing in…': 'Connexion…',
+  'Sign In': 'Se connecter',
+  'Verify administrator MFA': 'Vérifier l’authentification multifacteur de l’administrateur',
+  'Enter the six-digit code from your authenticator application.': 'Saisissez le code à six chiffres de votre application d’authentification.',
+  'Verifying…': 'Vérification…',
+  'Verify and Sign In': 'Vérifier et se connecter',
+  'Use a different account': 'Utiliser un autre compte',
+  'Need an account?': 'Besoin d’un compte ?',
+  'Create Account': 'Créer un compte',
+  'Enter the one-time code from your authenticator application.': 'Saisissez le code à usage unique de votre application d’authentification.',
+  'Unable to sign in. Check your credentials and try again.': 'Impossible de se connecter. Vérifiez vos identifiants et réessayez.',
+  'Unable to verify the MFA code.': 'Impossible de vérifier le code MFA.',
+  Email: 'E-mail',
+}
 const elementStates = new WeakMap()
 const attributeStates = new WeakMap()
 let observer = null
@@ -147,6 +168,7 @@ function applyLanguage() {
 
 async function translateMissingSources() {
   if (language.value !== 'fr' || translating || typeof document === 'undefined') return
+  Object.assign(translations, LOGIN_STATIC_TRANSLATIONS)
   captureElements()
   const sources = collectMissingSources()
   if (!sources.length) {
@@ -180,8 +202,12 @@ export function setLanguage(value) {
   if (!supportedLanguages.includes(value) || language.value === value) return
   language.value = value
   localStorage.setItem(LANGUAGE_STORAGE_KEY, value)
+  if (value === 'fr') Object.assign(translations, LOGIN_STATIC_TRANSLATIONS)
   if (value === 'en') applyLanguage()
-  else scheduleTranslation()
+  else {
+    applyLanguage()
+    scheduleTranslation()
+  }
 }
 
 export function useLanguage() {

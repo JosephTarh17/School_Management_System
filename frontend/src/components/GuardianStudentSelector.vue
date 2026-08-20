@@ -13,7 +13,7 @@
       >
         <option v-if="loading" value="">Loading students…</option>
         <option v-else-if="!students.length" value="">No linked students</option>
-        <option v-for="student in students" v-else :key="student.student_id" :value="student.student_id">
+        <option v-for="student in students" v-else :key="student.student_id" :value="student.student_id" data-no-translate="true" translate="no">
           {{ student.full_name }}
         </option>
       </select>

@@ -4,7 +4,7 @@
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Student support</p>
         <h1 class="mt-1 text-2xl font-bold text-slate-950">Behavior and discipline</h1>
-        <p class="mt-1 text-sm text-slate-500">Record, review, and safely scope behavior incidents using real student records.</p><span v-if="role === 'guardian' && selectedStudent" class="mt-2 inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800">Student: {{ selectedStudent.full_name }}</span>
+        <p class="mt-1 text-sm text-slate-500">Record, review, and safely scope behavior incidents using real student records.</p><span v-if="role === 'guardian' && selectedStudent" class="mt-2 inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800">Student: <strong data-no-translate="true" translate="no">{{ selectedStudent.full_name }}</strong></span>
       </div>
       <button @click="load" class="btn-primary px-4 py-2 text-sm font-semibold text-white">Refresh</button>
     </header>

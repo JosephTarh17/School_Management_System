@@ -1,37 +1,22 @@
-# School Management System
+# Search and translation refinement patch
 
-This repository contains the frontend and backend scaffold for the School Management System (SMS).
+This patch refines the existing universal quick-settings search and language behavior.
 
-## Tech stack
-- Frontend: Vue 3 + Vite + Tailwind CSS
-- Backend: Node.js + Express
-- Database: Supabase (PostgreSQL)
-- Deployment: Railway
+## Search changes
 
-## Workspace structure
-- `/frontend` — Vue application for portals and UI
-- `/backend` — Express API server and Supabase integration
-- `/infra` — deployment guidance for Railway
-- `/docs` — design diagrams and requirements
+Quick-setting results use local relevance ranking: exact label, label prefix, word-start match, label substring, category match, then purpose match. Backend record results are also ordered by title relevance where applicable. The quick-setting panel and recent quick-setting history appear only while the top search input is focused; Escape, result selection, and clicking outside the search close the panel. Role filtering, deduplicated history, search counts, per-account browser-local storage, and Clear history remain unchanged.
 
-## First steps
-1. Install dependencies for frontend and backend.
-2. Create `backend/.env` from `backend/.env.example` and configure Supabase credentials.
-3. Start the backend and frontend locally.
+## Translation changes
 
-## Protecting local secrets
-- Never commit `.env` files to git.
-- Use `backend/.env.example` as the committed template for required settings.
-- `backend/.env` is already ignored by `.gitignore` and should stay local only.
-- If you ever need to share configuration, send only the example file or copy values manually off-line.
+Login-page strings have built-in French translations for immediate visible switching. LoginPage refreshes the translation scan on mount and whenever the language changes. Proper-name and protected dynamic-value exclusions remain preserved. No backend translation provider change or database migration is required.
 
-## Useful commands
-```bash
-cd frontend && npm install
-npm run dev
-```
+## Files
 
-```bash
-cd backend && npm install
-npm run dev
-```
+- `frontend/src/components/Navbar.vue`
+- `frontend/src/store/language.js`
+- `frontend/src/pages/LoginPage.vue`
+- `frontend/src/store/quickSearchHistory.js`
+
+## Verification
+
+The frontend production build passed with `npm run build`. Verify that `Guardian Management` ranks above less direct matches, suggestions disappear when the input loses focus, and switching to French on `/login` immediately changes the visible title, labels, placeholders, buttons, and helper text without a reload.

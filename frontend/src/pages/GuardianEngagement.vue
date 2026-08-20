@@ -10,7 +10,7 @@
 
     <p v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{{ errorMessage }}</p>
     <p v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ successMessage }}</p>
-    <div v-if="selectedStudent" class="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs text-indigo-900">Student context: <strong>{{ selectedStudent.full_name }}</strong>. Student-specific requests and notices use the selection in the portal bar.</div>
+    <div v-if="selectedStudent" class="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs text-indigo-900">Student context: <strong data-no-translate="true" translate="no">{{ selectedStudent.full_name }}</strong>. Student-specific requests and notices use the selection in the portal bar.</div>
 
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
       <section class="rounded-xl border border-indigo-200 bg-white p-5 shadow-sm sm:p-6">
