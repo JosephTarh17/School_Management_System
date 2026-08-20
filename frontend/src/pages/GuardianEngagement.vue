@@ -47,7 +47,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { authStore } from '../store/auth'
-import { acknowledgeGuardianDiscipline, cancelGuardianAppointment, createGuardianAppointment, createGuardianCommunication, createGuardianProfileChangeRequest, fetchGuardianAppointments, fetchGuardianCommunications, fetchGuardianDisciplineNotices, fetchGuardianDocuments, fetchGuardianProfile, fetchGuardianProfileChangeRequests, respondToGuardianDocument, updateGuardianCommunication, withdrawGuardianProfileChangeRequest } from '../api.js'
+import { acknowledgeGuardianDiscipline, cancelGuardianAppointment, createGuardianAppointment, createGuardianCommunication, createGuardianProfileChangeRequest, fetchGuardianAppointments, fetchGuardianChildren, fetchGuardianCommunications, fetchGuardianDisciplineNotices, fetchGuardianDocuments, fetchGuardianProfile, fetchGuardianProfileChangeRequests, respondToGuardianDocument, updateGuardianCommunication, withdrawGuardianProfileChangeRequest } from '../api.js'
 
 const token = () => authStore.token.value
 const children = ref([])
