@@ -4,9 +4,14 @@ import { requireAuth, requireRole } from '../middleware/auth.js'
 import { ApiError, asNumber, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { studentIdForUser } from '../lib/enrollmentScope.js'
 import { safeNotifyStudentAndGuardians, safeNotifyUsers, userIdsForAudience } from '../lib/notifications.js'
+import { runAccountLifecycleMaintenanceIfDue } from '../lib/accountLifecycle.js'
 
 const router = express.Router()
 router.use(requireAuth)
+router.use(asyncRoute(async (req, res, next) => {
+  await runAccountLifecycleMaintenanceIfDue()
+  next()
+}))
 
 export async function deadlineForAbsence() {
   const { data, error } = await supabase.from('absence_policy_setting').select('justification_deadline_days').eq('setting_id', 1).maybeSingle()

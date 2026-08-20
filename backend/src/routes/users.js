@@ -7,9 +7,14 @@ import { hashPassword, verifyPassword } from '../lib/security.js'
 import { revokeAllUserSessions } from '../lib/sessions.js'
 import { recordAuditEvent } from '../lib/audit.js'
 import { safeNotifyUsers, userIdsForStudentAndGuardians } from '../lib/notifications.js'
+import { runAccountLifecycleMaintenanceIfDue } from '../lib/accountLifecycle.js'
 
 const router = express.Router()
 router.use(requireAuth)
+router.use(asyncRoute(async (req, res, next) => {
+  await runAccountLifecycleMaintenanceIfDue()
+  next()
+}))
 const publicFields = 'user_id,email,role,mfa_enabled,created_at,last_login,disabled_at,must_change_password,first_login_at,mfa_reset_required,suspension_until,account_expires_at,account_status_reason,failed_login_count,last_failed_login,last_login_ip,last_login_user_agent'
 
 async function accountNotificationRecipients(userId, role) {

@@ -5,10 +5,15 @@ import { ENUMS, ApiError, asDate, asEnum, asUuid, asyncRoute, sendData } from '.
 import { sessionForAccess } from '../lib/ownership.js'
 import { enrolledStudentIdsForTeacher, studentIdForUser, studentSessionIdsForUser, teacherSessionIdsForUser } from '../lib/enrollmentScope.js'
 import { safeNotifyStudentAndGuardians } from '../lib/notifications.js'
+import { runAccountLifecycleMaintenanceIfDue } from '../lib/accountLifecycle.js'
 import { prepareAbsenceJustification } from './absenceJustifications.js'
 
 const router = express.Router()
 router.use(requireAuth)
+router.use(asyncRoute(async (req, res, next) => {
+  await runAccountLifecycleMaintenanceIfDue()
+  next()
+}))
 const select = '*, student(*), class_session(*)'
 
 

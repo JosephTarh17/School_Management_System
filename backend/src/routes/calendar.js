@@ -3,9 +3,14 @@ import { supabase } from '../supabaseClient.js'
 import { requireAuth } from '../middleware/auth.js'
 import { asDate, asDateTime, asNumber, asyncRoute, sendData } from '../lib/api.js'
 import { permittedCourseIdsForUser } from '../lib/calendarScope.js'
+import { runAccountLifecycleMaintenanceIfDue } from '../lib/accountLifecycle.js'
 
 const router = express.Router()
 router.use(requireAuth)
+router.use(asyncRoute(async (req, res, next) => {
+  await runAccountLifecycleMaintenanceIfDue()
+  next()
+}))
 
 function isoDate(date) {
   return date.toISOString().slice(0, 10)

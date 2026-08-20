@@ -5,7 +5,7 @@ import { ApiError, asText, asyncRoute, sendData } from '../lib/api.js'
 import { clearAuthCookie, requireAuth, requireRole, signAccessToken, signMfaChallenge, verifyAccessToken, verifyMfaChallenge, setAuthCookie } from '../middleware/auth.js'
 import { decryptSecret, encryptSecret, hashPassword, isArgon2Hash, verifyPassword } from '../lib/security.js'
 import { createSession, newSessionId, revokeAllUserSessions, revokeSession, tokenExpiryDate } from '../lib/sessions.js'
-import { recordAuditEvent } from '../lib/audit.js'
+import { runAccountLifecycleMaintenanceIfDue } from '../lib/accountLifecycle.js'
 
 const router = express.Router()
 const attempts = new Map()
@@ -81,6 +81,7 @@ async function verifyTotpSecret(secret, code) {
 }
 
 router.post('/login', asyncRoute(async (req, res) => {
+  await runAccountLifecycleMaintenanceIfDue()
   const email = asText(req.body?.email, 'email', { max: 320 }).toLowerCase()
   const password = asText(req.body?.password, 'password', { max: 128 })
   if (!/^\S+@\S+\.\S+$/.test(email)) throw new ApiError(400, 'email must be a valid email address')
@@ -107,6 +108,7 @@ router.post('/login', asyncRoute(async (req, res) => {
 }))
 
 router.post('/mfa/verify', asyncRoute(async (req, res) => {
+  await runAccountLifecycleMaintenanceIfDue()
   const challenge = asText(req.body?.challenge_token, 'challenge_token', { max: 4096 })
   const code = asText(req.body?.code, 'code', { max: 12 })
   const payload = verifyMfaChallenge(challenge)

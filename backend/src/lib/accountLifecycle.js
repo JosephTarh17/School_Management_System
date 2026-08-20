@@ -92,9 +92,25 @@ export async function expireDueAccounts(now = new Date().toISOString()) {
   return expired || []
 }
 
+let nextAccessCheckAt = 0
+let accessCheckPromise = null
+
 export async function runAccountLifecycleMaintenance(now = new Date().toISOString()) {
   const reactivated = await reactivateDueSuspensions(now)
   const expired = await expireDueAccounts(now)
   const absenceExpirations = await expireStudentAbsenceJustifications()
   return { reactivated, expired, absenceExpirations }
+}
+
+export async function runAccountLifecycleMaintenanceIfDue(now = Date.now()) {
+  if (accessCheckPromise) return accessCheckPromise
+  if (now < nextAccessCheckAt) return { skipped: true }
+  nextAccessCheckAt = now + 60 * 1000
+  accessCheckPromise = runAccountLifecycleMaintenance()
+    .catch((error) => {
+      console.error('[account-lifecycle] check-on-access failed:', error)
+      return { error: error.message || 'maintenance failed' }
+    })
+    .finally(() => { accessCheckPromise = null })
+  return accessCheckPromise
 }
