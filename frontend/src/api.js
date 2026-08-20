@@ -543,14 +543,6 @@ export async function recordInstallmentPayment(token, invoiceId, installmentId, 
   return requestJson(`/financial-records/${invoiceId}/installments/${installmentId}/payments`, { method: 'POST', token, body })
 }
 
-export async function initializeCinetPayPayment(token, body) {
-  return requestJson('/cinetpay/initialize', { method: 'POST', token, body })
-}
-
-export async function fetchCinetPayStatus(token, merchantTransactionId) {
-  return requestJson(`/cinetpay/status/${encodeURIComponent(merchantTransactionId)}`, { token })
-}
-
 export async function fetchCourseHours(token, params = {}) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
   return requestJson(`/course-hours${query.toString() ? `?${query.toString()}` : ''}`, { token })

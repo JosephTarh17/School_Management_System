@@ -13,11 +13,13 @@ const statuses = ['Draft', 'Published', 'Suspended', 'Cancelled', 'Archived']
 const occurrenceStatuses = ['Scheduled', 'Pending Teacher Absence', 'Completed', 'No Attendance', 'Cancelled', 'Voided', 'Unfunded', 'Requires Review']
 const occurrenceSelect = 'occurrence_id,timetable_entry_id,allocation_id,assignment_id,course_id,teacher_id,room_id,occurrence_date,start_at,end_at,planned_minutes,status,class_session_id,completion_actor,completed_at,void_reason,course(course_id,course_code,course_name,credit_units),teacher(teacher_id,full_name,email),room(room_id,room_name,location,capacity),timetable_entry(timetable_entry_id,academic_year,semester,day_of_week,start_local_time,end_local_time,effective_from,effective_to,status,notes)'
 
-async function allowedCourseIdsForGuardian(userId) {
+async function allowedCourseIdsForGuardian(userId, { studentId = null } = {}) {
   const { data: guardian, error: guardianError } = await supabase.from('guardian').select('guardian_id').eq('user_id', userId).maybeSingle()
   if (guardianError) throw guardianError
   if (!guardian) return []
-  const { data: links, error: linksError } = await supabase.from('student_guardian').select('student_id').eq('guardian_id', guardian.guardian_id)
+  let linkQuery = supabase.from('student_guardian').select('student_id').eq('guardian_id', guardian.guardian_id)
+  if (studentId) linkQuery = linkQuery.eq('student_id', studentId)
+  const { data: links, error: linksError } = await linkQuery
   if (linksError) throw linksError
   const studentIds = (links || []).map((row) => row.student_id)
   if (!studentIds.length) return []
@@ -26,9 +28,9 @@ async function allowedCourseIdsForGuardian(userId) {
   return [...new Set((enrollments || []).map((row) => row.course_id))]
 }
 
-async function permittedCourseIds(req) {
+async function permittedCourseIds(req, options = {}) {
   if (req.user.role === 'student') return studentCourseIdsForUser(req.user.user_id)
-  if (req.user.role === 'guardian') return allowedCourseIdsForGuardian(req.user.user_id)
+  if (req.user.role === 'guardian') return allowedCourseIdsForGuardian(req.user.user_id, options)
   return null
 }
 
@@ -88,7 +90,8 @@ router.get('/', asyncRoute(async (req, res) => {
     if (!teacherId) return sendData(res, [])
     query = query.eq('teacher_id', teacherId)
   } else if (req.user.role === 'student' || req.user.role === 'guardian') {
-    const courseIds = await permittedCourseIds(req)
+    const selectedStudentId = req.user.role === 'guardian' && req.query.student_id ? asUuid(req.query.student_id, 'student_id') : null
+    const courseIds = await permittedCourseIds(req, { studentId: selectedStudentId })
     if (!courseIds?.length) return sendData(res, [])
     query = query.in('course_id', courseIds).eq('timetable_entry.status', 'Published').not('status', 'in', '(Voided,Cancelled)')
   }

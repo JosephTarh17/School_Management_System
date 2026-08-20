@@ -1,7 +1,7 @@
 import express from 'express'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth } from '../middleware/auth.js'
-import { asDate, asDateTime, asNumber, asyncRoute, sendData } from '../lib/api.js'
+import { asDate, asDateTime, asNumber, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { permittedCourseIdsForUser } from '../lib/calendarScope.js'
 import { runAccountLifecycleMaintenanceIfDue } from '../lib/accountLifecycle.js'
 
@@ -46,7 +46,8 @@ router.get('/', asyncRoute(async (req, res) => {
     if (!teacher) return sendData(res, { role: req.user.role, from, to, events: [] })
     occurrenceQuery = occurrenceQuery.eq('teacher_id', teacher.teacher_id)
   } else if (req.user.role === 'student' || req.user.role === 'guardian') {
-    courseIds = await permittedCourseIdsForUser(req.user)
+    const selectedStudentId = req.user.role === 'guardian' && req.query.student_id ? asUuid(req.query.student_id, 'student_id') : null
+    courseIds = await permittedCourseIdsForUser(req.user, { studentId: selectedStudentId })
     if (!courseIds.length) return sendData(res, { role: req.user.role, from, to, events: [] })
     occurrenceQuery = occurrenceQuery.in('course_id', courseIds).eq('timetable_entry.status', 'Published').not('status', 'in', '(Voided,Cancelled)')
   }
