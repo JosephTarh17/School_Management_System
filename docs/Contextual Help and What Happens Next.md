@@ -123,7 +123,7 @@
 
 ## H. Interface design
 
-**Pages or views needed:** The patch shall use a reusable contextual-help component and place it on the highest-friction workflows: Guardian Engagement, Gradebook, Grading Review, Financial Records, Timetables, Course Hours, Teacher Attendance/Class Sessions, Absence Justifications, Staff Management, and Account Management.
+**Pages or views needed:** The patch shall use a reusable contextual-help component and place it on the highest-friction workflows: Guardian Engagement, Gradebook, Grading Review, Financial Records, Timetables, Course Hours, Teacher Attendance/Class Sessions, Absence Justifications, Staff Management, and Account Management. The shared Navbar shall place a compact purple/indigo question-mark-in-a-circle icon beside the language selector as the global help toggle.
 
 **Forms and fields:** No fields are added. Help appears near existing form headings, action groups, or status panels.
 
@@ -138,6 +138,8 @@
 **Mobile behavior:** Help panels shall be one-column, readable on small screens, collapsible where space is limited, and shall not push primary actions below an excessive amount of text.
 
 **Translation behavior:** Guidance strings shall be compatible with the existing English/French translation strategy. No new translation provider or database migration is required.
+
+**Global help behavior:** Help shall be enabled by default for a new browser. Clicking the Navbar question-mark icon shall hide or show all contextual-help panels without changing page data. The preference shall persist in browser `localStorage`; the control shall expose `aria-pressed`, a tooltip, keyboard focus, and a visible active state. Individual panels may still be collapsed independently while global help is enabled.
 
 ## I. API and database design
 
@@ -193,7 +195,7 @@ npm --prefix backend test -- --grep "Guardian|Account-status|Release 1"
 git diff --check
 ```
 
-**Files intentionally changed:** A reusable contextual-help component and the explicitly selected frontend pages, plus this conception document if included in the patch documentation.
+**Files intentionally changed:** A reusable contextual-help component, the Navbar, a small frontend help-preference state module, the explicitly selected frontend pages, and this conception document if included in the patch documentation.
 
 **Files intentionally not changed:** Backend routes, database migrations, Supabase schema, API helpers, authentication, authorization, notification logic, audit logic, and payment integrations.
 
@@ -213,7 +215,7 @@ git diff --check
 
 **Requested behavior:** Users shall see concise explanations of what an action does and what happens next.
 
-**Added behavior:** Reusable contextual help and next-step guidance in selected high-friction pages.
+**Added behavior:** Reusable contextual help and next-step guidance in selected high-friction pages, controlled by a global purple/indigo question-mark-in-a-circle Navbar toggle with a persisted local preference.
 
 **Preserved behavior:** All business rules, APIs, database structures, permissions, statuses, notifications, audit behavior, and payment boundaries.
 

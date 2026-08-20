@@ -49,6 +49,20 @@
 
       <LanguagePicker v-if="currentUser" class="hidden sm:inline-flex" />
 
+      <button
+        v-if="currentUser"
+        type="button"
+        class="flex h-9 w-9 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-container focus:ring-offset-2"
+        :class="helpEnabled ? 'bg-primary-container text-white shadow-sm hover:bg-primary-container/90' : 'bg-indigo-50 text-primary-container hover:bg-indigo-100'"
+        :aria-pressed="helpEnabled"
+        :aria-label="helpEnabled ? 'Hide contextual help' : 'Show contextual help'"
+        :title="helpEnabled ? 'Hide contextual help' : 'Show contextual help'"
+        @click="toggleHelp"
+      >
+        <span class="material-symbols-outlined text-xl" aria-hidden="true">help_outline</span>
+        <span class="sr-only">{{ helpEnabled ? 'Hide contextual help' : 'Show contextual help' }}</span>
+      </button>
+
       <div v-if="currentUser" class="relative">
         <button
           type="button"
@@ -121,10 +135,12 @@ import { useRouter } from 'vue-router'
 import { fetchNotifications, fetchUniversalSearch, fetchUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from '../api.js'
 import { authStore } from '../store/auth'
 import LanguagePicker from './LanguagePicker.vue'
+import { helpPreference } from '../store/helpPreference.js'
 
 const router = useRouter()
 const emit = defineEmits(['toggle-menu'])
 const currentUser = computed(() => authStore.user.value)
+const helpEnabled = computed(() => helpPreference.enabled.value)
 const notificationsOpen = ref(false)
 const notificationsLoading = ref(false)
 const notifications = ref([])
@@ -135,6 +151,10 @@ const searchLoading = ref(false)
 const searchFocused = ref(false)
 let searchTimer = null
 let searchRequestId = 0
+
+function toggleHelp() {
+  helpPreference.toggle()
+}
 
 function closeSearch() {
   searchFocused.value = false

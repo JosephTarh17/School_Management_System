@@ -1,5 +1,5 @@
 <template>
-  <aside class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 shadow-sm" :aria-label="title">
+  <aside v-if="helpVisible" class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 shadow-sm" :aria-label="title">
     <div class="flex items-start gap-3">
       <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
         <span class="material-symbols-outlined text-lg" aria-hidden="true">help</span>
@@ -33,7 +33,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { helpPreference } from '../store/helpPreference.js'
 
 defineProps({
   title: { type: String, required: true },
@@ -43,4 +44,5 @@ defineProps({
 })
 
 const expanded = ref(true)
+const helpVisible = computed(() => helpPreference.enabled.value)
 </script>
