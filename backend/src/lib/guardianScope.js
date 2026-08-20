@@ -17,7 +17,7 @@ export async function linkedStudentIdsForGuardian(guardianId) {
 export async function assertGuardianLinkedStudent(guardianId, studentId) {
   const { data, error } = await supabase.from('student_guardian').select('student_id').eq('guardian_id', guardianId).eq('student_id', studentId).maybeSingle()
   if (error) throw error
-  if (!data) throw new ApiError(403, 'You do not have permission to access this child')
+  if (!data) throw new ApiError(403, 'You do not have permission to access this student')
   return studentId
 }
 

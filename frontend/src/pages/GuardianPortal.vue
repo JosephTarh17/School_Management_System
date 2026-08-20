@@ -3,23 +3,17 @@
     <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Guardian Portal</p>
-        <h1 class="mt-1 text-2xl font-bold text-slate-950 sm:text-3xl">Children overview</h1>
-        <p class="mt-1 max-w-2xl text-sm text-slate-500">Monitor linked children, review school operations, and keep up with published information.</p>
+        <h1 class="mt-1 text-2xl font-bold text-slate-950 sm:text-3xl">Student overview</h1>
+        <p class="mt-1 max-w-2xl text-sm text-slate-500">Monitor linked students, review school operations, and keep up with published information.</p>
       </div>
-      <label class="w-full text-sm font-semibold text-slate-700 lg:w-auto">
-        Selected child
-        <select v-model="selectedStudentId" class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 lg:min-w-72">
-          <option value="">Select a child</option>
-          <option v-for="child in children" :key="child.student_id" :value="child.student_id">{{ child.student?.full_name || child.full_name }}</option>
-        </select>
-      </label>
+      <span v-if="selectedStudent" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900">Viewing: {{ selectedStudent.full_name }}</span>
     </header>
 
     <p v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{{ errorMessage }}</p>
     <p v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ successMessage }}</p>
 
-    <div v-if="loading" class="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Loading linked children…</div>
-    <div v-else-if="!children.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-600">No linked children are available for this account. Contact an administrator to establish the relationship.</div>
+    <div v-if="loading" class="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Loading linked students…</div>
+    <div v-else-if="!students.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-600">No linked students are available for this account. Contact an administrator to establish the relationship.</div>
 
     <template v-else-if="summary">
       <section v-if="alerts.length" class="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
@@ -28,7 +22,7 @@
       </section>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Child</p><p class="mt-1 truncate font-bold text-slate-900">{{ summary.student.full_name }}</p></article>
+        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Student</p><p class="mt-1 truncate font-bold text-slate-900">{{ summary.student.full_name }}</p></article>
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Active courses</p><p class="mt-1 text-2xl font-bold text-indigo-700">{{ activeEnrollments.length }}</p></article>
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Balance due</p><p class="mt-1 text-2xl font-bold text-amber-700">{{ formatXaf(totalBalance) }}</p></article>
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Upcoming lessons</p><p class="mt-1 text-2xl font-bold text-indigo-700">{{ schedule.length }}</p></article>
@@ -39,7 +33,7 @@
         <section class="rounded-xl border border-rose-200 bg-white p-5 shadow-sm sm:p-6">
           <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h2 class="font-bold text-slate-900">Absence justifications</h2><p class="mt-1 text-xs text-slate-500">Submit an explanation before the administrator-defined deadline.</p></div><span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">{{ openAbsenceCount }} open</span></div>
           <div v-if="absenceLoading" class="py-6 text-center text-sm text-slate-500">Loading absence records…</div>
-          <div v-else-if="!absenceRecords.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No absence records are available for this child.</div>
+          <div v-else-if="!absenceRecords.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No absence records are available for this student.</div>
           <div v-else class="space-y-3"><article v-for="record in absenceRecords" :key="record.attendance_id" class="rounded-lg border border-slate-200 bg-slate-50 p-4"><div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><p class="font-semibold text-slate-900">{{ record.class_session?.course?.course_code || 'Course' }} · {{ formatDate(record.session_date) }}</p><p class="mt-1 text-xs text-slate-500">Status: {{ record.justification_status || 'PENDING' }} · Deadline: {{ formatDate(record.justification_deadline_at) }}</p></div><span :class="justificationClass(record.justification_status)" class="w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold">{{ record.justification_status || 'PENDING' }}</span></div><p v-if="record.justification_text" class="mt-3 rounded-md bg-white px-3 py-2 text-sm text-slate-700">{{ record.justification_text }}</p><p v-if="record.justification_review_note" class="mt-2 text-xs text-slate-500">Review note: {{ record.justification_review_note }}</p><div v-if="canSubmitJustification(record)" class="mt-3 space-y-2"><textarea v-model="absenceDrafts[record.attendance_id]" rows="3" maxlength="2000" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" placeholder="Explain the reason for the absence."></textarea><button type="button" class="btn-primary px-3 py-2 text-xs font-semibold" :disabled="submittingAttendanceId === record.attendance_id" @click="submitAbsence(record)">{{ submittingAttendanceId === record.attendance_id ? 'Submitting…' : 'Submit justification' }}</button></div></article></div>
         </section>
 
@@ -57,16 +51,16 @@
         </section>
 
         <section class="rounded-xl border border-indigo-200 bg-white p-5 shadow-sm sm:p-6">
-          <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-bold text-slate-900">Linked-child timetable</h2><p class="mt-1 text-xs text-slate-500">Published lessons for the selected child.</p></div><RouterLink to="/timetables" class="btn-secondary px-3 py-2 text-xs font-semibold">Open timetable</RouterLink></div>
+          <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-bold text-slate-900">Student timetable</h2><p class="mt-1 text-xs text-slate-500">Published lessons for the selected student.</p></div><RouterLink to="/timetables" class="btn-secondary px-3 py-2 text-xs font-semibold">Open timetable</RouterLink></div>
           <div v-if="scheduleLoading" class="py-6 text-center text-sm text-slate-500">Loading timetable…</div>
-          <div v-else-if="!schedule.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No published lessons are available for this child.</div>
+          <div v-else-if="!schedule.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No published lessons are available for this student.</div>
           <div v-else class="space-y-2"><article v-for="entry in schedule.slice(0, 8)" :key="entry.occurrence_id" class="rounded-lg border border-slate-100 bg-slate-50 p-3"><div class="flex items-start justify-between gap-3"><div><p class="font-semibold text-slate-900">{{ entry.course?.course_code || 'Course' }} · {{ formatDate(entry.occurrence_date) }}</p><p class="mt-1 text-xs text-slate-500">{{ formatDateTime(entry.start_at) }}–{{ formatTime(entry.end_at) }}</p></div><span class="text-xs font-semibold text-indigo-700">{{ entry.room?.room_name || 'Location pending' }}</span></div><p class="mt-2 text-xs text-slate-500">{{ entry.course?.course_name || 'Course' }} · {{ entry.teacher?.full_name || 'Teacher' }}</p></article></div>
         </section>
 
         <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-bold text-slate-900">Calendar and events</h2><p class="mt-1 text-xs text-slate-500">Published events permitted for this child and guardian audience.</p></div><RouterLink to="/calendar" class="btn-secondary px-3 py-2 text-xs font-semibold">Open calendar</RouterLink></div>
+          <div class="mb-4 flex items-start justify-between gap-3"><div><h2 class="font-bold text-slate-900">Calendar and events</h2><p class="mt-1 text-xs text-slate-500">Published events permitted for this student and guardian audience.</p></div><RouterLink to="/calendar" class="btn-secondary px-3 py-2 text-xs font-semibold">Open calendar</RouterLink></div>
           <div v-if="calendarLoading" class="py-6 text-center text-sm text-slate-500">Loading calendar…</div>
-          <div v-else-if="!calendarEvents.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No published events are available.</div>
+          <div v-else-if="!calendarEvents.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No published events are available for this student.</div>
           <div v-else class="space-y-2"><article v-for="event in calendarEvents.slice(0, 8)" :key="`${event.source}-${event.id}`" class="rounded-lg border border-slate-100 bg-slate-50 p-3"><p class="font-semibold text-slate-900">{{ event.title }}</p><p class="mt-1 text-xs text-slate-500">{{ formatDateTime(event.start_at) }} · {{ event.subtitle || event.category || 'School event' }}</p><p v-if="event.description" class="mt-2 line-clamp-2 text-sm text-slate-600">{{ event.description }}</p></article></div>
         </section>
 
@@ -79,7 +73,7 @@
 
         <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 xl:col-span-2"><div class="mb-4"><h2 class="font-bold text-slate-900">Published academic results</h2><p class="mt-1 text-xs text-slate-500">Only administrator-published marks are shown.</p></div><div v-if="!summary.academic_records.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No published assessment results are available.</div><div v-else class="grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2"><article v-for="record in summary.academic_records.slice(0, 8)" :key="record.record_id" class="flex flex-col gap-1 border-b border-slate-100 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p class="font-semibold text-slate-900">{{ record.assessment?.title }}</p><p class="text-xs text-slate-500">{{ record.assessment?.course?.course_code }} · {{ record.assessment?.academic_year }} · {{ record.assessment?.semester }}</p></div><span class="font-bold text-emerald-700">{{ record.score }}/{{ record.assessment?.max_score }} · {{ record.grade }}</span></article></div></section>
 
-        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div class="mb-4 flex items-center justify-between"><div><h2 class="font-bold text-slate-900">Attendance history</h2><p class="mt-1 text-xs text-slate-500">Recent attendance records for the selected child.</p></div><span class="text-xs font-semibold text-slate-500">{{ summary.attendance.length }} records</span></div><div v-if="!summary.attendance.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No attendance records are available.</div><div v-else class="space-y-2"><div v-for="entry in summary.attendance.slice(0, 12)" :key="entry.attendance_id" class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 text-sm last:border-0"><span class="min-w-0 truncate">{{ entry.session?.course?.course_code || 'Course' }} · {{ formatDate(entry.session_date) }}</span><span :class="attendanceClass(entry.status)" class="shrink-0 font-semibold">{{ entry.status }}</span></div></div></section>
+        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div class="mb-4 flex items-center justify-between"><div><h2 class="font-bold text-slate-900">Attendance history</h2><p class="mt-1 text-xs text-slate-500">Recent attendance records for the selected student.</p></div><span class="text-xs font-semibold text-slate-500">{{ summary.attendance.length }} records</span></div><div v-if="!summary.attendance.length" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">No attendance records are available.</div><div v-else class="space-y-2"><div v-for="entry in summary.attendance.slice(0, 12)" :key="entry.attendance_id" class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 text-sm last:border-0"><span class="min-w-0 truncate">{{ entry.session?.course?.course_code || 'Course' }} · {{ formatDate(entry.session_date) }}</span><span :class="attendanceClass(entry.status)" class="shrink-0 font-semibold">{{ entry.status }}</span></div></div></section>
       </div>
     </template>
   </section>
@@ -88,11 +82,13 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
-import { acknowledgeAttendanceAlert, fetchAnnouncements, fetchAttendanceAlerts, fetchCalendar, fetchGuardianAbsenceJustifications, fetchGuardianChildSummary, fetchGuardianChildren, fetchNotifications, fetchTimetables, markAllNotificationsRead, markNotificationRead, submitGuardianAbsenceJustification } from '../api.js'
+import { acknowledgeAttendanceAlert, fetchAnnouncements, fetchAttendanceAlerts, fetchCalendar, fetchGuardianAbsenceJustifications, fetchGuardianChildSummary, fetchNotifications, fetchTimetables, markAllNotificationsRead, markNotificationRead, submitGuardianAbsenceJustification } from '../api.js'
 import { countLabel, formatXaf } from '../lib/formatters.js'
+import { guardianStudentContext } from '../store/guardianStudentContext.js'
 
-const children = ref([])
-const selectedStudentId = ref('')
+const students = guardianStudentContext.students
+const selectedStudentId = guardianStudentContext.selectedStudentId
+const selectedStudent = guardianStudentContext.selectedStudent
 const summary = ref(null)
 const absenceRecords = ref([])
 const schedule = ref([])
@@ -125,7 +121,13 @@ function canSubmitJustification(record) { return ['PENDING', 'SUBMITTED'].includ
 function invoiceBalance(invoice) { return Math.max(Number(invoice.amount_due || 0) - Number(invoice.amount_paid || 0), 0) }
 
 async function loadChild() {
-  if (!selectedStudentId.value) return
+  if (!selectedStudentId.value) {
+    summary.value = null
+    absenceRecords.value = []
+    schedule.value = []
+    calendarEvents.value = []
+    return
+  }
   errorMessage.value = ''
   absenceLoading.value = true
   scheduleLoading.value = true
@@ -136,13 +138,13 @@ async function loadChild() {
     fetchTimetables(token(), { student_id: selectedStudentId.value }),
     fetchCalendar(token(), { student_id: selectedStudentId.value }),
   ])
-  if (!summaryResult.ok) errorMessage.value = summaryResult.error || 'Unable to load the selected child.'
+  if (!summaryResult.ok) errorMessage.value = summaryResult.error || 'Unable to load the selected student.'
   else summary.value = summaryResult.data
   if (!absenceResult.ok) errorMessage.value = absenceResult.error || 'Unable to load absence justifications.'
   else absenceRecords.value = absenceResult.data || []
-  if (!scheduleResult.ok) errorMessage.value = scheduleResult.error || 'Unable to load the child timetable.'
+  if (!scheduleResult.ok) errorMessage.value = scheduleResult.error || 'Unable to load the student timetable.'
   else schedule.value = scheduleResult.data || []
-  if (!calendarResult.ok) errorMessage.value = calendarResult.error || 'Unable to load the child calendar.'
+  if (!calendarResult.ok) errorMessage.value = calendarResult.error || 'Unable to load the student calendar.'
   else calendarEvents.value = calendarResult.data?.events || []
   absenceLoading.value = false
   scheduleLoading.value = false
@@ -198,9 +200,11 @@ async function acknowledge(alertId) {
 
 watch(selectedStudentId, loadChild)
 onMounted(async () => {
-  const [childrenResult, alertsResult] = await Promise.all([fetchGuardianChildren(token()), fetchAttendanceAlerts(token())])
-  if (!childrenResult.ok) errorMessage.value = childrenResult.error || 'Unable to load linked children.'
-  else { children.value = childrenResult.data || []; selectedStudentId.value = children.value[0]?.student_id || '' }
+  const [contextResult, alertsResult] = await Promise.all([
+    guardianStudentContext.ensureLoaded(token(), authStore.user.value?.user_id || authStore.user.value?.id),
+    fetchAttendanceAlerts(token()),
+  ])
+  if (!contextResult.ok && !errorMessage.value) errorMessage.value = contextResult.error || 'Unable to load linked students.'
   if (alertsResult.ok) alerts.value = alertsResult.data || []
   await Promise.all([loadAnnouncements(), loadNotifications()])
   loading.value = false

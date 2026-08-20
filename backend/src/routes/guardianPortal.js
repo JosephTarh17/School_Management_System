@@ -18,7 +18,7 @@ async function assertLinkedStudent(studentId, userId) {
   const guardianId = await guardianIdForUser(userId)
   const { data, error } = await supabase.from('student_guardian').select('student_id').eq('guardian_id', guardianId).eq('student_id', studentId).maybeSingle()
   if (error) throw error
-  if (!data) throw new ApiError(403, 'You do not have permission to view this child')
+  if (!data) throw new ApiError(403, 'You do not have permission to view this student')
   return guardianId
 }
 

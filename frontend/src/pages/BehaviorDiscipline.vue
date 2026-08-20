@@ -4,7 +4,7 @@
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Student support</p>
         <h1 class="mt-1 text-2xl font-bold text-slate-950">Behavior and discipline</h1>
-        <p class="mt-1 text-sm text-slate-500">Record, review, and safely scope behavior incidents using real student records.</p>
+        <p class="mt-1 text-sm text-slate-500">Record, review, and safely scope behavior incidents using real student records.</p><span v-if="role === 'guardian' && selectedStudent" class="mt-2 inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800">Student: {{ selectedStudent.full_name }}</span>
       </div>
       <button @click="load" class="btn-primary px-4 py-2 text-sm font-semibold text-white">Refresh</button>
     </header>
@@ -34,9 +34,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
 import { createBehaviorIncident, deleteBehaviorIncident, fetchBehaviorIncidents, fetchStudents, updateBehaviorIncident } from '../api.js'
+import { guardianStudentContext } from '../store/guardianStudentContext.js'
 import { countLabel } from '../lib/formatters.js'
 
 const incidents = ref([])
@@ -52,12 +53,19 @@ const statuses = ['Open', 'Under review', 'Resolved', 'Dismissed']
 const form = reactive({ student_id: '', incident_type: 'Conduct', severity: 'Low', incident_date: new Date().toISOString().slice(0, 10), description: '', action_taken: '' })
 const role = computed(() => authStore.userRole.value)
 const canManage = computed(() => ['teacher', 'administrator'].includes(role.value))
+const selectedStudentId = guardianStudentContext.selectedStudentId
+const selectedStudent = guardianStudentContext.selectedStudent
 const calculatedPoints = computed(() => severityPoints[form.severity] ?? 0)
 const token = () => authStore.token.value
 
 async function load() {
   loading.value = true; errorMessage.value = ''
-  const result = await fetchBehaviorIncidents(token())
+  if (role.value === 'guardian' && !selectedStudentId.value) {
+    incidents.value = []
+    loading.value = false
+    return
+  }
+  const result = await fetchBehaviorIncidents(token(), role.value === 'guardian' ? { student_id: selectedStudentId.value } : {})
   if (!result.ok) errorMessage.value = result.error
   else incidents.value = result.data || []
   if (canManage.value) {
@@ -93,5 +101,9 @@ async function removeIncident(incident) {
   else { incidents.value = incidents.value.filter((item) => item.incident_id !== incident.incident_id); message.value = 'Incident deleted.' }
 }
 
-onMounted(load)
+onMounted(async () => {
+  if (role.value === 'guardian') await guardianStudentContext.ensureLoaded(token(), authStore.user.value?.user_id || authStore.user.value?.id)
+  await load()
+})
+watch(selectedStudentId, () => { if (role.value === 'guardian') load() })
 </script>

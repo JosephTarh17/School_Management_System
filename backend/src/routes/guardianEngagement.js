@@ -58,8 +58,10 @@ const documentSelect = 'document_id,title,description,document_url,student_id,ve
 const profileSelect = 'request_id,guardian_id,requested_by,proposed_full_name,proposed_email,proposed_phone,proposed_address,proposed_relationship,reason,status,decision_note,decision_by,decision_at,created_at,updated_at,guardian(guardian_id,user_id,full_name,email,phone,address,relationship)'
 
 router.get('/communications', requireRole('guardian'), asyncRoute(async (req, res) => {
-  const guardianId = await guardianContext(req)
+  const selectedStudentId = req.query.student_id ? asUuid(req.query.student_id, 'student_id') : null
+  const guardianId = await guardianContext(req, selectedStudentId)
   let query = supabase.from('guardian_communication_request').select(communicationSelect).eq('guardian_id', guardianId).order('created_at', { ascending: false })
+  if (selectedStudentId) query = query.or(`student_id.is.null,student_id.eq.${selectedStudentId}`)
   if (req.query.status) query = query.eq('status', asEnum(req.query.status, 'status', communicationStatuses))
   const { data, error } = await query
   if (error) throw error
@@ -116,8 +118,10 @@ router.post('/admin/communications/:requestId/respond', requireRole('administrat
 }))
 
 router.get('/appointments', requireRole('guardian'), asyncRoute(async (req, res) => {
-  const guardianId = await guardianContext(req)
+  const selectedStudentId = req.query.student_id ? asUuid(req.query.student_id, 'student_id') : null
+  const guardianId = await guardianContext(req, selectedStudentId)
   let query = supabase.from('guardian_appointment_request').select(appointmentSelect).eq('guardian_id', guardianId).order('preferred_start_at', { ascending: false })
+  if (selectedStudentId) query = query.or(`student_id.is.null,student_id.eq.${selectedStudentId}`)
   if (req.query.status) query = query.eq('status', asEnum(req.query.status, 'status', appointmentStatuses))
   const { data, error } = await query
   if (error) throw error
@@ -224,12 +228,13 @@ router.get('/admin/discipline-acknowledgements', requireRole('administrator'), a
 }))
 
 router.get('/documents', requireRole('guardian'), asyncRoute(async (req, res) => {
-  const guardianId = await guardianContext(req)
+  const selectedStudentId = req.query.student_id ? asUuid(req.query.student_id, 'student_id') : null
+  const guardianId = await guardianContext(req, selectedStudentId)
   const studentIds = await linkedStudentIdsForGuardian(guardianId)
   let query = supabase.from('guardian_document').select(documentSelect).eq('status', 'Published').order('published_at', { ascending: false })
   const { data: documents, error } = await query
   if (error) throw error
-  const visible = (documents || []).filter((document) => !document.student_id || studentIds.includes(document.student_id))
+  const visible = (documents || []).filter((document) => !document.student_id || studentIds.includes(document.student_id)).filter((document) => !selectedStudentId || !document.student_id || document.student_id === selectedStudentId)
   const ids = visible.map((document) => document.document_id)
   let responses = []
   if (ids.length) {

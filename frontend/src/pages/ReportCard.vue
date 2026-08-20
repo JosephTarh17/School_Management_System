@@ -2,7 +2,7 @@
   <section class="space-y-6">
     <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Academic Results</p><h1 class="mt-1 text-2xl font-bold text-slate-950">Report card</h1><p class="mt-1 text-sm text-slate-500">Official results become visible here only after administrator publication.</p></div><button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" @click="printReport">Print report card</button></header>
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ errorMessage }}</p>
-    <div v-if="isGuardian" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><label class="text-sm font-medium text-slate-700">Child<select v-model="selectedStudentId" class="mt-1 block w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Select child</option><option v-for="child in children" :key="child.student_id" :value="child.student_id">{{ child.student?.full_name || child.full_name }}</option></select></label></div>
+    <div v-if="isGuardian" class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">Viewing selected student: <strong>{{ selectedStudent?.full_name || 'No student selected' }}</strong></div>
     <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h2 class="font-bold text-slate-900">Semester report card</h2><p class="mt-1 text-xs text-slate-500">{{ academicYear }} · {{ semester }}</p></div><div class="flex flex-col gap-3 sm:flex-row"><label class="text-sm font-medium text-slate-700">Academic year<input v-model.number="academicYear" type="number" min="2000" max="9999" class="mt-1 block w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm" @change="load" /></label><label class="text-sm font-medium text-slate-700">Semester<select v-model="semester" class="mt-1 block w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm" @change="load"><option v-for="option in semesters" :key="option" :value="option">{{ option }}</option></select></label></div></div></div>
 
     <div v-if="reportCard" id="printable-report-card" class="space-y-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-8">
@@ -17,12 +17,13 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { authStore } from '../store/auth'
-import { fetchCurrentAcademicPeriod, fetchGuardianChildren, fetchReportCard } from '../api.js'
+import { fetchCurrentAcademicPeriod, fetchReportCard } from '../api.js'
+import { guardianStudentContext } from '../store/guardianStudentContext.js'
 
 const currentUser = computed(() => authStore.user.value)
 const isGuardian = computed(() => authStore.userRole.value === 'guardian')
-const children = ref([])
-const selectedStudentId = ref('')
+const selectedStudentId = guardianStudentContext.selectedStudentId
+const selectedStudent = guardianStudentContext.selectedStudent
 const semesters = ['Semester 1', 'Semester 2']
 const academicYear = ref(2026)
 const semester = ref('Semester 1')
@@ -46,8 +47,8 @@ onMounted(async () => {
     semester.value = periodResult.data.semester
   } else errorMessage.value = periodResult.error || 'Unable to load the current academic period.'
   if (isGuardian.value) {
-    const result = await fetchGuardianChildren(authStore.token.value)
-    if (result.ok) { children.value = result.data || []; selectedStudentId.value = children.value[0]?.student_id || '' }
+    await guardianStudentContext.ensureLoaded(authStore.token.value, currentUser.value?.user_id || currentUser.value?.id)
+    await load()
   } else await load()
 })
 watch(selectedStudentId, load)

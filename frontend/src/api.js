@@ -499,8 +499,9 @@ export async function deleteParticipationLog(token, participationId) {
   return requestJson(`/participation-logs/${participationId}`, { method: 'DELETE', token })
 }
 
-export async function fetchBehaviorIncidents(token) {
-  return requestJson('/behavior-incidents', { token })
+export async function fetchBehaviorIncidents(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/behavior-incidents${query.toString() ? `?${query}` : ''}`, { token })
 }
 
 export async function createBehaviorIncident(token, body) {
@@ -667,8 +668,9 @@ export async function fetchGuardianDisciplineNotices(token, params = {}) {
 export async function acknowledgeGuardianDiscipline(token, incidentId, body) {
   return requestJson(`/guardian-engagement/discipline-notices/${incidentId}/acknowledge`, { method: 'POST', token, body })
 }
-export async function fetchGuardianDocuments(token) {
-  return requestJson('/guardian-engagement/documents', { token })
+export async function fetchGuardianDocuments(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/documents${query.toString() ? `?${query}` : ''}`, { token })
 }
 export async function respondToGuardianDocument(token, documentId, body) {
   return requestJson(`/guardian-engagement/documents/${documentId}/respond`, { method: 'POST', token, body })

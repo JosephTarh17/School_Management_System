@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 class="text-2xl font-bold tracking-tight text-slate-900">Timetables</h1><p class="mt-1 text-xs text-slate-500">{{ role === 'administrator' ? 'Build and publish the semester schedule.' : 'Review your scheduled lessons and confirm delivered sessions.' }}</p></div><button type="button" class="btn-primary px-3 py-2 text-xs font-semibold" :disabled="loading" @click="loadData">Refresh</button></div>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 class="text-2xl font-bold tracking-tight text-slate-900">Timetables</h1><p class="mt-1 text-xs text-slate-500">{{ role === 'administrator' ? 'Build and publish the semester schedule.' : 'Review your scheduled lessons and confirm delivered sessions.' }}</p><span v-if="role === 'guardian' && selectedStudent" class="mt-2 inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800">Student: {{ selectedStudent.full_name }}</span></div><button type="button" class="btn-primary px-3 py-2 text-xs font-semibold" :disabled="loading" @click="loadData">Refresh</button></div>
     <ContextHelp title="Build the schedule before sessions begin" summary="A timetable entry creates the planned schedule. It does not mark a lesson as completed; teachers still record attendance before confirming delivery." next="After publication, teachers and students see the permitted schedule. Future quota changes affect eligible future occurrences, while completed history remains preserved." :steps="['Choose the correct academic period, course-hour allocation, and location.', 'Check the date range and time for room conflicts.', 'Publish only after the timetable has been reviewed.']" />
     <div v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ errorMessage }}</div><div v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">{{ successMessage }}</div>
 
@@ -26,11 +26,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authStore } from '../store/auth.js'
 import { createTimetableEntry, fetchCourseHours, fetchTimetableResources, fetchTimetables, openTimetableSession, completeTimetableOccurrence, reportTeacherAbsence, updateTimetableEntry } from '../api.js'
+import { guardianStudentContext } from '../store/guardianStudentContext.js'
 
 const role = computed(() => authStore.userRole.value)
+const selectedStudentId = guardianStudentContext.selectedStudentId
+const selectedStudent = guardianStudentContext.selectedStudent
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const today = new Date()
 const dateValue = (date) => date.toISOString().slice(0, 10)
@@ -48,11 +51,39 @@ const successMessage = ref('')
 function formatDate(value) { return new Date(`${value}T00:00:00Z`).toLocaleDateString() }
 function formatTime(value) { return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
 function statusClass(status) { return status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : ['Voided','Cancelled','No Attendance'].includes(status) ? 'bg-rose-100 text-rose-700' : status === 'Pending Teacher Absence' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700' }
-async function loadData() { loading.value = true; errorMessage.value = ''; const timetableResult = await fetchTimetables(authStore.token.value, { from: filters.from, to: filters.to }); if (!timetableResult.ok) errorMessage.value = timetableResult.error || 'Unable to load timetable.'; else occurrences.value = timetableResult.data || []; if (role.value === 'administrator') { const [resourceResult, allocationResult] = await Promise.all([fetchTimetableResources(authStore.token.value, {}), fetchCourseHours(authStore.token.value)]); if (!resourceResult.ok) errorMessage.value = resourceResult.error || 'Unable to load timetable resources.'; else resources.value = resourceResult.data || resourceResult; if (!allocationResult.ok) errorMessage.value = allocationResult.error || 'Unable to load course-hour allocations.'; else allocations.value = allocationResult.data || [] } else if (role.value === 'teacher') { const resourceResult = await fetchTimetableResources(authStore.token.value, {}); if (resourceResult.ok) resources.value = resourceResult.data || resourceResult } loading.value = false }
+async function loadData() {
+  loading.value = true
+  errorMessage.value = ''
+  if (role.value === 'guardian' && !selectedStudentId.value) {
+    occurrences.value = []
+    loading.value = false
+    return
+  }
+  const timetableParams = { from: filters.from, to: filters.to }
+  if (role.value === 'guardian') timetableParams.student_id = selectedStudentId.value
+  const timetableResult = await fetchTimetables(authStore.token.value, timetableParams)
+  if (!timetableResult.ok) errorMessage.value = timetableResult.error || 'Unable to load timetable.'
+  else occurrences.value = timetableResult.data || []
+  if (role.value === 'administrator') {
+    const [resourceResult, allocationResult] = await Promise.all([fetchTimetableResources(authStore.token.value, {}), fetchCourseHours(authStore.token.value)])
+    if (!resourceResult.ok) errorMessage.value = resourceResult.error || 'Unable to load timetable resources.'
+    else resources.value = resourceResult.data || resourceResult
+    if (!allocationResult.ok) errorMessage.value = allocationResult.error || 'Unable to load course-hour allocations.'
+    else allocations.value = allocationResult.data || []
+  } else if (role.value === 'teacher') {
+    const resourceResult = await fetchTimetableResources(authStore.token.value, {})
+    if (resourceResult.ok) resources.value = resourceResult.data || resourceResult
+  }
+  loading.value = false
+}
 async function createEntry() { saving.value = true; errorMessage.value = ''; const result = await createTimetableEntry(authStore.token.value, { ...entryForm }); if (!result.ok) errorMessage.value = result.error || 'Unable to create the timetable entry.'; else { successMessage.value = 'Draft timetable entry created.'; await loadData() } saving.value = false }
 async function publishEntry(entryId) { const result = await updateTimetableEntry(authStore.token.value, entryId, { status: 'Published' }); if (!result.ok) errorMessage.value = result.error || 'Unable to publish the timetable entry.'; else { successMessage.value = 'Timetable entry published.'; await loadData() } }
 async function openSession(occurrence) { const result = await openTimetableSession(authStore.token.value, occurrence.occurrence_id); if (!result.ok) errorMessage.value = result.error || 'Unable to open attendance.'; else { successMessage.value = 'Actual class session opened. Record attendance before completing it.'; occurrence.class_session_id = result.data?.session_id } }
 async function completeOccurrence(occurrence) { const result = await completeTimetableOccurrence(authStore.token.value, occurrence.occurrence_id); if (!result.ok) errorMessage.value = result.error || 'Attendance is required before completion.'; else { successMessage.value = result.data?.status === 'No Attendance' ? 'The occurrence was recorded as no attendance.' : 'Session completed and hours counted.'; await loadData() } }
 async function reportAbsence(occurrence) { const reason = window.prompt('Why will you be absent from this scheduled session?'); if (!reason) return; const result = await reportTeacherAbsence(authStore.token.value, occurrence.occurrence_id, { reason, replacement_requested: false }); if (!result.ok) errorMessage.value = result.error || 'Unable to submit the absence report.'; else { successMessage.value = 'Teacher absence report submitted for administrator review.'; await loadData() } }
-onMounted(loadData)
+onMounted(async () => {
+  if (role.value === 'guardian') await guardianStudentContext.ensureLoaded(authStore.token.value, authStore.user.value?.user_id || authStore.user.value?.id)
+  await loadData()
+})
+watch(selectedStudentId, () => { if (role.value === 'guardian') loadData() })
 </script>

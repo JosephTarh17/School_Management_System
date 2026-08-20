@@ -153,7 +153,7 @@ const guardianMenuGroups = [
   {
     title: 'Guardian Portal',
     items: [
-      { label: 'Children Overview', path: '/guardian-portal', icon: 'family_restroom' },
+      { label: 'Student Overview', path: '/guardian-portal', icon: 'family_restroom' },
       { label: 'Requests & Required Actions', path: '/guardian-engagement', icon: 'forum' },
       { label: 'Semester Calendar', path: '/calendar', icon: 'calendar_month' },
       { label: 'Announcements', path: '/announcements', icon: 'campaign' },

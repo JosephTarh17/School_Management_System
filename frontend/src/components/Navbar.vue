@@ -47,6 +47,8 @@
         {{ currentUser.role }} Portal
       </span>
 
+      <GuardianStudentSelector v-if="currentUser?.role === 'guardian'" />
+
       <LanguagePicker v-if="currentUser" class="hidden sm:inline-flex" />
 
       <button
@@ -135,6 +137,7 @@ import { useRouter } from 'vue-router'
 import { fetchNotifications, fetchUniversalSearch, fetchUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from '../api.js'
 import { authStore } from '../store/auth'
 import LanguagePicker from './LanguagePicker.vue'
+import GuardianStudentSelector from './GuardianStudentSelector.vue'
 import { helpPreference } from '../store/helpPreference.js'
 
 const router = useRouter()

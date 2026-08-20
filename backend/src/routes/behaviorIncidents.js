@@ -90,7 +90,9 @@ router.get('/', asyncRoute(async (req, res) => {
     query = studentId ? query.eq('student_id', studentId) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
   } else if (req.user.role === 'guardian') {
     const ids = await guardianStudentIds(req.user.user_id)
-    query = ids.length ? query.in('student_id', ids).eq('guardian_visible', true) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
+    const selectedStudentId = req.query.student_id ? asUuid(req.query.student_id, 'student_id') : null
+    if (selectedStudentId && !ids.includes(selectedStudentId)) throw new ApiError(403, 'You do not have permission to access this student')
+    query = selectedStudentId ? query.eq('student_id', selectedStudentId).eq('guardian_visible', true) : ids.length ? query.in('student_id', ids).eq('guardian_visible', true) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
   } else if (req.user.role === 'teacher') {
     const ids = await enrolledStudentIdsForTeacher(req.user.user_id)
     query = ids.length ? query.in('student_id', ids) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
