@@ -135,6 +135,7 @@ const administratorMenuGroups = [
     items: [
       { label: 'Financial Records', path: '/financial-records', icon: 'payments' },
       { label: 'Guardian Management', path: '/guardian-management', icon: 'family_restroom' },
+      { label: 'Guardian Engagement Review', path: '/guardian-engagement-review', icon: 'forum' },
       { label: 'Account Management', path: '/account-management', icon: 'manage_accounts' },
       { label: 'Staff Management', path: '/staff-management', icon: 'badge' },
       { label: 'Audit Logs', path: '/audit-logs', icon: 'history' },
@@ -151,6 +152,7 @@ const guardianMenuGroups = [
     title: 'Guardian Portal',
     items: [
       { label: 'Children Overview', path: '/guardian-portal', icon: 'family_restroom' },
+      { label: 'Requests & Required Actions', path: '/guardian-engagement', icon: 'forum' },
       { label: 'Semester Calendar', path: '/calendar', icon: 'calendar_month' },
       { label: 'Announcements', path: '/announcements', icon: 'campaign' },
       { label: 'Published Report Cards', path: '/report-card', icon: 'description' },

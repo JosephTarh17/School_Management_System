@@ -639,3 +639,87 @@ export async function fetchAbsencePolicy(token) {
 export async function updateAbsencePolicy(token, body) {
   return requestJson('/absence-justifications/policy', { method: 'PATCH', token, body })
 }
+
+export async function fetchGuardianCommunications(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/communications${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function createGuardianCommunication(token, body) {
+  return requestJson('/guardian-engagement/communications', { method: 'POST', token, body })
+}
+export async function updateGuardianCommunication(token, requestId, body) {
+  return requestJson(`/guardian-engagement/communications/${requestId}`, { method: 'PATCH', token, body })
+}
+export async function fetchGuardianAppointments(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/appointments${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function createGuardianAppointment(token, body) {
+  return requestJson('/guardian-engagement/appointments', { method: 'POST', token, body })
+}
+export async function cancelGuardianAppointment(token, appointmentId) {
+  return requestJson(`/guardian-engagement/appointments/${appointmentId}/cancel`, { method: 'PATCH', token })
+}
+export async function fetchGuardianDisciplineNotices(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/discipline-notices${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function acknowledgeGuardianDiscipline(token, incidentId, body) {
+  return requestJson(`/guardian-engagement/discipline-notices/${incidentId}/acknowledge`, { method: 'POST', token, body })
+}
+export async function fetchGuardianDocuments(token) {
+  return requestJson('/guardian-engagement/documents', { token })
+}
+export async function respondToGuardianDocument(token, documentId, body) {
+  return requestJson(`/guardian-engagement/documents/${documentId}/respond`, { method: 'POST', token, body })
+}
+export async function fetchGuardianProfile(token) {
+  return requestJson('/guardian-engagement/profile', { token })
+}
+export async function fetchGuardianProfileChangeRequests(token) {
+  return requestJson('/guardian-engagement/profile/change-requests', { token })
+}
+export async function createGuardianProfileChangeRequest(token, body) {
+  return requestJson('/guardian-engagement/profile/change-requests', { method: 'POST', token, body })
+}
+export async function withdrawGuardianProfileChangeRequest(token, requestId) {
+  return requestJson(`/guardian-engagement/profile/change-requests/${requestId}/withdraw`, { method: 'PATCH', token })
+}
+export async function fetchAdminGuardianCommunications(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/admin/communications${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function respondToGuardianCommunication(token, requestId, body) {
+  return requestJson(`/guardian-engagement/admin/communications/${requestId}/respond`, { method: 'POST', token, body })
+}
+export async function fetchAdminGuardianAppointments(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/admin/appointments${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function decideGuardianAppointment(token, appointmentId, body) {
+  return requestJson(`/guardian-engagement/admin/appointments/${appointmentId}/decision`, { method: 'POST', token, body })
+}
+export async function fetchAdminDisciplineAcknowledgements(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/admin/discipline-acknowledgements${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function fetchAdminGuardianDocuments(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/admin/documents${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function createAdminGuardianDocument(token, body) {
+  return requestJson('/guardian-engagement/admin/documents', { method: 'POST', token, body })
+}
+export async function updateAdminGuardianDocument(token, documentId, body) {
+  return requestJson(`/guardian-engagement/admin/documents/${documentId}`, { method: 'PATCH', token, body })
+}
+export async function fetchAdminGuardianDocumentResponses(token, documentId) {
+  return requestJson(`/guardian-engagement/admin/documents/${documentId}/responses`, { token })
+}
+export async function fetchAdminGuardianProfileChangeRequests(token, params = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
+  return requestJson(`/guardian-engagement/admin/profile-change-requests${query.toString() ? `?${query}` : ''}`, { token })
+}
+export async function decideGuardianProfileChange(token, requestId, body) {
+  return requestJson(`/guardian-engagement/admin/profile-change-requests/${requestId}/decision`, { method: 'POST', token, body })
+}

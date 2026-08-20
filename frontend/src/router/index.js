@@ -72,6 +72,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['guardian'] }
   },
   {
+    path: '/guardian-engagement',
+    name: 'GuardianEngagement',
+    component: () => import('../pages/GuardianEngagement.vue'),
+    meta: { requiresAuth: true, roles: ['guardian'] }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('../pages/Dashboard.vue'),
@@ -87,6 +93,12 @@ const routes = [
     path: '/guardian-management',
     name: 'GuardianManagement',
     component: () => import('../pages/GuardianManagement.vue'),
+    meta: { requiresAuth: true, roles: ['administrator'] }
+  },
+  {
+    path: '/guardian-engagement-review',
+    name: 'GuardianEngagementReview',
+    component: () => import('../pages/GuardianEngagementReview.vue'),
     meta: { requiresAuth: true, roles: ['administrator'] }
   },
   {

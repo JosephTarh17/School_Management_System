@@ -352,6 +352,7 @@ router.post('/me/change-password', asyncRoute(async (req, res) => {
 
 router.patch('/me', asyncRoute(async (req, res) => {
   if (req.body?.password !== undefined) throw new ApiError(400, 'Use the change-password feature to update your password')
+  if (req.user.role === 'guardian' && req.body?.email !== undefined) throw new ApiError(403, 'Guardian email changes require administrator review')
   const updates = {}
   if (req.body?.email !== undefined) updates.email = asText(req.body.email, 'email', { max: 320 }).toLowerCase()
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')

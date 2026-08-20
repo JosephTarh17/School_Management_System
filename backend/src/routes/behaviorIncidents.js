@@ -18,6 +18,21 @@ function pointsForSeverity(severity) {
 }
 const select = '*, student(student_id,full_name,class_level)'
 
+function guardianVisibilityPayload(body, role) {
+  const hasVisibilityField = body.guardian_visible !== undefined || body.guardian_acknowledgement_required !== undefined
+  if (hasVisibilityField && role !== 'administrator') throw new ApiError(403, 'Only administrators can configure guardian disciplinary visibility')
+  const payload = {}
+  if (body.guardian_visible !== undefined) {
+    if (typeof body.guardian_visible !== 'boolean') throw new ApiError(400, 'guardian_visible must be a boolean')
+    payload.guardian_visible = body.guardian_visible
+  }
+  if (body.guardian_acknowledgement_required !== undefined) {
+    if (typeof body.guardian_acknowledgement_required !== 'boolean') throw new ApiError(400, 'guardian_acknowledgement_required must be a boolean')
+    payload.guardian_acknowledgement_required = body.guardian_acknowledgement_required
+  }
+  return payload
+}
+
 async function guardianStudentIds(userId) {
   const { data: guardian, error: guardianError } = await supabase.from('guardian').select('guardian_id').eq('user_id', userId).maybeSingle()
   if (guardianError) throw guardianError
@@ -30,7 +45,7 @@ async function guardianStudentIds(userId) {
 async function canReadIncident(incident, req) {
   if (req.user.role === 'administrator') return true
   if (req.user.role === 'student') return incident.student_id === await studentIdForUser(req.user.user_id)
-  if (req.user.role === 'guardian') return (await guardianStudentIds(req.user.user_id)).includes(incident.student_id)
+  if (req.user.role === 'guardian') return incident.guardian_visible === true && (await guardianStudentIds(req.user.user_id)).includes(incident.student_id)
   if (req.user.role === 'teacher') return (await enrolledStudentIdsForTeacher(req.user.user_id)).includes(incident.student_id)
   return false
 }
@@ -75,7 +90,7 @@ router.get('/', asyncRoute(async (req, res) => {
     query = studentId ? query.eq('student_id', studentId) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
   } else if (req.user.role === 'guardian') {
     const ids = await guardianStudentIds(req.user.user_id)
-    query = ids.length ? query.in('student_id', ids) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
+    query = ids.length ? query.in('student_id', ids).eq('guardian_visible', true) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
   } else if (req.user.role === 'teacher') {
     const ids = await enrolledStudentIdsForTeacher(req.user.user_id)
     query = ids.length ? query.in('student_id', ids) : query.eq('student_id', '00000000-0000-0000-0000-000000000000')
@@ -87,6 +102,7 @@ router.get('/', asyncRoute(async (req, res) => {
 
 router.post('/', requireRole('teacher', 'administrator'), asyncRoute(async (req, res) => {
   const payload = incidentPayload(req.body || {})
+  Object.assign(payload, guardianVisibilityPayload(req.body || {}, req.user.role))
   await assertStudentScope(payload.student_id, req)
   validateResolution(payload)
   const { data, error } = await supabase.from('behavior_incident').insert({ ...payload, reported_by: req.user.user_id }).select(select).single()
@@ -120,6 +136,7 @@ router.patch('/:incidentId', requireRole('teacher', 'administrator'), asyncRoute
   await assertStudentScope(current.student_id, req)
   if (req.user.role === 'teacher' && current.reported_by !== req.user.user_id) throw new ApiError(403, 'Teachers can update only incidents they reported')
   const updates = incidentPayload(req.body || {}, { partial: true })
+  Object.assign(updates, guardianVisibilityPayload(req.body || {}, req.user.role))
   if (updates.student_id !== undefined) await assertStudentScope(updates.student_id, req)
   validateResolution(updates, current)
   if (!Object.keys(updates).length) throw new ApiError(400, 'At least one editable field is required')

@@ -15,6 +15,7 @@ import enrollmentRoutes from './routes/enrollments.js'
 import courseRegistrationRoutes from './routes/courseRegistrations.js'
 import academicRecordsRoutes from './routes/academicRecords.js'
 import guardianPortalRoutes from './routes/guardianPortal.js'
+import guardianEngagementRoutes from './routes/guardianEngagement.js'
 import attendanceReportsRoutes from './routes/attendanceReports.js'
 import behaviorIncidentsRoutes from './routes/behaviorIncidents.js'
 import { ApiError, errorHandler } from './lib/api.js'
@@ -58,6 +59,7 @@ app.use('/enrollments', enrollmentRoutes)
 app.use('/course-registrations', courseRegistrationRoutes)
 app.use('/academic-records', academicRecordsRoutes)
 app.use('/guardian-portal', guardianPortalRoutes)
+app.use('/guardian-engagement', guardianEngagementRoutes)
 app.use('/attendance-reports', attendanceReportsRoutes)
 app.use('/behavior-incidents', behaviorIncidentsRoutes)
 app.use('/audit-logs', auditLogsRoutes)
