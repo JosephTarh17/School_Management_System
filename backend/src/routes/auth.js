@@ -6,6 +6,7 @@ import { clearAuthCookie, requireAuth, requireRole, signAccessToken, signMfaChal
 import { decryptSecret, encryptSecret, hashPassword, isArgon2Hash, verifyPassword } from '../lib/security.js'
 import { createSession, newSessionId, revokeAllUserSessions, revokeSession, tokenExpiryDate } from '../lib/sessions.js'
 import { runAccountLifecycleMaintenanceIfDue } from '../lib/accountLifecycle.js'
+import { recordAuditEvent } from '../lib/audit.js'
 
 const router = express.Router()
 const attempts = new Map()
