@@ -380,6 +380,14 @@ export async function fetchGuardianChildSummary(token, studentId) {
   return requestJson(`/guardian-portal/children/${studentId}`, { token })
 }
 
+export async function fetchGuardianAbsenceJustifications(token, studentId) {
+  return requestJson(`/guardian-portal/children/${studentId}/absence-justifications`, { token })
+}
+
+export async function submitGuardianAbsenceJustification(token, studentId, attendanceId, body) {
+  return requestJson(`/guardian-portal/children/${studentId}/absence-justifications/${attendanceId}`, { method: 'POST', token, body })
+}
+
 export async function fetchAttendanceReports(token, params = {}) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null && value !== ''))
   return requestJson(`/attendance-reports/reports${query.toString() ? `?${query.toString()}` : ''}`, { token })
