@@ -26,6 +26,7 @@
               <li v-for="step in steps" :key="step">{{ step }}</li>
             </ol>
           </div>
+          <slot name="boundary" />
         </div>
       </div>
     </div>

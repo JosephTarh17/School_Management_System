@@ -22,6 +22,7 @@
         <div class="flex min-w-0 flex-1 flex-col bg-surface-bg">
           <Navbar @toggle-menu="mobileMenuOpen = !mobileMenuOpen" />
           <main class="min-w-0 flex-1 overflow-y-auto p-3 sm:p-5 md:p-8">
+            <ModuleHelp />
             <router-view v-slot="{ Component }">
               <Transition name="page" mode="out-in">
                 <component :is="Component" />
@@ -39,6 +40,7 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import Navbar from './components/Navbar.vue'
 import RequestLoadingOverlay from './components/RequestLoadingOverlay.vue'
+import ModuleHelp from './components/ModuleHelp.vue'
 import { installLanguageTranslation, refreshLanguageTranslation } from './store/language.js'
 import { useRoute } from 'vue-router'
 

@@ -66,6 +66,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator', 'guardian'] }
   },
   {
+    path: '/about-portal',
+    name: 'AboutPortal',
+    component: () => import('../pages/AboutPortal.vue'),
+    meta: { requiresAuth: true, roles: ['student', 'teacher', 'administrator', 'guardian'] }
+  },
+  {
     path: '/guardian-portal',
     name: 'GuardianPortal',
     component: () => import('../pages/GuardianPortal.vue'),

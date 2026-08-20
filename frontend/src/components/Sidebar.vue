@@ -103,6 +103,7 @@ const studentMenuGroups = [
     title: 'Account',
     items: [
       { label: 'My Profile & Info', path: '/profile', icon: 'account_circle' },
+      { label: 'About This Portal', path: '/about-portal', icon: 'help_outline' },
     ]
   }
 ]
@@ -143,6 +144,7 @@ const administratorMenuGroups = [
       { label: 'Absence Justifications', path: '/absence-justifications', icon: 'event_available' },
       { label: 'Teacher Absence Reviews', path: '/teacher-absence-reports', icon: 'event_busy' },
       { label: 'User Profile', path: '/profile', icon: 'account_circle' },
+      { label: 'About This Portal', path: '/about-portal', icon: 'help_outline' },
     ]
   }
 ]
@@ -163,6 +165,7 @@ const guardianMenuGroups = [
     title: 'Account',
     items: [
       { label: 'User Profile', path: '/profile', icon: 'account_circle' },
+      { label: 'About This Portal', path: '/about-portal', icon: 'help_outline' },
     ]
   }
 ]
@@ -194,6 +197,7 @@ const teacherMenuGroups = [
     title: 'Account',
     items: [
       { label: 'User Profile', path: '/profile', icon: 'account_circle' },
+      { label: 'About This Portal', path: '/about-portal', icon: 'help_outline' },
     ]
   }
 ]
