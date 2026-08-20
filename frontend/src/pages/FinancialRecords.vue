@@ -4,6 +4,7 @@
       <div><h1 class="text-2xl font-bold tracking-tight text-slate-900">Financial Records & Billing Ledgers</h1><p class="mt-1 text-xs text-slate-500 font-geist">Manage database-backed invoices, manual payments, and XAF balances.</p></div>
       <span class="text-xs text-slate-400 font-geist">Administrator access only</span>
     </div>
+    <ContextHelp title="Keep financial records reconciled" summary="Class fees, invoices, balances, and manual payments are recorded in whole-number XAF values. Saving a record changes the ledger; reviewing a record does not." next="After saving, check the updated balance and payment allocation in the billing records. Guardian views remain read-only and show only persisted records." :steps="['Use positive whole-number XAF values for new financial inputs.', 'Confirm the student, payer, invoice, and payment reference before saving.', 'Review the resulting balance after every manual payment.']" />
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard title="Amount Paid" :value="loading ? '…' : formatCurrency(totalPaid)" change="All loaded records" :changeIsPositive="true" icon="attach_money" variant="primary" />
       <StatCard title="Outstanding Balance" :value="loading ? '…' : formatCurrency(outstanding)" change="Amount still due" :changeIsPositive="outstanding === 0" icon="account_balance_wallet" variant="amber" />

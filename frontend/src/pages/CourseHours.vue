@@ -7,6 +7,7 @@
       </div>
       <button type="button" class="btn-primary px-3 py-2 text-xs font-semibold" :disabled="loading" @click="loadData">Refresh</button>
     </div>
+    <ContextHelp title="Set the quota before building the timetable" summary="Course Hours defines the approved teaching quota for one teacher-course offering in the current semester. It is not a timetable entry and does not mark attendance." next="The timetable uses this quota to measure progress. Reducing a quota preserves completed history but may void eligible future excess sessions." :steps="['Select the correct teacher-course offering and semester.', 'Enter the approved whole-hour quota and review the current progress.', 'Use an additional-hours request when the approved quota is no longer sufficient.']" />
     <div v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ errorMessage }}</div>
     <div v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">{{ successMessage }}</div>
 

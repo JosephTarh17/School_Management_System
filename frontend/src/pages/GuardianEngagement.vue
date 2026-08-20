@@ -6,6 +6,8 @@
       <p class="mt-1 max-w-3xl text-sm text-slate-500">Contact the school, request an appointment, acknowledge important notices, respond to documents, and submit profile corrections for review.</p>
     </header>
 
+    <ContextHelp title="Understand each request before you submit" summary="These actions create requests for the school; they do not immediately change academic, discipline, finance, or profile records." next="The appropriate administrator reviews the request, and the resulting status or response appears in this page's history." :steps="['Select a linked child when the request concerns one child.', 'Read the status and administrator response after submitting.', 'Use the existing withdraw or close action when you no longer need a pending request.']" />
+
     <p v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{{ errorMessage }}</p>
     <p v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ successMessage }}</p>
 

@@ -29,6 +29,8 @@
       </div>
     </div>
 
+    <ContextHelp title="Attendance completes the teaching record" summary="Create or select the correct class session, mark the actual roster, and save attendance. A session cannot be treated as completed teaching without attendance." next="After attendance is saved, you can confirm the delivered session. Students and administrators then see the updated completion state according to their role." :steps="['Check the course, date, time, and location before creating a session.', 'Mark each student according to the actual attendance.', 'Save attendance before confirming the completed session.']" />
+
     <form v-if="showCreatePanel" @submit.prevent="createSession" class="rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-xs">
       <div class="mb-4">
         <h2 class="text-base font-bold text-slate-900 font-sans">Create class session</h2>

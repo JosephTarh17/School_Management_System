@@ -9,6 +9,8 @@
       <p class="text-xs text-slate-500">Pass: <span class="font-semibold text-slate-700">60% · 2.4 GPA</span></p>
     </header>
 
+    <ContextHelp title="Confirm marks only when the course is complete" summary="Select one course and one assessment before entering marks. A confirmed assessment moves to administrator review and is no longer an informal draft." next="The administrator reviews individual marks before publication. Students and guardians see the marks only after publication." :steps="['Check the selected course and assessment.', 'Review missing, justified, and unexcused assessment entries.', 'Confirm only after the visible marks and calculations are correct.']" />
+
     <p v-if="message" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ message }}</p>
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ errorMessage }}</p>
 

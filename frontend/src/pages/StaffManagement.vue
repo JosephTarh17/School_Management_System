@@ -9,6 +9,8 @@
       <button type="button" :disabled="loading" @click="loadAll" class="btn-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{{ loading ? 'Refreshing…' : 'Refresh staff' }}</button>
     </header>
 
+    <ContextHelp title="Keep staff records accurate and reviewable" summary="Teaching staff may receive login access and course links; non-teaching staff may be tracked without a teaching account. Editing preserves the staff history already attached to the record." next="After saving, administrators can review attendance and leave records from the same page. Account access and teaching assignments remain governed by their separate workflows." :steps="['Search the directory before creating a new staff record.', 'Choose teaching staff only when a linked teaching account is required.', 'Use leave review for decisions rather than editing historical attendance.']" />
+
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ errorMessage }}</p>
     <p v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ successMessage }}</p>
 

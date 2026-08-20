@@ -11,6 +11,8 @@
       </button>
     </header>
 
+    <ContextHelp title="Change access without deleting history" summary="Enable, disable, reset, or suspend an account only after checking the target user and reason. These actions affect access and sessions, but preserve academic, attendance, finance, and audit history." next="The user receives the existing security outcome, and the action is recorded in audit history. Lifecycle settings may take effect immediately or when the account lifecycle check runs." :steps="['Review the target account and role before acting.', 'Enter a clear reason for security and audit history.', 'Tell the user what they must do next after a reset or suspension.']" />
+
     <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ errorMessage }}</p>
     <p v-if="successMessage" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ successMessage }}</p>
     <div v-if="temporaryPassword" class="rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm" role="status">
