@@ -2,7 +2,7 @@ import express from 'express'
 import { randomBytes } from 'node:crypto'
 import { supabase } from '../supabaseClient.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { ENUMS, ApiError, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
+import { ENUMS, ApiError, asDate, asEnum, asText, asUuid, asyncRoute, sendData } from '../lib/api.js'
 import { hashPassword, verifyPassword } from '../lib/security.js'
 import { revokeAllUserSessions } from '../lib/sessions.js'
 import { recordAuditEvent } from '../lib/audit.js'
@@ -281,6 +281,56 @@ router.get('/:userId', asyncRoute(async (req, res) => {
   if (error) throw error
   if (!data) throw new ApiError(404, 'User not found')
   return sendData(res, data)
+}))
+
+router.post('/register-with-profile', requireRole('administrator'), asyncRoute(async (req, res) => {
+  const email = asText(req.body?.email, 'email', { max: 320 }).toLowerCase()
+  const role = asEnum(req.body?.role, 'role', ['student', 'guardian', 'administrator'])
+  const full_name = asText(req.body?.full_name, 'full_name', { max: 160 })
+  const class_level = role === 'student' ? asEnum(req.body?.class_level, 'class_level', ENUMS.classLevel, { optional: true }) : undefined
+  const dob = role === 'student' ? asDate(req.body?.dob, 'dob', { optional: true }) : undefined
+  const phone = ['student', 'guardian'].includes(role) ? asText(req.body?.phone, 'phone', { max: 40, optional: true }) : undefined
+  const address = role === 'student' ? asText(req.body?.address, 'address', { max: 240, optional: true }) : undefined
+  const relationship = role === 'guardian' ? asText(req.body?.relationship, 'relationship', { max: 80, optional: true }) : undefined
+  const department = role === 'administrator' ? asText(req.body?.department, 'department', { max: 120, optional: true }) : undefined
+  if (!/^\S+@\S+\.\S+$/.test(email)) throw new ApiError(400, 'email must be a valid email address')
+
+  const temporaryPassword = generateTemporaryPassword()
+  const password_hash = await hashPassword(temporaryPassword)
+  const { data, error } = await supabase.rpc('create_role_account_with_profile', {
+    p_email: email,
+    p_password_hash: password_hash,
+    p_role: role,
+    p_full_name: full_name,
+    p_class_level: class_level || null,
+    p_dob: dob || null,
+    p_phone: phone || null,
+    p_address: address || null,
+    p_relationship: relationship || null,
+    p_department: department || null,
+  })
+  if (error?.code === '23505') throw new ApiError(409, 'An account with this email already exists')
+  if (error?.code === '22023') throw new ApiError(400, error.message)
+  if (error) throw error
+  const created = Array.isArray(data) ? data[0] : data
+  if (!created?.user_id || !created?.profile_id) throw new ApiError(500, 'The account was not returned after creation')
+  await recordAuditEvent({
+    req,
+    action: 'POST /users/register-with-profile',
+    statusCode: 201,
+    resourceType: 'user_account',
+    resourceId: created.user_id,
+    metadata: { created_role: role, profile_id: created.profile_id },
+  })
+  return sendData(res, {
+    user_id: created.user_id,
+    profile_id: created.profile_id,
+    email,
+    role,
+    full_name,
+    must_change_password: true,
+    temporary_password: temporaryPassword,
+  }, 201)
 }))
 
 router.post('/register', requireRole('administrator'), asyncRoute(async (req, res) => {

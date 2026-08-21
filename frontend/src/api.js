@@ -114,6 +114,10 @@ export async function createUser(token, body) {
   return requestJson('/users/register', { method: 'POST', token, body })
 }
 
+export async function createRoleAccount(token, body) {
+  return requestJson('/users/register-with-profile', { method: 'POST', token, body })
+}
+
 export async function createGuardian(token, body) {
   return requestJson('/users/register-guardian', { method: 'POST', token, body })
 }

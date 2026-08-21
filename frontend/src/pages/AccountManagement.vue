@@ -6,10 +6,74 @@
         <h1 class="mt-1 text-2xl font-bold text-slate-950">Account Management</h1>
         <p class="mt-1 max-w-3xl text-sm text-slate-500">Manage access without deleting academic, attendance, financial, or audit history.</p>
       </div>
-      <button type="button" :disabled="loading" @click="loadUsers" class="btn-primary px-4 py-2 text-sm font-semibold disabled:opacity-50">
-        {{ loading ? 'Refreshing…' : 'Refresh accounts' }}
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn-primary px-4 py-2 text-sm font-semibold" @click="showCreateForm = !showCreateForm">
+          {{ showCreateForm ? 'Close create form' : 'Create account' }}
+        </button>
+        <button type="button" :disabled="loading" @click="loadUsers" class="btn-secondary px-4 py-2 text-sm font-semibold disabled:opacity-50">
+          {{ loading ? 'Refreshing…' : 'Refresh accounts' }}
+        </button>
+      </div>
     </header>
+
+    <div v-if="showCreateForm" class="rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 class="font-bold text-indigo-950">Create a non-teaching account</h2>
+          <p class="mt-1 max-w-3xl text-sm text-indigo-800">Create a Student, Guardian, or Administrator profile with a one-time temporary password. Teacher accounts remain under Staff Management.</p>
+        </div>
+        <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700">Administrator only</span>
+      </div>
+      <form class="mt-4 space-y-4" @submit.prevent="createAccount">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label class="text-xs font-semibold text-slate-700">Account type
+            <select v-model="accountRole" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none">
+              <option value="student">Student</option>
+              <option value="guardian">Guardian</option>
+              <option value="administrator">Administrator</option>
+            </select>
+          </label>
+          <label class="text-xs font-semibold text-slate-700">Email <span class="text-rose-700">*</span>
+            <input v-model.trim="accountForm.email" type="email" required maxlength="320" autocomplete="off" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+          <label class="text-xs font-semibold text-slate-700">Full name <span class="text-rose-700">*</span>
+            <input v-model.trim="accountForm.full_name" type="text" required maxlength="160" autocomplete="off" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+        </div>
+        <div v-if="accountRole === 'student'" class="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <label class="text-xs font-semibold text-slate-700">Class level
+            <select v-model="accountForm.class_level" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none"><option value="">Not set</option><option value="Freshman">Freshman</option><option value="Sophomore">Sophomore</option><option value="Junior">Junior</option></select>
+          </label>
+          <label class="text-xs font-semibold text-slate-700">Date of birth
+            <input v-model="accountForm.dob" type="date" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+          <label class="text-xs font-semibold text-slate-700">Phone
+            <input v-model.trim="accountForm.phone" type="tel" maxlength="40" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+          <label class="text-xs font-semibold text-slate-700">Address
+            <input v-model.trim="accountForm.address" type="text" maxlength="240" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+        </div>
+        <div v-else-if="accountRole === 'guardian'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="text-xs font-semibold text-slate-700">Phone
+            <input v-model.trim="accountForm.phone" type="tel" maxlength="40" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+          <label class="text-xs font-semibold text-slate-700">Relationship
+            <input v-model.trim="accountForm.relationship" type="text" maxlength="80" placeholder="Optional" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+        </div>
+        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="text-xs font-semibold text-slate-700">Department
+            <input v-model.trim="accountForm.department" type="text" maxlength="120" placeholder="Optional" class="mt-1.5 block w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-normal focus:border-indigo-500 focus:outline-none" />
+          </label>
+          <p class="self-end rounded-lg bg-white px-3 py-2 text-xs text-slate-600">The new Administrator is active and must change the temporary password at first login.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="submit" :disabled="creatingAccount" class="btn-primary px-4 py-2 text-sm font-semibold disabled:opacity-50">{{ creatingAccount ? 'Creating…' : 'Create account' }}</button>
+          <button type="button" class="btn-ghost px-4 py-2 text-sm font-semibold" @click="resetCreateForm">Clear form</button>
+        </div>
+      </form>
+    </div>
 
     <ContextHelp title="Change access without deleting history" summary="Enable, disable, reset, or suspend an account only after checking the target user and reason. These actions affect access and sessions, but preserve academic, attendance, finance, and audit history." next="The user receives the existing security outcome, and the action is recorded in audit history. Lifecycle settings may take effect immediately or when the account lifecycle check runs." :steps="['Review the target account and role before acting.', 'Enter a clear reason for security and audit history.', 'Tell the user what they must do next after a reset or suspension.']" />
 
@@ -188,7 +252,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { authStore } from '../store/auth.js'
-import { fetchAuditLogs, fetchUsers, forceLogoutUser, resetUserMfa, resetUserPassword, updateUserLifecycle, updateUserStatus } from '../api.js'
+import { createRoleAccount, fetchAuditLogs, fetchUsers, forceLogoutUser, resetUserMfa, resetUserPassword, updateUserLifecycle, updateUserStatus } from '../api.js'
 
 const users = ref([])
 const loading = ref(true)
@@ -211,6 +275,10 @@ const accountExpiresAt = ref('')
 const selectedHistoryUser = ref(null)
 const historyLogs = ref([])
 const historyLoading = ref(false)
+const showCreateForm = ref(false)
+const creatingAccount = ref(false)
+const accountRole = ref('student')
+const accountForm = ref({ email: '', full_name: '', class_level: '', dob: '', phone: '', address: '', relationship: '', department: '' })
 const token = () => authStore.token.value
 const currentUserId = computed(() => authStore.user.value?.user_id || '')
 
@@ -252,7 +320,33 @@ function openLifecycle(user) { if (!canManageTarget(user) || !canDisable(user)) 
 function toLocalInput(value) { return value ? new Date(value).toISOString().slice(0, 16) : '' }
 function closeAction() { selectedAction.value = null; actionReason.value = '' }
 function clearMessages() { errorMessage.value = ''; successMessage.value = '' }
+function resetCreateForm() {
+  accountForm.value = { email: '', full_name: '', class_level: '', dob: '', phone: '', address: '', relationship: '', department: '' }
+}
+function accountRoleLabel(role) { return ({ student: 'Student', guardian: 'Guardian', administrator: 'Administrator' }[role] || role) }
 function displayAuditAction(log) { return String(log.action || 'Event').replace(/^[A-Z]+\s+/, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) }
+
+async function createAccount() {
+  if (creatingAccount.value) return
+  creatingAccount.value = true
+  clearMessages()
+  temporaryPassword.value = ''
+  const form = accountForm.value
+  const body = { role: accountRole.value, email: form.email, full_name: form.full_name }
+  if (accountRole.value === 'student') Object.assign(body, { class_level: form.class_level, dob: form.dob, phone: form.phone, address: form.address })
+  if (accountRole.value === 'guardian') Object.assign(body, { phone: form.phone, relationship: form.relationship })
+  if (accountRole.value === 'administrator') Object.assign(body, { department: form.department })
+  const result = await createRoleAccount(token(), body)
+  if (!result.ok) {
+    errorMessage.value = result.error || 'Unable to create the account.'
+  } else {
+    temporaryPassword.value = result.data?.temporary_password || ''
+    successMessage.value = `${accountRoleLabel(accountRole.value)} account created. Share the temporary password securely and require a change at first login.`
+    resetCreateForm()
+    await loadUsers()
+  }
+  creatingAccount.value = false
+}
 
 async function loadUsers() {
   loading.value = true

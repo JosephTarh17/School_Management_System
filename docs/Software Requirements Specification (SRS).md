@@ -32,6 +32,7 @@ The primary objective of the School Management System is to centralize academic 
 * **Assessment Management:** Creating, grading, and reporting Test 1, Test 2, Test 3, and Final Examination within an academic year containing exactly two semesters: Semester 1 and Semester 2.
 * **Class Session Scheduling:** Managing academic calendars, administrator-configured class locations, recurring timetables, substitute teacher assignments, and academic-year and semester-aware class sessions with same-location overlap prevention.
 * **Staff Management:** Tracking teaching and non-teaching staff profiles, employment status, daily staff attendance, and administrator-reviewed leave records.
+* **Account Provisioning:** Administrator-only creation of Student, Guardian, and Administrator accounts with linked profiles, generated temporary passwords, first-login password change, and atomic rollback protection. Teacher creation remains under Staff Management.
 * **Participation Monitoring:** Tracking qualitative and quantitative student engagement metrics during live class sessions and extracurricular activities.
 
 ### 2.2 User Characteristics and Community
@@ -44,7 +45,11 @@ The system serves four distinct user communities, each with specialized technica
 | **Students** | Viewing schedules, checking grades, submitting assignments, tracking personal attendance and participation. | Basic | Student portal, schedule view, grade report dashboard, assignment submission interface. |
 | **Parents** | Monitoring child attendance, tracking academic progress, communicating with faculty, viewing school notices. | Basic | Parent portal, attendance summary, progress reports, notification center. |
 
-### 2.3 Benefits and Importance
+### 2.3 Account Provisioning Rules
+
+Administrators create Student, Guardian, and Administrator accounts from Account Management. Each account is created with its required linked profile in one atomic operation. The backend generates a one-time temporary password, stores only its Argon2id hash, sets the first-login password-change requirement, audits the creation without recording the password, and returns the temporary password only in the successful creation response. Student and Guardian accounts begin without a Guardian relationship; an Administrator must create that relationship separately. Teachers continue to be created through Staff Management because teacher creation also creates a linked staff record.
+
+### 2.4 Benefits and Importance
 Implementing the School Management System delivers measurable institutional benefits:
 * **Operational Efficiency:** Automates repetitive administrative tasks, freeing educators to focus on instruction.
 * **Data-Driven Decision Making:** Provides administrators and teachers with real-time analytics to identify at-risk students early through combined attendance and participation metrics.

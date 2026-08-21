@@ -34,7 +34,8 @@ Node.js + Express backend scaffold for the School Management System.
 - `GET /attendance` — list attendance for the authenticated user
 - `POST /attendance` — create a new attendance record
 - `GET /users/me` — fetch the authenticated user's profile
-- `POST /users/register` — create a new user account (admin-only)
+- `POST /users/register` — create a standalone user account (admin-only)
+- `POST /users/register-with-profile` — atomically create a Student, Guardian, or Administrator account with its linked profile and one-time temporary password (admin-only)
 - `GET /students` — list student profiles
 - `POST /students` — create a student profile (admin-only)
 - `GET /courses` — list courses
