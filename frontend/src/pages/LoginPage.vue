@@ -55,7 +55,7 @@
 
       <div class="mt-6 pt-4 border-t border-slate-200 text-center">
         <p class="text-xs text-slate-500 font-geist">
-          Need an account?
+          <span>Need an account?</span>
           <router-link to="/signup" class="text-primary-container font-semibold hover:underline ml-1">Create Account</router-link>
         </p>
       </div>
