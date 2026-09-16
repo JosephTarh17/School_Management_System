@@ -1,65 +1,107 @@
 # SMS Backend
 
-Node.js + Express backend scaffold for the School Management System.
+This backend implements the production-ready API layer for the School Management System. It is built with Express and integrates with Supabase for storage, role validation, transaction handling, and reporting workflows.
 
-## Running locally
+## Runtime stack
 
-1. Install dependencies:
-   ```bash
-   cd backend
-   npm install
-   ```
-2. Create `.env` from `.env.example` and set Supabase credentials and a random JWT secret of at least 32 characters.
-3. Start the backend:
-   ```bash
-   npm run dev
-   ```
+- Node.js + Express
+- PostgreSQL/Supabase
+- JWT-based authentication
+- Argon2 password hashing and MFA support
+- Audit logging and security middleware
 
-## Environment variables
+## Main API domains
+
+The backend exposes modules for:
+
+- Authentication and session lifecycle
+- Student, guardian, and admin account management
+- Staff operations and attendance
+- Course catalog, offerings, registrations, and enrollment
+- Assessments and grading workflows
+- Attendance, absence justification, and reporting
+- Timetables, class hours, school events, and calendar
+- Notifications and announcements
+- Behavior incidents and disciplinary handling
+- Guardian portal and engagement flows
+- Finance records and CinetPay payment settlement
+- Audit logging and search
+
+## Key routes
+
+The application wire-up in `src/app.js` registers the following route groups:
+
+- `/auth` — login, session, refresh, logout, MFA
+- `/attendance` — attendance capture and status review
+- `/users` — account and profile actions
+- `/students` — student record access and maintenance
+- `/courses` — catalog course management
+- `/class-sessions` — session and booking management
+- `/assessments` — assessments and grading data
+- `/participation-logs` — participation records
+- `/financial-records` — finance and payment tracking
+- `/dashboard` — analytics summaries
+- `/enrollments` — student enrollment management
+- `/course-registrations` — student request workflow
+- `/academic-records` — results and academic visibility
+- `/guardian-portal` — parent/guardian child views
+- `/guardian-engagement` — guardian communication actions
+- `/attendance-reports` — compliance and reporting
+- `/behavior-incidents` — discipline records
+- `/audit-logs` — security and admin logs
+- `/translations` — localization support
+- `/grading` — gradebook and publication flows
+- `/academic-period` — current academic year/semester settings
+- `/announcements` — notice publishing and audience filtering
+- `/notifications` — inbox, read-state, and fanout
+- `/search` — global project navigation/search
+- `/rooms` — class-location resources
+- `/staff` — staff directory, attendance, and leave
+- `/course-hours` — allocation and validation
+- `/timetables` — recurring schedule and occurrence logic
+- `/calendar` — schedule and event aggregation
+- `/school-events` — school event management
+- `/absence-justifications` — student absence review workflow
+
+## Environment configuration
+
+Create a `.env` file from the example template and set the required values before running the application.
+
+Required variables include:
 
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY` — must be a Supabase service role key, not the anon/public key
-- `JWT_SECRET` — random secret with at least 32 characters
-- `JWT_ISSUER` — defaults to `school-management-system`
-- `JWT_AUDIENCE` — defaults to `school-management-client`
-- `ACCESS_TOKEN_COOKIE` — defaults to `sms_access_token`
-- `NODE_ENV`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `JWT_SECRET`
+- `JWT_ISSUER`
+- `JWT_AUDIENCE`
+- `FRONTEND_URL`
 - `PORT`
+- Optional `CINETPAY_*` variables for payment integration
 
-## Endpoints
+## Local development
 
-- `POST /auth/login` — authenticate a user, receive a JWT, and set an HttpOnly session cookie
-- `POST /auth/logout` — clear the HttpOnly session cookie
-- `GET /auth/session` — return the authenticated session identity and expiry
-- `GET /attendance` — list attendance for the authenticated user
-- `POST /attendance` — create a new attendance record
-- `GET /users/me` — fetch the authenticated user's profile
-- `POST /users/register` — create a standalone user account (admin-only)
-- `POST /users/register-with-profile` — atomically create a Student, Guardian, or Administrator account with its linked profile and one-time temporary password (admin-only)
-- `GET /students` — list student profiles
-- `POST /students` — create a student profile (admin-only)
-- `GET /courses` — list courses
-- `POST /courses` — create a course (teacher/admin)
-- `GET /class-sessions` — list class sessions
-- `POST /class-sessions` — create a class session (teacher/admin)
-- `GET /assessments` — list assessments
-- `POST /assessments` — create an assessment (teacher/admin)
-- `GET /participation-logs` — list participation entries
-- `POST /participation-logs` — create participation logs (teacher/admin)
-- `GET /financial-records` — list financial records
-- `POST /financial-records` — create financial records (administrator-only)
+```bash
+cd backend
+npm install
+npm run dev
+```
 
-## Notes
+The API listens on the configured port and exposes a health endpoint at `/health`.
 
-- The backend uses `supabaseClient.js` to connect to Supabase with the service role key.
-- `auth/login` expects `email` and `password`.
-- Protected routes accept either `Authorization: Bearer <token>` or the HttpOnly `sms_access_token` cookie.
-- JWTs use HS256 with issuer and audience validation, an access-token type claim, a unique token ID, and an eight-hour default expiry.
-- `requireRole('administrator')`, `requireRole('teacher')`, and `requireRole('student')` enforce server-side RBAC. Data routes additionally enforce student ownership where applicable.
-- Login attempts are limited to five failures per IP/email key within 15 minutes in each backend process. Use a shared gateway or distributed limiter for multi-instance production deployments.
+## Security and reliability notes
 
-## Debug notes
+- Authenticated routes support both bearer tokens and HttpOnly cookies.
+- JWTs validate issuer, audience, expiration, and access-token claims.
+- The backend enforces route-specific RBAC checks on sensitive actions.
+- Login throttling and session revocation are implemented for operational security.
+- Security audit events are recorded for meaningful account and platform actions.
+- The service-role Supabase client is used for privileged server-side operations.
 
-- A login failure was caused by using the anon/public Supabase key instead of the service role key.
-- The current environment now uses a valid `SUPABASE_SERVICE_ROLE_KEY` and login/token access was verified.
-- Temporary test scripts used during debugging have been removed.
+## Verification
+
+The backend test suite validates core access-control and auth logic:
+
+```bash
+cd backend
+npm test
+```

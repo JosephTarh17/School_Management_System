@@ -1,47 +1,63 @@
 # SMS Frontend
 
-Vue 3 + Vite + Tailwind CSS starter scaffold for the School Management System frontend.
+This frontend implements the Vue-based user interface for the School Management System. It provides role-aware pages for students, teachers, guardians, and administrators and communicates with the Express backend through a centralized API layer.
 
-## Running locally
+## Stack
 
-1. Install dependencies:
-   ```bash
-   cd frontend
-   npm install
-   ```
-2. Start dev server:
-   ```bash
-   npm run dev
-   ```
+- Vue 3
+- Vite
+- Tailwind CSS
+- Vue Router
+- Playwright for smoke testing
 
-## Environment
+## Main app areas
 
-Create a `.env` file in `frontend` or copy `.env.example`:
+The frontend includes pages for:
+
+- authentication and onboarding
+- dashboard and analytics views
+- student and guardian portals
+- teacher attendance and gradebook workflows
+- course catalog and enrollment
+- staff management and account administration
+- timetable, calendar, and school events
+- announcements, behavior, finance, and audit screens
+
+## Local development
 
 ```bash
-cp .env.example .env
+cd frontend
+npm install
+npm run dev
 ```
 
-`VITE_API_BASE_URL` controls the backend API base URL used by the login and attendance requests.
+## Environment variables
 
-## Build
+Create a `.env` file or configure the runtime environment with:
+
+```bash
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+This value defines the target backend API used by the app for authentication and business-logic requests.
+
+## Build and preview
 
 ```bash
 npm run build
-```
-
-## Preview
-
-```bash
 npm run preview
 ```
 
-## End-to-end test
+## End-to-end checks
 
-The frontend includes a Playwright smoke test for the login and attendance flow.
+Playwright smoke coverage is included for key frontend flows:
 
 ```bash
 npm run test:e2e
 ```
 
-> The test assumes the frontend runs at `http://localhost:5173` and the backend API is available at the configured `VITE_API_BASE_URL`.
+The test flow assumes the frontend is served on `http://localhost:5173` and that the backend is reachable from the configured `VITE_API_BASE_URL`.
+
+## Notes
+
+This is the actual application shell for the implemented campus system rather than a starter template. The routes and page set correspond to the current repository implementation and role model.
